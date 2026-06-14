@@ -1,7 +1,7 @@
 import { useGetMyRecommendations } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, Brain, Share2, BookOpen, Cpu } from "lucide-react";
+import { TrendingUp, Brain, Share2, BookOpen, Cpu, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const CATEGORY_META: Record<string, { label: string; icon: typeof Brain; color: string }> = {
@@ -13,7 +13,10 @@ const CATEGORY_META: Record<string, { label: string; icon: typeof Brain; color: 
 };
 
 export default function Recommendations() {
-  const { data: recs, isLoading } = useGetMyRecommendations();
+  const { data: recs, isLoading, error } = useGetMyRecommendations();
+
+  const isPremiumLocked = (error as { status?: number } | null)?.status === 403 ||
+    (error as { response?: { status: number } } | null)?.response?.status === 403;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -26,6 +29,20 @@ export default function Recommendations() {
         <div className="space-y-4">
           {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
         </div>
+      ) : isPremiumLocked ? (
+        <Card className="bg-card/50 backdrop-blur border-primary/20">
+          <CardContent className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+            <Lock className="w-12 h-12 text-primary/50" />
+            <h3 className="text-xl font-semibold">Premium Feature</h3>
+            <p className="text-muted-foreground max-w-md">
+              Growth Path gives you AI-generated, personalized recommendations targeting your weakest semantic dimensions.
+              Upgrade to Premium to unlock your full growth roadmap.
+            </p>
+            <a href="/settings" className="mt-2 px-4 py-2 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">
+              Upgrade to Premium
+            </a>
+          </CardContent>
+        </Card>
       ) : !recs || recs.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <p>Start conversations to generate personalized growth recommendations.</p>

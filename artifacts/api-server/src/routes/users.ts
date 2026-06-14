@@ -324,7 +324,7 @@ export async function updateLeaderboardRank(userId: number): Promise<void> {
   }
 }
 
-export async function checkAndAwardBadges(userId: number, dims: { interdisciplinaryScore: number; abstractionLevel: number }, conversationCount: number, _domainsInConversation: string[]): Promise<void> {
+export async function checkAndAwardBadges(userId: number, dims: { interdisciplinaryScore: number; abstractionLevel: number }, conversationCount: number, domainsInConversation: string[]): Promise<void> {
   const existingBadges = await db.select({ badgeKey: badges.badgeKey }).from(badges).where(eq(badges.userId, userId));
   const existing = new Set(existingBadges.map(b => b.badgeKey));
 
@@ -334,11 +334,8 @@ export async function checkAndAwardBadges(userId: number, dims: { interdisciplin
   if (!existing.has("systems_thinker") && dims.interdisciplinaryScore > 7.5) toAward.push("systems_thinker");
   if (!existing.has("abstract_reasoner") && dims.abstractionLevel > 8.0) toAward.push("abstract_reasoner");
 
-  if (!existing.has("cross_domain_architect")) {
-    const allDomains = await db.select({ domain: semanticDomains.domain })
-      .from(semanticDomains)
-      .where(eq(semanticDomains.userId, userId));
-    if (allDomains.length >= 5) toAward.push("cross_domain_architect");
+  if (!existing.has("cross_domain_architect") && new Set(domainsInConversation).size >= 5) {
+    toAward.push("cross_domain_architect");
   }
 
   if (!existing.has("high_growth_user")) {

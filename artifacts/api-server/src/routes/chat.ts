@@ -227,14 +227,17 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     }
 
     const xpGained = Math.round(10 + sgiDelta * 5 + convoCount * 0.5);
-    await db.update(gamification)
+    const [updatedGam] = await db.update(gamification)
       .set({
         xp: sql`${gamification.xp} + ${xpGained}`,
         streak: sql`CASE WHEN DATE(${gamification.lastActiveDate}) = CURRENT_DATE - INTERVAL '1 day' THEN ${gamification.streak} + 1 WHEN DATE(${gamification.lastActiveDate}) = CURRENT_DATE THEN ${gamification.streak} ELSE 1 END`,
         lastActiveDate: new Date().toISOString().split("T")[0],
         level: sql`floor(sqrt((${gamification.xp} + ${xpGained}) / 100.0)) + 1`,
       })
-      .where(eq(gamification.userId, user.id));
+      .where(eq(gamification.userId, user.id))
+      .returning({ streak: gamification.streak });
+
+    const currentStreak = updatedGam?.streak ?? 1;
 
     await checkAndAwardBadges(user.id, {
       interdisciplinaryScore: scoreResult.dimensions.interdisciplinaryScore,
@@ -246,6 +249,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       reasoningDepth: scoreResult.dimensions.reasoningDepth,
       domainsExplored: scoreResult.domains,
       sgiDelta,
+      streakDays: currentStreak,
     }, async (bonusXp) => {
       await db.update(gamification)
         .set({ xp: sql`${gamification.xp} + ${bonusXp}` })
