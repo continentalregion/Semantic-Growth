@@ -86,7 +86,7 @@ router.get("/users/me/sgi-history", async (req, res) => {
       .orderBy(asc(sgiSnapshots.timestamp))
       .limit(500);
 
-    res.json({ snapshots, plan: user.plan, daysReturned: days });
+    res.json(snapshots);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal error" });
@@ -409,7 +409,7 @@ router.get("/users/:clerkId/sgi-history", async (req, res) => {
   const snapshots = await db.select().from(sgiSnapshots)
     .where(and(eq(sgiSnapshots.userId, user.id), gte(sgiSnapshots.timestamp, since)))
     .orderBy(asc(sgiSnapshots.timestamp)).limit(500);
-  res.json({ snapshots, plan: user.plan, daysReturned: days });
+  res.json(snapshots);
 });
 
 router.get("/users/:clerkId/semantic-map", async (req, res) => {
@@ -462,17 +462,35 @@ router.get("/users/:clerkId/predictions", async (req, res) => {
   const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const snapshots = await db.select().from(sgiSnapshots)
     .where(and(eq(sgiSnapshots.userId, user.id), gte(sgiSnapshots.timestamp, since30)))
-    .orderBy(asc(sgiSnapshots.timestamp)).limit(500);
-  const scores = snapshots.map(s => s.score);
-  if (scores.length < 3) { res.json({ predictions: [], message: "Not enough data for predictions yet" }); return; }
-  const recentAvgGrowth = scores.slice(-7).reduce((a, b, i, arr) => i === 0 ? 0 : a + (b - arr[i - 1]!), 0) / Math.max(scores.slice(-7).length - 1, 1);
-  const current = scores.at(-1)!;
-  const predictions = [7, 30, 90].map(days => ({
-    days,
-    predictedScore: Math.min(100, Math.round((current + recentAvgGrowth * days) * 10) / 10),
-    confidence: days === 7 ? 0.85 : days === 30 ? 0.65 : 0.40,
-  }));
-  res.json({ predictions, currentScore: current, growthRatePerDay: Math.round(recentAvgGrowth * 1000) / 1000 });
+    .orderBy(asc(sgiSnapshots.timestamp)).limit(100);
+  const currentSgi = user.sgiScore;
+  const currentRank = user.globalRank ?? 50000;
+  const totalUsersCount = await db.select({ count: sql<number>`count(*)` }).from(users);
+  const totalUsers = Number(totalUsersCount[0]?.count ?? 100000);
+  let avgDailyGrowth = 0.3;
+  if (snapshots.length >= 2) {
+    const first = snapshots[0]!;
+    const last = snapshots[snapshots.length - 1]!;
+    const daysDiff = Math.max(1, (last.timestamp.getTime() - first.timestamp.getTime()) / (1000 * 60 * 60 * 24));
+    avgDailyGrowth = Math.max(-0.5, Math.min(2, (last.score - first.score) / daysDiff));
+  }
+  const meanReversion = 0.03;
+  const targetSgi = 65;
+  function project(days: number, growthMultiplier: number): { sgi: number; rank: number } {
+    let sgi = currentSgi;
+    for (let d = 0; d < days; d++) {
+      const growth = avgDailyGrowth * growthMultiplier - meanReversion * (sgi - targetSgi) * 0.01;
+      sgi = Math.min(100, Math.max(0, sgi + growth));
+    }
+    const percentile = Math.max(0.1, Math.min(99.9, 50 + (sgi - 50) * 1.5));
+    const rank = Math.round(totalUsers * (1 - percentile / 100));
+    return { sgi: Math.round(sgi * 10) / 10, rank: Math.max(1, rank) };
+  }
+  void currentRank;
+  const conservative = { sgi30d: project(30, 0.5).sgi, rank30d: project(30, 0.5).rank, sgi90d: project(90, 0.5).sgi, rank90d: project(90, 0.5).rank, sgi180d: project(180, 0.5).sgi, rank180d: project(180, 0.5).rank };
+  const realistic = { sgi30d: project(30, 1).sgi, rank30d: project(30, 1).rank, sgi90d: project(90, 1).sgi, rank90d: project(90, 1).rank, sgi180d: project(180, 1).sgi, rank180d: project(180, 1).rank };
+  const optimistic = { sgi30d: project(30, 2).sgi, rank30d: project(30, 2).rank, sgi90d: project(90, 2).sgi, rank90d: project(90, 2).rank, sgi180d: project(180, 2).sgi, rank180d: project(180, 2).rank };
+  res.json({ conservative, realistic, optimistic });
 });
 
 export default router;

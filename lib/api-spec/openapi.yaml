@@ -71,7 +71,7 @@ paths:
     get:
       operationId: getSgiHistory
       tags: [users]
-      summary: Get SGI score history for charting
+      summary: Get SGI score history for charting (free tier capped at 7 days)
       parameters:
         - name: days
           in: query
@@ -93,7 +93,7 @@ paths:
     get:
       operationId: getSemanticMap
       tags: [users]
-      summary: Get interactive semantic domain map data
+      summary: Get interactive semantic domain map data (premium only)
       responses:
         "200":
           description: Semantic map with nodes and edges
@@ -101,12 +101,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SemanticMap"
+        "403":
+          description: Premium required
 
   /users/me/domain-strengths:
     get:
       operationId: getDomainStrengths
       tags: [users]
-      summary: Get strong and weak domain areas
+      summary: Get strong and weak domain areas (premium only)
       responses:
         "200":
           description: Domain strengths and development areas
@@ -114,12 +116,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DomainStrengths"
+        "403":
+          description: Premium required
 
   /users/me/predictions:
     get:
       operationId: getPredictions
       tags: [users]
-      summary: Get predicted SGI and rank at 30/90/180 days
+      summary: Get predicted SGI and rank at 30/90/180 days (premium only)
       responses:
         "200":
           description: Rank predictions
@@ -127,6 +131,104 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Predictions"
+        "403":
+          description: Premium required
+
+  /users/{id}/sgi-history:
+    get:
+      operationId: getUserSgiHistory
+      tags: [users]
+      summary: Get SGI history for a specific user (must be the authenticated user)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Clerk user ID
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 30
+      responses:
+        "200":
+          description: SGI snapshot history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SgiSnapshot"
+        "403":
+          description: Forbidden (not the authenticated user or premium required)
+
+  /users/{id}/semantic-map:
+    get:
+      operationId: getUserSemanticMap
+      tags: [users]
+      summary: Get semantic map for a specific user (must be the authenticated user, premium only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Clerk user ID
+      responses:
+        "200":
+          description: Semantic map with nodes and edges
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SemanticMap"
+        "403":
+          description: Forbidden or premium required
+
+  /users/{id}/domain-strengths:
+    get:
+      operationId: getUserDomainStrengths
+      tags: [users]
+      summary: Get domain strengths for a specific user (must be the authenticated user, premium only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Clerk user ID
+      responses:
+        "200":
+          description: Domain strengths
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainStrengths"
+        "403":
+          description: Forbidden or premium required
+
+  /users/{id}/predictions:
+    get:
+      operationId: getUserPredictions
+      tags: [users]
+      summary: Get SGI predictions for a specific user (must be the authenticated user, premium only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Clerk user ID
+      responses:
+        "200":
+          description: Rank predictions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Predictions"
+        "403":
+          description: Forbidden or premium required
 
   /leaderboard:
     get:
