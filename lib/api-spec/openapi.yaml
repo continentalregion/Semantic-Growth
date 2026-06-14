@@ -3,13 +3,25 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Semantic Growth Index API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: users
+    description: User profile and SGI data
+  - name: conversations
+    description: Chat conversations
+  - name: leaderboard
+    description: Global ranking
+  - name: gamification
+    description: XP, badges, missions
+  - name: recommendations
+    description: Personalized growth recommendations
+  - name: openai
+    description: OpenAI AI chat operations
 paths:
   /healthz:
     get:
@@ -24,6 +36,258 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /users/me:
+    get:
+      operationId: getMyProfile
+      tags: [users]
+      summary: Get current user profile with SGI data
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+    post:
+      operationId: syncUser
+      tags: [users]
+      summary: Sync Clerk user into database (called on first login)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSync"
+      responses:
+        "200":
+          description: Synced user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /users/me/sgi-history:
+    get:
+      operationId: getSgiHistory
+      tags: [users]
+      summary: Get SGI score history for charting
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 30
+      responses:
+        "200":
+          description: SGI snapshot history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SgiSnapshot"
+
+  /users/me/semantic-map:
+    get:
+      operationId: getSemanticMap
+      tags: [users]
+      summary: Get interactive semantic domain map data
+      responses:
+        "200":
+          description: Semantic map with nodes and edges
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SemanticMap"
+
+  /users/me/domain-strengths:
+    get:
+      operationId: getDomainStrengths
+      tags: [users]
+      summary: Get strong and weak domain areas
+      responses:
+        "200":
+          description: Domain strengths and development areas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainStrengths"
+
+  /users/me/predictions:
+    get:
+      operationId: getPredictions
+      tags: [users]
+      summary: Get predicted SGI and rank at 30/90/180 days
+      responses:
+        "200":
+          description: Rank predictions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Predictions"
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get global leaderboard
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardPage"
+
+  /leaderboard/summary:
+    get:
+      operationId: getLeaderboardSummary
+      tags: [leaderboard]
+      summary: Get global stats snapshot (total users, top SGI, etc.)
+      responses:
+        "200":
+          description: Leaderboard summary stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardSummary"
+
+  /gamification/me:
+    get:
+      operationId: getMyGamification
+      tags: [gamification]
+      summary: Get current user's XP, level, streak, badges, missions
+      responses:
+        "200":
+          description: Gamification data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GamificationProfile"
+
+  /recommendations/me:
+    get:
+      operationId: getMyRecommendations
+      tags: [recommendations]
+      summary: Get personalized growth recommendations
+      responses:
+        "200":
+          description: Recommendations list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Recommendation"
+
+  /openai/conversations:
+    get:
+      operationId: listOpenaiConversations
+      tags: [openai]
+      summary: List all conversations
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiConversation"
+    post:
+      operationId: createOpenaiConversation
+      tags: [openai]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenaiConversationInput"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversation"
+
+  /openai/conversations/{id}:
+    get:
+      operationId: getOpenaiConversation
+      tags: [openai]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deleteOpenaiConversation
+      tags: [openai]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /openai/conversations/{id}/messages:
+    post:
+      operationId: sendOpenaiMessage
+      tags: [openai]
+      summary: Send a text message and receive a streaming response + SGI update
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenaiMessageInput"
+      responses:
+        "200":
+          description: SSE stream of assistant text chunks
+          content:
+            text/event-stream: {}
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +298,450 @@ components:
       required:
         - status
 
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        clerkId:
+          type: string
+        email:
+          type: string
+        plan:
+          type: string
+          enum: [free, premium]
+        sgiScore:
+          type: number
+        sgiDailyDelta:
+          type: ["number", "null"]
+        sgiWeeklyDelta:
+          type: ["number", "null"]
+        sgiMonthlyDelta:
+          type: ["number", "null"]
+        globalRank:
+          type: ["integer", "null"]
+        totalUsers:
+          type: integer
+        percentile:
+          type: ["number", "null"]
+        rankChange30d:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - clerkId
+        - email
+        - plan
+        - sgiScore
+        - sgiDailyDelta
+        - sgiWeeklyDelta
+        - sgiMonthlyDelta
+        - globalRank
+        - totalUsers
+        - percentile
+        - rankChange30d
+        - createdAt
+
+    UserSync:
+      type: object
+      properties:
+        clerkId:
+          type: string
+        email:
+          type: string
+      required:
+        - clerkId
+        - email
+
+    SgiSnapshot:
+      type: object
+      properties:
+        id:
+          type: integer
+        score:
+          type: number
+        conceptualComplexity:
+          type: number
+        semanticVariety:
+          type: number
+        interdisciplinaryScore:
+          type: number
+        reasoningDepth:
+          type: number
+        originality:
+          type: number
+        stability:
+          type: number
+        continuity:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - id
+        - score
+        - conceptualComplexity
+        - semanticVariety
+        - interdisciplinaryScore
+        - reasoningDepth
+        - originality
+        - stability
+        - continuity
+        - timestamp
+
+    SemanticMapNode:
+      type: object
+      properties:
+        id:
+          type: string
+        domain:
+          type: string
+        explorationScore:
+          type: number
+        messageCount:
+          type: integer
+      required:
+        - id
+        - domain
+        - explorationScore
+        - messageCount
+
+    SemanticMapEdge:
+      type: object
+      properties:
+        source:
+          type: string
+        target:
+          type: string
+        strength:
+          type: number
+      required:
+        - source
+        - target
+        - strength
+
+    SemanticMap:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/SemanticMapNode"
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/SemanticMapEdge"
+      required:
+        - nodes
+        - edges
+
+    DomainStrengths:
+      type: object
+      properties:
+        strongAreas:
+          type: array
+          items:
+            type: string
+        developmentAreas:
+          type: array
+          items:
+            type: string
+      required:
+        - strongAreas
+        - developmentAreas
+
+    PredictionScenario:
+      type: object
+      properties:
+        rank30d:
+          type: integer
+        rank90d:
+          type: integer
+        rank180d:
+          type: integer
+        sgi30d:
+          type: number
+        sgi90d:
+          type: number
+        sgi180d:
+          type: number
+      required:
+        - rank30d
+        - rank90d
+        - rank180d
+        - sgi30d
+        - sgi90d
+        - sgi180d
+
+    Predictions:
+      type: object
+      properties:
+        conservative:
+          $ref: "#/components/schemas/PredictionScenario"
+        realistic:
+          $ref: "#/components/schemas/PredictionScenario"
+        optimistic:
+          $ref: "#/components/schemas/PredictionScenario"
+      required:
+        - conservative
+        - realistic
+        - optimistic
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        displayName:
+          type: string
+        sgiScore:
+          type: number
+        percentile:
+          type: number
+        rankChange30d:
+          type: ["integer", "null"]
+        isCurrentUser:
+          type: boolean
+      required:
+        - rank
+        - displayName
+        - sgiScore
+        - percentile
+        - rankChange30d
+        - isCurrentUser
+
+    LeaderboardPage:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaderboardEntry"
+        total:
+          type: integer
+        currentUserEntry:
+          $ref: "#/components/schemas/LeaderboardEntry"
+      required:
+        - entries
+        - total
+
+    LeaderboardSummary:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        averageSgi:
+          type: number
+        topSgi:
+          type: number
+        top1PercentThreshold:
+          type: number
+        top10PercentThreshold:
+          type: number
+        usersActive7d:
+          type: integer
+      required:
+        - totalUsers
+        - averageSgi
+        - topSgi
+        - top1PercentThreshold
+        - top10PercentThreshold
+        - usersActive7d
+
+    Badge:
+      type: object
+      properties:
+        id:
+          type: integer
+        badgeKey:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        earnedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - badgeKey
+        - name
+        - description
+        - earnedAt
+
+    Mission:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [weekly, monthly]
+        title:
+          type: string
+        description:
+          type: string
+        progress:
+          type: integer
+        target:
+          type: integer
+        completed:
+          type: boolean
+        expiresAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - title
+        - description
+        - progress
+        - target
+        - completed
+        - expiresAt
+
+    GamificationProfile:
+      type: object
+      properties:
+        xp:
+          type: integer
+        level:
+          type: integer
+        streak:
+          type: integer
+        lastActiveDate:
+          type: ["string", "null"]
+          format: date
+        badges:
+          type: array
+          items:
+            $ref: "#/components/schemas/Badge"
+        missions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Mission"
+        xpToNextLevel:
+          type: integer
+        levelProgress:
+          type: number
+      required:
+        - xp
+        - level
+        - streak
+        - lastActiveDate
+        - badges
+        - missions
+        - xpToNextLevel
+        - levelProgress
+
+    Recommendation:
+      type: object
+      properties:
+        id:
+          type: integer
+        category:
+          type: string
+        content:
+          type: string
+        estimatedSgiGain:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - category
+        - content
+        - estimatedSgiGain
+        - createdAt
+
+    OpenaiConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        sgiDelta:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - sgiDelta
+        - createdAt
+
+    OpenaiMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        sgiDelta:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - sgiDelta
+        - createdAt
+
+    OpenaiConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        sgiDelta:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpenaiMessage"
+      required:
+        - id
+        - title
+        - sgiDelta
+        - createdAt
+        - messages
+
+    OpenaiConversationInput:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+
+    OpenaiMessageInput:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

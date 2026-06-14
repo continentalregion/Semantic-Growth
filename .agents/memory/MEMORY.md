@@ -1,0 +1,2 @@
+- [SGI CSS theme](sgi-css-theme.md) — index.css had all "red" placeholder HSL values; replaced with dark navy/cyan futuristic theme
+- [SGI leaderboard null bug](sgi-leaderboard-null.md) — seeded leaderboard entries have userId=null; always null-guard before equality check

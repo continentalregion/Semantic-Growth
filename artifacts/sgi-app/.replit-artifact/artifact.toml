@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Semantic Growth Index"
+version = "1.0.0"
+id = "artifacts/sgi-app"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22358
+
+[services.development]
+run = "pnpm --filter @workspace/sgi-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/sgi-app", "run", "build" ]
+publicDir = "artifacts/sgi-app/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22358"
+BASE_PATH = "/"
