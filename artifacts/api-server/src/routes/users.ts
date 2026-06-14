@@ -76,7 +76,9 @@ router.get("/users/me/sgi-history", async (req, res) => {
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
-    const days = parseInt(String(req.query.days ?? "30"), 10);
+    const FREE_TIER_MAX_DAYS = 7;
+    const requestedDays = parseInt(String(req.query.days ?? "30"), 10);
+    const days = user.plan === "premium" ? requestedDays : Math.min(requestedDays, FREE_TIER_MAX_DAYS);
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
     const snapshots = await db.select().from(sgiSnapshots)
@@ -84,7 +86,7 @@ router.get("/users/me/sgi-history", async (req, res) => {
       .orderBy(asc(sgiSnapshots.timestamp))
       .limit(500);
 
-    res.json(snapshots);
+    res.json({ snapshots, plan: user.plan, daysReturned: days });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal error" });
@@ -98,6 +100,11 @@ router.get("/users/me/semantic-map", async (req, res) => {
 
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    if (user.plan !== "premium") {
+      res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" });
+      return;
+    }
 
     const domains = await db.select().from(semanticDomains).where(eq(semanticDomains.userId, user.id)).orderBy(desc(semanticDomains.explorationScore));
 
@@ -130,6 +137,11 @@ router.get("/users/me/domain-strengths", async (req, res) => {
 
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    if (user.plan !== "premium") {
+      res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" });
+      return;
+    }
 
     const domains = await db.select().from(semanticDomains).where(eq(semanticDomains.userId, user.id)).orderBy(desc(semanticDomains.explorationScore));
 
@@ -365,5 +377,102 @@ async function generateRecommendations(userId: number): Promise<void> {
 function formatDomain(d: string): string {
   return d.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 }
+
+function requireOwner(req: import("express").Request, res: import("express").Response, userId: string): boolean {
+  if (req.auth?.userId !== userId) {
+    res.status(403).json({ error: "Forbidden" });
+    return false;
+  }
+  return true;
+}
+
+router.get("/users/:clerkId", async (req, res) => {
+  if (!requireOwner(req, res, req.params.clerkId!)) return;
+  const clerkId = req.auth?.userId;
+  if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  const profile = await buildUserProfile(user.id);
+  res.json(profile);
+});
+
+router.get("/users/:clerkId/sgi-history", async (req, res) => {
+  if (!requireOwner(req, res, req.params.clerkId!)) return;
+  const clerkId = req.auth?.userId;
+  if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  const FREE_TIER_MAX_DAYS = 7;
+  const requestedDays = parseInt(String(req.query.days ?? "30"), 10);
+  const days = user.plan === "premium" ? requestedDays : Math.min(requestedDays, FREE_TIER_MAX_DAYS);
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const snapshots = await db.select().from(sgiSnapshots)
+    .where(and(eq(sgiSnapshots.userId, user.id), gte(sgiSnapshots.timestamp, since)))
+    .orderBy(asc(sgiSnapshots.timestamp)).limit(500);
+  res.json({ snapshots, plan: user.plan, daysReturned: days });
+});
+
+router.get("/users/:clerkId/semantic-map", async (req, res) => {
+  if (!requireOwner(req, res, req.params.clerkId!)) return;
+  const clerkId = req.auth?.userId;
+  if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  if (user.plan !== "premium") { res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" }); return; }
+  const domains = await db.select().from(semanticDomains).where(eq(semanticDomains.userId, user.id)).orderBy(desc(semanticDomains.explorationScore));
+  const nodes = domains.map(d => ({ id: d.domain, domain: d.domain, explorationScore: d.explorationScore, messageCount: d.messageCount }));
+  const edges: Array<{ source: string; target: string; strength: number }> = [];
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const n1 = nodes[i]; const n2 = nodes[j];
+      if (!n1 || !n2) continue;
+      const strength = Math.min(n1.explorationScore, n2.explorationScore) / 10;
+      if (strength > 0.2) edges.push({ source: n1.id, target: n2.id, strength });
+    }
+  }
+  res.json({ nodes, edges });
+});
+
+router.get("/users/:clerkId/domain-strengths", async (req, res) => {
+  if (!requireOwner(req, res, req.params.clerkId!)) return;
+  const clerkId = req.auth?.userId;
+  if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  if (user.plan !== "premium") { res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" }); return; }
+  const domains = await db.select().from(semanticDomains).where(eq(semanticDomains.userId, user.id)).orderBy(desc(semanticDomains.explorationScore));
+  const ALL_DOMAINS = ["philosophy", "mathematics", "biology", "economics", "psychology", "physics", "linguistics", "technology", "history", "art", "literature", "ethics", "logic", "computer_science"];
+  const exploredDomainNames = new Set(domains.map(d => d.domain));
+  const unexplored = ALL_DOMAINS.filter(d => !exploredDomainNames.has(d));
+  const strongAreas = domains.slice(0, 3).map(d => formatDomain(d.domain));
+  const developmentAreas = [
+    ...domains.filter(d => d.explorationScore < 4).slice(0, 2).map(d => formatDomain(d.domain)),
+    ...unexplored.slice(0, 3).map(d => formatDomain(d))
+  ].slice(0, 5);
+  res.json({ strongAreas, developmentAreas });
+});
+
+router.get("/users/:clerkId/predictions", async (req, res) => {
+  if (!requireOwner(req, res, req.params.clerkId!)) return;
+  const clerkId = req.auth?.userId;
+  if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  if (user.plan !== "premium") { res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" }); return; }
+  const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const snapshots = await db.select().from(sgiSnapshots)
+    .where(and(eq(sgiSnapshots.userId, user.id), gte(sgiSnapshots.timestamp, since30)))
+    .orderBy(asc(sgiSnapshots.timestamp)).limit(500);
+  const scores = snapshots.map(s => s.score);
+  if (scores.length < 3) { res.json({ predictions: [], message: "Not enough data for predictions yet" }); return; }
+  const recentAvgGrowth = scores.slice(-7).reduce((a, b, i, arr) => i === 0 ? 0 : a + (b - arr[i - 1]!), 0) / Math.max(scores.slice(-7).length - 1, 1);
+  const current = scores.at(-1)!;
+  const predictions = [7, 30, 90].map(days => ({
+    days,
+    predictedScore: Math.min(100, Math.round((current + recentAvgGrowth * days) * 10) / 10),
+    confidence: days === 7 ? 0.85 : days === 30 ? 0.65 : 0.40,
+  }));
+  res.json({ predictions, currentScore: current, growthRatePerDay: Math.round(recentAvgGrowth * 1000) / 1000 });
+});
 
 export default router;

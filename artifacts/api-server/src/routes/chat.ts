@@ -5,6 +5,7 @@ import { eq, desc, and, sql, gte } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { scoreMessage, computeNewSgiScore } from "../lib/sgiScoring";
 import { updateLeaderboardRank, checkAndAwardBadges } from "./users";
+import { updateMissionProgress } from "./gamification";
 
 const router = Router();
 
@@ -239,6 +240,17 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       interdisciplinaryScore: scoreResult.dimensions.interdisciplinaryScore,
       abstractionLevel: scoreResult.dimensions.abstractionLevel,
     }, convoCount, scoreResult.domains);
+
+    await updateMissionProgress(user.id, {
+      conversationCompleted: true,
+      reasoningDepth: scoreResult.dimensions.reasoningDepth,
+      domainsExplored: scoreResult.domains,
+      sgiDelta,
+    }, async (bonusXp) => {
+      await db.update(gamification)
+        .set({ xp: sql`${gamification.xp} + ${bonusXp}` })
+        .where(eq(gamification.userId, user.id));
+    });
 
     await updateLeaderboardRank(user.id);
 
