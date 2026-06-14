@@ -1,0 +1,285 @@
+Costruisci una web app SaaS chiamata "Semantic Growth Index (SGI)".
+
+L'app è una piattaforma di chat AI che monitora nel tempo l'evoluzione linguistica e cognitivo-semantica dell'utente attraverso l'analisi delle conversazioni.
+
+OBIETTIVO
+
+L'obiettivo NON è misurare intelligenza, cervello, personalità, QI, coscienza o salute mentale.
+
+L'obiettivo è creare un benchmark dinamico della crescita semantica osservabile attraverso il linguaggio, confrontando l'utente con una community globale e mostrando come evolve nel tempo il suo profilo di esplorazione concettuale.
+
+L'app deve funzionare come un mix tra:
+
+- AI Chat
+- Duolingo
+- Chess.com Rating
+- Strava
+- Dashboard Analytics
+
+applicato alla crescita cognitivo-semantica osservabile nel linguaggio.
+
+==================================================
+ANALISI DELLE CONVERSAZIONI
+==================================================
+
+Per ogni messaggio e conversazione analizza:
+
+- complessità concettuale
+- profondità di ragionamento
+- varietà semantica
+- capacità di collegare domini differenti
+- originalità delle idee
+- esplorazione interdisciplinare
+- stabilità narrativa
+- continuità tematica
+- evoluzione nel tempo
+- capacità di produrre cambiamenti di direzione nella conversazione
+- ricchezza lessicale
+- densità informativa
+- livello di astrazione
+
+Utilizza embeddings, classificazione tematica e metriche semantiche per costruire un profilo dinamico dell'utente.
+
+==================================================
+SEMANTIC GROWTH INDEX (SGI)
+==================================================
+
+Calcola un punteggio principale chiamato:
+
+SGI = Semantic Growth Index
+
+Range:
+0 - 100
+
+Lo score deve essere composto da più fattori:
+
+- complessità concettuale
+- varietà semantica
+- connessioni interdisciplinari
+- profondità del ragionamento
+- evoluzione nel tempo
+- stabilità e continuità
+- originalità
+
+Mostra sempre:
+
+- SGI attuale
+- variazione giornaliera
+- variazione settimanale
+- variazione mensile
+
+==================================================
+CLASSIFICA GLOBALE
+==================================================
+
+Mantieni una classifica globale anonima.
+
+Per ogni utente mostra:
+
+- posizione globale
+- percentile
+- utenti sopra e sotto di lui
+- andamento della posizione nel tempo
+- storico delle variazioni
+
+Esempi:
+
+Posizione globale:
+#12.431 su 1.200.000 utenti
+
+Percentile:
+Top 1,2%
+
+Variazione:
++243 posizioni ultimi 30 giorni
+
+==================================================
+SIMULAZIONE FUTURA
+==================================================
+
+Implementa un motore predittivo che simula l'evoluzione del profilo.
+
+Mostra:
+
+- posizione prevista a 30 giorni
+- posizione prevista a 90 giorni
+- posizione prevista a 180 giorni
+
+Genera scenari:
+
+- conservativo
+- realistico
+- ottimistico
+
+Esempio:
+
+Scenario realistico:
+Posizione stimata #8.200
+
+Scenario ottimistico:
+Posizione stimata #5.900
+
+==================================================
+AREE FORTI E AREE DA SVILUPPARE
+==================================================
+
+Per ogni utente identifica:
+
+AREE FORTI
+
+Esempio:
+- pensiero sistemico
+- connessioni interdisciplinari
+- ragionamento astratto
+
+AREE DA SVILUPPARE
+
+Esempio:
+- ragionamento probabilistico
+- strutture causali
+- modellazione matematica
+- sintesi concettuale
+
+==================================================
+MOTORE DI RACCOMANDAZIONE
+==================================================
+
+Costruisci un motore che suggerisca come migliorare il ranking.
+
+Genera:
+
+- esercizi
+- temi di approfondimento
+- argomenti da esplorare
+- modalità di ragionamento poco utilizzate
+
+Esempio:
+
+Per aumentare il tuo SGI del 12%:
+
+- studia teoria dei sistemi
+- approfondisci probabilità bayesiana
+- aumenta i collegamenti tra economia e psicologia
+- esplora teoria dell'informazione
+
+==================================================
+MAPPA SEMANTICA INTERATTIVA
+==================================================
+
+Genera una visualizzazione interattiva del profilo.
+
+Mostra:
+
+- domini esplorati
+- domini poco esplorati
+- collegamenti interdisciplinari
+- evoluzione temporale
+
+Utilizza:
+
+- network graph
+- radar chart
+- heatmap
+- timeline
+
+==================================================
+GAMIFICATION
+==================================================
+
+Implementa:
+
+- XP
+- livelli
+- badge
+- achievement
+- streak giornaliere
+- missioni settimanali
+- missioni mensili
+
+Esempi badge:
+
+- Semantic Explorer
+- Systems Thinker
+- Cross-Domain Architect
+- Abstract Reasoner
+- High Growth User
+
+==================================================
+CHAT AI
+==================================================
+
+Integra una chat AI moderna.
+
+L'utente deve poter:
+
+- conversare normalmente
+- ricevere risposte approfondite
+- chiedere spiegazioni
+- svolgere esercizi consigliati
+
+Ogni conversazione aggiorna automaticamente il profilo SGI.
+
+==================================================
+DASHBOARD
+==================================================
+
+Tema:
+
+- dark mode
+- estetica scientifica
+- stile futuristico
+- analytics professionale
+
+La dashboard deve includere:
+
+- SGI
+- ranking
+- percentile
+- grafici
+- heatmap
+- radar chart
+- timeline
+- mappa semantica
+- raccomandazioni
+
+==================================================
+MODELLO BUSINESS
+==================================================
+
+PIANO GRATUITO
+
+- numero limitato di chat
+- ranking base
+- SGI base
+- statistiche essenziali
+
+PIANO PREMIUM
+
+- chat illimitata
+- storico completo
+- simulazioni predittive
+- analytics avanzate
+- mappe semantiche avanzate
+- confronto con top utenti
+- raccomandazioni avanzate
+- report settimanali e mensili
+
+==================================================
+VINCOLI IMPORTANTI
+==================================================
+
+NON affermare mai che il sistema misura:
+
+- intelligenza
+- cervello
+- QI
+- personalità
+- coscienza
+- salute mentale
+- diagnosi psicologiche
+
+Presentare sempre il sistema come:
+
+"piattaforma di analisi dell'evoluzione del linguaggio, dell'esplorazione semantica e delle traiettorie cognitive osservabili nelle conversazioni."
+
+Costruisci un MVP completo ma con architettura predisposta alla scalabilità SaaS.
