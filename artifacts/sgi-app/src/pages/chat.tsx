@@ -172,9 +172,9 @@ export default function Chat() {
               >
                 <span className="truncate flex-1">{c.title}</span>
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  {c.sgiDelta !== undefined && c.sgiDelta !== 0 && (
+                  {c.sgiDelta != null && c.sgiDelta !== 0 && (
                     <span className={`text-xs font-mono ${c.sgiDelta > 0 ? "text-green-500" : "text-red-500"}`}>
-                      {c.sgiDelta > 0 ? "+" : ""}{c.sgiDelta.toFixed(1)}
+                      {c.sgiDelta > 0 ? "+" : ""}{(c.sgiDelta as number).toFixed(1)}
                     </span>
                   )}
                   <button

@@ -126,7 +126,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     if (!userContent.trim()) { res.status(400).json({ error: "Message content is required" }); return; }
 
     if (user.plan === "free") {
-      const FREE_TIER_DAILY_LIMIT = 20;
+      const FREE_TIER_DAILY_LIMIT = 10;
       const dayStart = new Date();
       dayStart.setUTCHours(0, 0, 0, 0);
       const todayMessages = await db.select({ count: sql<number>`count(*)` })
@@ -143,7 +143,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       }
     }
 
-    await db.insert(messages).values({ conversationId: convoId, role: "user", content: userContent });
+    const [insertedUserMsg] = await db.insert(messages).values({ conversationId: convoId, role: "user", content: userContent }).returning({ id: messages.id });
 
     const history = await db.select().from(messages)
       .where(eq(messages.conversationId, convoId))
@@ -242,9 +242,11 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
 
     await updateLeaderboardRank(user.id);
 
-    await db.update(messages)
-      .set({ sgiDelta })
-      .where(and(eq(messages.conversationId, convoId), eq(messages.role, "user")));
+    if (insertedUserMsg) {
+      await db.update(messages)
+        .set({ sgiDelta })
+        .where(eq(messages.id, insertedUserMsg.id));
+    }
 
     res.write(`data: ${JSON.stringify({ done: true, sgiDelta, newSgi: Math.round(newSgi * 10) / 10 })}\n\n`);
     res.end();

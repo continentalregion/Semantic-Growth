@@ -285,7 +285,7 @@ export async function updateLeaderboardRank(userId: number): Promise<void> {
 
   const betterCount = await db.select({ count: sql<number>`count(*)` })
     .from(leaderboardEntries)
-    .where(sql`${leaderboardEntries.sgiScore} > ${user.sgiScore} AND ${leaderboardEntries.userId} IS NULL`);
+    .where(sql`${leaderboardEntries.sgiScore} > ${user.sgiScore}`);
 
   const rank = Number(betterCount[0]?.count ?? 0) + 1;
   await db.update(users).set({ globalRank: rank }).where(eq(users.id, userId));
