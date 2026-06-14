@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { users, conversations, messages, sgiSnapshots, gamification, semanticDomains } from "@workspace/db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, gte } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { scoreMessage, computeNewSgiScore } from "../lib/sgiScoring";
 import { updateLeaderboardRank, checkAndAwardBadges } from "./users";
@@ -125,6 +125,24 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     const userContent: string = req.body?.content ?? "";
     if (!userContent.trim()) { res.status(400).json({ error: "Message content is required" }); return; }
 
+    if (user.plan === "free") {
+      const FREE_TIER_DAILY_LIMIT = 20;
+      const dayStart = new Date();
+      dayStart.setUTCHours(0, 0, 0, 0);
+      const todayMessages = await db.select({ count: sql<number>`count(*)` })
+        .from(messages)
+        .innerJoin(conversations, eq(conversations.id, messages.conversationId))
+        .where(and(
+          eq(conversations.userId, user.id),
+          eq(messages.role, "user"),
+          gte(messages.createdAt, dayStart),
+        ));
+      if (Number(todayMessages[0]?.count ?? 0) >= FREE_TIER_DAILY_LIMIT) {
+        res.status(429).json({ error: "Daily message limit reached", code: "DAILY_LIMIT_REACHED", limit: FREE_TIER_DAILY_LIMIT });
+        return;
+      }
+    }
+
     await db.insert(messages).values({ conversationId: convoId, role: "user", content: userContent });
 
     const history = await db.select().from(messages)
@@ -192,14 +210,19 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     await db.update(conversations).set({ sgiDelta: newConvoDelta }).where(eq(conversations.id, convoId));
 
     for (const domain of scoreResult.domains) {
-      await db.insert(semanticDomains).values({ userId: user.id, domain, explorationScore: scoreResult.dimensions.interdisciplinaryScore, messageCount: 1 })
-        .onConflictDoNothing();
-      await db.update(semanticDomains)
-        .set({
+      await db.insert(semanticDomains).values({
+        userId: user.id,
+        domain,
+        explorationScore: scoreResult.dimensions.interdisciplinaryScore,
+        messageCount: 1,
+      }).onConflictDoUpdate({
+        target: [semanticDomains.userId, semanticDomains.domain],
+        set: {
           explorationScore: sql`(${semanticDomains.explorationScore} * ${semanticDomains.messageCount} + ${scoreResult.dimensions.interdisciplinaryScore}) / (${semanticDomains.messageCount} + 1)`,
           messageCount: sql`${semanticDomains.messageCount} + 1`,
-        })
-        .where(and(eq(semanticDomains.userId, user.id), eq(semanticDomains.domain, domain)));
+          updatedAt: new Date(),
+        },
+      });
     }
 
     const xpGained = Math.round(10 + sgiDelta * 5 + convoCount * 0.5);

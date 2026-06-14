@@ -9,12 +9,17 @@ const router = Router();
 
 router.post("/users/me", async (req, res) => {
   try {
+    const authUserId = req.auth?.userId;
+    if (!authUserId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
     const parsed = SyncUserBody.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "Invalid body" });
       return;
     }
     const { clerkId, email } = parsed.data;
+
+    if (clerkId !== authUserId) { res.status(403).json({ error: "Forbidden" }); return; }
 
     const existing = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (existing.length > 0) {
@@ -154,6 +159,11 @@ router.get("/users/me/predictions", async (req, res) => {
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
+    if (user.plan !== "premium") {
+      res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" });
+      return;
+    }
+
     const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const snapshots = await db.select().from(sgiSnapshots)
       .where(and(eq(sgiSnapshots.userId, user.id), gte(sgiSnapshots.timestamp, since30)))
@@ -275,7 +285,7 @@ export async function updateLeaderboardRank(userId: number): Promise<void> {
 
   const betterCount = await db.select({ count: sql<number>`count(*)` })
     .from(leaderboardEntries)
-    .where(sql`${leaderboardEntries.sgiScore} > ${user.sgiScore}`);
+    .where(sql`${leaderboardEntries.sgiScore} > ${user.sgiScore} AND ${leaderboardEntries.userId} IS NULL`);
 
   const rank = Number(betterCount[0]?.count ?? 0) + 1;
   await db.update(users).set({ globalRank: rank }).where(eq(users.id, userId));
@@ -285,12 +295,24 @@ export async function updateLeaderboardRank(userId: number): Promise<void> {
   const percentile = Math.round((1 - rank / total) * 1000) / 10;
 
   const displayName = `User_${userId.toString().padStart(6, "0")}`;
-  await db.insert(leaderboardEntries).values({
-    userId, displayName, sgiScore: user.sgiScore, rank, percentile, isAnonymous: 1
-  }).onConflictDoNothing();
+
+  const [existing] = await db.select({ id: leaderboardEntries.id })
+    .from(leaderboardEntries)
+    .where(eq(leaderboardEntries.userId, userId))
+    .limit(1);
+
+  if (existing) {
+    await db.update(leaderboardEntries)
+      .set({ sgiScore: user.sgiScore, rank, percentile, updatedAt: new Date() })
+      .where(eq(leaderboardEntries.id, existing.id));
+  } else {
+    await db.insert(leaderboardEntries).values({
+      userId, displayName, sgiScore: user.sgiScore, rank, percentile, isAnonymous: 1
+    });
+  }
 }
 
-export async function checkAndAwardBadges(userId: number, dims: { interdisciplinaryScore: number; abstractionLevel: number }, conversationCount: number, domainsInConversation: string[]): Promise<void> {
+export async function checkAndAwardBadges(userId: number, dims: { interdisciplinaryScore: number; abstractionLevel: number }, conversationCount: number, _domainsInConversation: string[]): Promise<void> {
   const existingBadges = await db.select({ badgeKey: badges.badgeKey }).from(badges).where(eq(badges.userId, userId));
   const existing = new Set(existingBadges.map(b => b.badgeKey));
 
@@ -298,8 +320,27 @@ export async function checkAndAwardBadges(userId: number, dims: { interdisciplin
 
   if (!existing.has("semantic_explorer") && conversationCount >= 5) toAward.push("semantic_explorer");
   if (!existing.has("systems_thinker") && dims.interdisciplinaryScore > 7.5) toAward.push("systems_thinker");
-  if (!existing.has("cross_domain_architect") && domainsInConversation.length >= 5) toAward.push("cross_domain_architect");
   if (!existing.has("abstract_reasoner") && dims.abstractionLevel > 8.0) toAward.push("abstract_reasoner");
+
+  if (!existing.has("cross_domain_architect")) {
+    const allDomains = await db.select({ domain: semanticDomains.domain })
+      .from(semanticDomains)
+      .where(eq(semanticDomains.userId, userId));
+    if (allDomains.length >= 5) toAward.push("cross_domain_architect");
+  }
+
+  if (!existing.has("high_growth_user")) {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const oldSnap = await db.select({ score: sgiSnapshots.score })
+      .from(sgiSnapshots)
+      .where(and(eq(sgiSnapshots.userId, userId), gte(sgiSnapshots.timestamp, sevenDaysAgo)))
+      .orderBy(asc(sgiSnapshots.timestamp))
+      .limit(1);
+    const [currentUser] = await db.select({ sgiScore: users.sgiScore }).from(users).where(eq(users.id, userId)).limit(1);
+    if (oldSnap.length > 0 && currentUser && (currentUser.sgiScore - oldSnap[0]!.score) >= 10) {
+      toAward.push("high_growth_user");
+    }
+  }
 
   for (const key of toAward) {
     await db.insert(badges).values({ userId, badgeKey: key }).onConflictDoNothing();
