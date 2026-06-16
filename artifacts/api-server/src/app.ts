@@ -40,18 +40,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(
-  clerkMiddleware((req) => {
-    const host = getClerkProxyHost(req) ?? "";
-    const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
-    const isProduction = process.env.NODE_ENV === "production";
-    return {
-      publishableKey: publishableKeyFromHost(host, process.env.CLERK_PUBLISHABLE_KEY),
-      secretKey: process.env.CLERK_SECRET_KEY,
-      // In production tokens are issued by the Clerk proxy — the backend must
-      // know the proxy URL so it can accept that issuer during JWT verification.
-      proxyUrl: isProduction ? `${protocol}://${host}${CLERK_PROXY_PATH}` : undefined,
-    };
-  }),
+  clerkMiddleware((req) => ({
+    publishableKey: publishableKeyFromHost(
+      getClerkProxyHost(req) ?? "",
+      process.env.CLERK_PUBLISHABLE_KEY,
+    ),
+  })),
 );
 
 // Temporary debug endpoint — logs auth state to diagnose production 401s
