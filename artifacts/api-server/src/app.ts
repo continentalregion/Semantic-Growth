@@ -48,36 +48,55 @@ app.use(
   })),
 );
 
+// Decode a JWT without verifying — returns header+payload claims
+function decodeJwtUnsafe(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const decode = (s: string) =>
+      JSON.parse(Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
+    return { header: decode(parts[0]), payload: decode(parts[1]) };
+  } catch {
+    return null;
+  }
+}
+
 // Temporary debug endpoint — logs auth state to diagnose production 401s
 app.get("/api/debug-auth", (req, res) => {
   const auth = getAuth(req);
   const host = getClerkProxyHost(req);
   const pubKey = publishableKeyFromHost(host ?? "", process.env.CLERK_PUBLISHABLE_KEY);
-  const cookies = req.headers["cookie"] ?? "(none)";
+  const cookieHeader = req.headers["cookie"] ?? "";
   const authHeader = req.headers["authorization"] ?? "(none)";
-  logger.info({
-    debugAuth: true,
-    host,
-    resolvedPubKey: pubKey?.slice(0, 20) + "...",
-    hasSecretKey: !!process.env.CLERK_SECRET_KEY,
-    secretKeyPrefix: process.env.CLERK_SECRET_KEY?.slice(0, 10),
-    authUserId: auth?.userId,
-    authSessionId: auth?.sessionId,
-    cookiePresent: cookies !== "(none)",
-    authHeaderPresent: authHeader !== "(none)",
-    nodeEnv: process.env.NODE_ENV,
-  }, "debug-auth");
-  res.json({
+
+  // Parse all cookies into a map
+  const cookieMap: Record<string, string> = {};
+  for (const part of cookieHeader.split(";")) {
+    const [k, ...v] = part.trim().split("=");
+    if (k) cookieMap[k.trim()] = v.join("=");
+  }
+
+  // Find the __session_* cookie (suffixed or plain)
+  const sessionKey = Object.keys(cookieMap).find(k => k.startsWith("__session"));
+  const sessionTokenRaw = sessionKey ? cookieMap[sessionKey] : undefined;
+  const decodedJwt = sessionTokenRaw ? decodeJwtUnsafe(sessionTokenRaw) : null;
+
+  const result = {
     userId: auth?.userId ?? null,
     sessionId: auth?.sessionId ?? null,
     host,
     resolvedPubKeyPrefix: pubKey?.slice(0, 15),
     hasSecretKey: !!process.env.CLERK_SECRET_KEY,
     secretKeyPrefix: process.env.CLERK_SECRET_KEY?.slice(0, 10),
-    cookieNames: cookies === "(none)" ? [] : cookies.split(";").map(c => c.trim().split("=")[0]),
+    cookieNames: Object.keys(cookieMap),
+    sessionCookieKey: sessionKey ?? null,
+    sessionJwt: decodedJwt,
     authHeaderPresent: authHeader !== "(none)",
     nodeEnv: process.env.NODE_ENV,
-  });
+    fullPubKey: pubKey,
+  };
+  logger.info({ debugAuth: true, ...result }, "debug-auth");
+  res.json(result);
 });
 
 app.use("/api", router);
