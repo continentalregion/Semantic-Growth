@@ -76,10 +76,13 @@ app.get("/api/debug-auth", (req, res) => {
     if (k) cookieMap[k.trim()] = v.join("=");
   }
 
-  // Find the __session_* cookie (suffixed or plain)
-  const sessionKey = Object.keys(cookieMap).find(k => k.startsWith("__session"));
-  const sessionTokenRaw = sessionKey ? cookieMap[sessionKey] : undefined;
-  const decodedJwt = sessionTokenRaw ? decodeJwtUnsafe(sessionTokenRaw) : null;
+  // Decode ALL session cookies
+  const sessionCookies: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(cookieMap)) {
+    if (k.startsWith("__session")) {
+      sessionCookies[k] = v ? decodeJwtUnsafe(v) ?? `(not a jwt, len=${v.length})` : "(empty)";
+    }
+  }
 
   const result = {
     userId: auth?.userId ?? null,
@@ -89,8 +92,7 @@ app.get("/api/debug-auth", (req, res) => {
     hasSecretKey: !!process.env.CLERK_SECRET_KEY,
     secretKeyPrefix: process.env.CLERK_SECRET_KEY?.slice(0, 10),
     cookieNames: Object.keys(cookieMap),
-    sessionCookieKey: sessionKey ?? null,
-    sessionJwt: decodedJwt,
+    sessionCookies,
     authHeaderPresent: authHeader !== "(none)",
     nodeEnv: process.env.NODE_ENV,
     fullPubKey: pubKey,
