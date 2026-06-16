@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { ClerkProvider, SignIn, SignUp, Show, useAuth, useUser } from "@clerk/react";
+import { ClerkProvider, SignIn, SignUp, Show, useAuth, useUser, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useSyncUser, useGetMyProfile } from "@workspace/api-client-react";
-import { setAuthTokenGetter } from "@workspace/api-client-react/custom-fetch";
 import Layout from "@/components/layout";
 
 // Pages
@@ -46,11 +45,12 @@ const clerkAppearance = {
   variables: {
     colorPrimary: "#7c6bff",
     colorBackground: "transparent",
-    colorInputBackground: "rgba(124,107,255,0.07)",
-    colorInputText: "#eeeeff",
-    colorText: "#eeeeff",
-    colorTextSecondary: "#9090b8",
-    colorTextOnPrimaryBackground: "#ffffff",
+    colorInput: "rgba(124,107,255,0.07)",
+    colorInputForeground: "#eeeeff",
+    colorForeground: "#eeeeff",
+    colorMutedForeground: "#9090b8",
+    colorDanger: "#f72585",
+    colorNeutral: "rgba(124,107,255,0.3)",
     borderRadius: "10px",
     fontFamily: "'Space Grotesk', 'Inter', sans-serif",
   },
@@ -256,16 +256,30 @@ function SignUpPage() {
   );
 }
 
+function ClerkQueryClientCacheInvalidator() {
+  const { addListener } = useClerk();
+  const qc = useQueryClient();
+  const prevUserIdRef = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    const unsubscribe = addListener(({ user }) => {
+      const userId = user?.id ?? null;
+      if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId) {
+        qc.clear();
+      }
+      prevUserIdRef.current = userId;
+    });
+    return unsubscribe;
+  }, [addListener, qc]);
+
+  return null;
+}
+
 function UserSync() {
   const { user, isLoaded, isSignedIn } = useUser();
-  const { getToken } = useAuth();
   const syncUser = useSyncUser();
   const attemptRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  useEffect(() => {
-    setAuthTokenGetter(() => getToken());
-  }, [getToken]);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !user) return;
@@ -351,6 +365,7 @@ function ClerkProviderWithRoutes() {
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
       <QueryClientProvider client={queryClient}>
+        <ClerkQueryClientCacheInvalidator />
         <UserSync />
         <Switch>
           <Route path="/" component={HomeRedirect} />
