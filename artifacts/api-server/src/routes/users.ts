@@ -55,7 +55,19 @@ router.post("/users/me", async (req, res) => {
 router.get("/users/me", async (req, res) => {
   try {
     const clerkId = req.auth?.userId;
-    if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    if (!clerkId) {
+      const cookie = req.headers["cookie"] ?? "(none)";
+      const authHeader = req.headers["authorization"] ?? "(none)";
+      req.log?.info({
+        event: "users-me-401",
+        hasCookie: cookie !== "(none)",
+        cookieNames: cookie === "(none)" ? [] : cookie.split(";").map((c: string) => c.trim().split("=")[0]),
+        hasAuthHeader: authHeader !== "(none)",
+        host: req.headers["host"],
+        xForwardedHost: req.headers["x-forwarded-host"],
+      }, "GET /users/me → 401 debug");
+      res.status(401).json({ error: "Unauthorized" }); return;
+    }
 
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
