@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { MessageSquarePlus, Trash2, Send, Bot, User, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { MessageSquarePlus, Trash2, Send, Bot, User, TrendingUp, TrendingDown, Minus, Zap } from "lucide-react";
 
 const API_BASE = "/api";
 
@@ -29,6 +29,7 @@ export default function Chat() {
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [lastSgiDelta, setLastSgiDelta] = useState<number | null>(null);
+  const [lastDomains, setLastDomains] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: conversations, isLoading: convosLoading } = useListOpenaiConversations();
@@ -48,6 +49,7 @@ export default function Chat() {
         qc.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
         setActiveConvoId(convo.id);
         setLastSgiDelta(null);
+        setLastDomains([]);
       },
       onError: () => toast.error("Failed to create conversation"),
     });
@@ -61,6 +63,7 @@ export default function Chat() {
         if (activeConvoId === id) {
           setActiveConvoId(null);
           setLastSgiDelta(null);
+          setLastDomains([]);
         }
       },
       onError: () => toast.error("Failed to delete conversation"),
@@ -113,6 +116,7 @@ export default function Chat() {
             }
             if (parsed.done) {
               setLastSgiDelta(parsed.sgiDelta ?? null);
+              setLastDomains(parsed.domains ?? []);
               if (parsed.sgiDelta > 0) {
                 toast.success(`SGI +${parsed.sgiDelta.toFixed(2)} pts`);
               }
@@ -207,16 +211,29 @@ export default function Chat() {
         ) : (
           <>
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-3 border-b border-border">
+            <div
+              className="flex items-center justify-between px-6 py-3 flex-shrink-0"
+              style={{ borderBottom: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" }}
+            >
               <div className="flex items-center gap-3">
-                <Bot className="w-5 h-5 text-primary" />
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center"
+                  style={{ background: "linear-gradient(135deg, #7c6bff, #5b4de0)" }}
+                >
+                  <Bot className="w-4 h-4 text-white" />
+                </div>
                 <span className="font-medium text-sm">{activeConvo?.title ?? "Exploration"}</span>
               </div>
               {lastSgiDelta !== null && (
-                <div className={`flex items-center gap-1 font-mono text-sm px-3 py-1 rounded-full ${
-                  lastSgiDelta > 0 ? "text-green-400 bg-green-400/10" : lastSgiDelta < 0 ? "text-red-400 bg-red-400/10" : "text-muted-foreground bg-muted/10"
-                }`}>
-                  {lastSgiDelta > 0 ? <TrendingUp className="w-4 h-4" /> : lastSgiDelta < 0 ? <TrendingDown className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
+                <div
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold"
+                  style={{
+                    background: lastSgiDelta > 0 ? "rgba(6,214,160,0.12)" : lastSgiDelta < 0 ? "rgba(247,37,133,0.12)" : "rgba(255,255,255,0.06)",
+                    border: `1px solid ${lastSgiDelta > 0 ? "rgba(6,214,160,0.3)" : lastSgiDelta < 0 ? "rgba(247,37,133,0.3)" : "rgba(255,255,255,0.1)"}`,
+                    color: lastSgiDelta > 0 ? "#06d6a0" : lastSgiDelta < 0 ? "#f72585" : "#9090b8",
+                  }}
+                >
+                  <Zap className="w-3.5 h-3.5" />
                   SGI {lastSgiDelta > 0 ? "+" : ""}{lastSgiDelta.toFixed(2)}
                 </div>
               )}
@@ -235,59 +252,88 @@ export default function Chat() {
                 </div>
               ) : (
                 <>
-                  {messages.map(msg => (
-                    <div
-                      key={msg.id}
-                      data-testid={`message-${msg.id}`}
-                      className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                    >
-                      {msg.role === "assistant" && (
-                        <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center flex-shrink-0 mt-1">
-                          <Bot className="w-4 h-4 text-primary" />
+                  {messages.map((msg, idx) => {
+                    const isLastAI = msg.role === "assistant" && idx === messages.length - 1 && !isStreaming;
+                    return (
+                      <div key={msg.id} data-testid={`message-${msg.id}`}>
+                        <div className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                          {msg.role === "assistant" && (
+                            <div
+                              className="w-[30px] h-[30px] rounded-full flex items-center justify-center flex-shrink-0 mt-1"
+                              style={{ background: "linear-gradient(135deg, #7c6bff, #5b4de0)" }}
+                            >
+                              <Bot className="w-4 h-4 text-white" />
+                            </div>
+                          )}
+                          <div className="max-w-[76%]">
+                            <div
+                              className="px-4 py-3 rounded-[14px] text-sm leading-[1.7] whitespace-pre-wrap"
+                              style={
+                                msg.role === "user"
+                                  ? { background: "linear-gradient(135deg, #7c6bff, #5b4de0)", color: "#fff" }
+                                  : { background: "rgba(21,23,40,1)", border: "1px solid rgba(255,255,255,0.07)", color: "#eeeeff" }
+                              }
+                            >
+                              {msg.content}
+                            </div>
+                            {/* SGI update bubble on last AI message */}
+                            {isLastAI && lastSgiDelta !== null && (
+                              <div className="sgi-update">
+                                <Zap className="w-3 h-3 flex-shrink-0" />
+                                <span>SGI {lastSgiDelta > 0 ? "+" : ""}{lastSgiDelta.toFixed(2)}</span>
+                                {lastDomains.slice(0, 3).map((d) => (
+                                  <span key={d} className="sgi-tag">{d.replace(/_/g, " ")}</span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {msg.role === "user" && (
+                            <div
+                              className="w-[30px] h-[30px] rounded-full flex items-center justify-center flex-shrink-0 mt-1"
+                              style={{ background: "linear-gradient(135deg, #06d6a0, #04a87a)" }}
+                            >
+                              <User className="w-4 h-4 text-white" />
+                            </div>
+                          )}
                         </div>
-                      )}
-                      <div className={`max-w-[80%] px-4 py-3 rounded-xl text-sm leading-relaxed ${
-                        msg.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-card border border-border text-foreground"
-                      }`}>
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
-                        {msg.sgiDelta !== null && msg.role === "user" && (
-                          <p className={`text-xs mt-1 font-mono opacity-70 ${msg.sgiDelta > 0 ? "text-green-300" : "text-red-300"}`}>
-                            SGI {msg.sgiDelta > 0 ? "+" : ""}{msg.sgiDelta?.toFixed(2)}
-                          </p>
-                        )}
                       </div>
-                      {msg.role === "user" && (
-                        <div className="w-7 h-7 rounded-full bg-muted border border-border flex items-center justify-center flex-shrink-0 mt-1">
-                          <User className="w-4 h-4 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {/* Streaming message */}
                   {isStreaming && streamingContent && (
                     <div className="flex gap-3 justify-start">
-                      <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center flex-shrink-0 mt-1">
-                        <Bot className="w-4 h-4 text-primary animate-pulse" />
+                      <div
+                        className="w-[30px] h-[30px] rounded-full flex items-center justify-center flex-shrink-0 mt-1"
+                        style={{ background: "linear-gradient(135deg, #7c6bff, #5b4de0)" }}
+                      >
+                        <Bot className="w-4 h-4 text-white animate-pulse" />
                       </div>
-                      <div className="max-w-[80%] px-4 py-3 rounded-xl text-sm leading-relaxed bg-card border border-border text-foreground">
+                      <div
+                        className="max-w-[76%] px-4 py-3 rounded-[14px] text-sm leading-[1.7]"
+                        style={{ background: "rgba(21,23,40,1)", border: "1px solid rgba(255,255,255,0.07)", color: "#eeeeff" }}
+                      >
                         <p className="whitespace-pre-wrap">{streamingContent}<span className="animate-pulse ml-0.5">▍</span></p>
                       </div>
                     </div>
                   )}
+
+                  {/* Typing indicator */}
                   {isStreaming && !streamingContent && (
                     <div className="flex gap-3 justify-start">
-                      <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center flex-shrink-0 mt-1">
-                        <Bot className="w-4 h-4 text-primary animate-pulse" />
+                      <div
+                        className="w-[30px] h-[30px] rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ background: "linear-gradient(135deg, #7c6bff, #5b4de0)" }}
+                      >
+                        <Bot className="w-4 h-4 text-white" />
                       </div>
-                      <div className="px-4 py-3 rounded-xl bg-card border border-border">
-                        <div className="flex gap-1">
-                          <span className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                          <span className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                          <span className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                        </div>
+                      <div
+                        className="flex items-center gap-1 px-4 py-3 rounded-[14px]"
+                        style={{ background: "rgba(21,23,40,1)", border: "1px solid rgba(255,255,255,0.07)" }}
+                      >
+                        <span className="typing-dot" />
+                        <span className="typing-dot" />
+                        <span className="typing-dot" />
                       </div>
                     </div>
                   )}

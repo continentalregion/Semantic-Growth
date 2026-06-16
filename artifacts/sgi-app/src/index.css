@@ -59,6 +59,7 @@
   --font-sans: var(--app-font-sans);
   --font-serif: var(--app-font-serif);
   --font-mono: var(--app-font-mono);
+  --font-display: var(--app-font-display);
 
   --text-xs: 0.75rem;
   --text-xs--line-height: calc(1 / 0.75);
@@ -93,63 +94,80 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* BASE (dark by default — html always has class="dark") */
+/* ============================================================
+   SGI DESIGN TOKENS (matching HTML prototype palette)
+   ============================================================ */
 :root {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --sgi-purple: #7c6bff;
+  --sgi-teal: #06d6a0;
+  --sgi-pink: #f72585;
+  --sgi-purple-dim: rgba(124,107,255,0.15);
+  --sgi-teal-dim: rgba(6,214,160,0.15);
+  --sgi-pink-dim: rgba(247,37,133,0.12);
 
+  --button-outline: rgba(255,255,255,.10);
+  --badge-outline: rgba(255,255,255,.05);
   --opaque-button-border-intensity: 9;
+  --elevate-1: rgba(255,255,255,.04);
+  --elevate-2: rgba(255,255,255,.09);
 
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  /* SGI dark palette — #08090f → #0f1020 → #151728 */
+  --background: 240 50% 5%;
+  --foreground: 240 30% 97%;
+  --border: 238 30% 16%;
+  --card: 237 40% 10%;
+  --card-foreground: 240 30% 97%;
+  --card-border: 238 30% 18%;
+  --sidebar: 240 50% 7%;
+  --sidebar-foreground: 240 30% 97%;
+  --sidebar-border: 238 30% 14%;
+  --sidebar-primary: 248 100% 71%;
+  --sidebar-primary-foreground: 248 100% 10%;
+  --sidebar-accent: 237 35% 16%;
+  --sidebar-accent-foreground: 240 30% 97%;
+  --sidebar-ring: 248 100% 71%;
+  --popover: 237 40% 10%;
+  --popover-foreground: 240 30% 97%;
+  --popover-border: 238 30% 18%;
 
-  --background: 222 47% 11%;
-  --foreground: 210 40% 98%;
-  --border: 217 33% 22%;
-  --card: 217 33% 15%;
-  --card-foreground: 210 40% 98%;
-  --card-border: 217 33% 22%;
-  --sidebar: 222 47% 9%;
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-border: 217 33% 18%;
-  --sidebar-primary: 199 89% 48%;
-  --sidebar-primary-foreground: 222 47% 11%;
-  --sidebar-accent: 217 33% 20%;
-  --sidebar-accent-foreground: 210 40% 98%;
-  --sidebar-ring: 199 89% 48%;
-  --popover: 222 47% 13%;
-  --popover-foreground: 210 40% 98%;
-  --popover-border: 217 33% 22%;
-  --primary: 199 89% 48%;
-  --primary-foreground: 222 47% 11%;
-  --secondary: 217 33% 20%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20% 65%;
-  --accent: 199 89% 48%;
-  --accent-foreground: 222 47% 11%;
-  --destructive: 0 84% 60%;
+  /* Primary = SGI purple #7c6bff */
+  --primary: 248 100% 71%;
+  --primary-foreground: 248 100% 10%;
+
+  --secondary: 237 35% 16%;
+  --secondary-foreground: 240 30% 97%;
+  --muted: 237 35% 13%;
+  --muted-foreground: 240 15% 55%;
+  --accent: 248 100% 71%;
+  --accent-foreground: 248 100% 10%;
+
+  /* Destructive = SGI pink #f72585 */
+  --destructive: 327 93% 57%;
   --destructive-foreground: 0 0% 98%;
-  --input: 217 33% 22%;
-  --ring: 199 89% 48%;
-  --chart-1: 199 89% 48%;
-  --chart-2: 262 83% 58%;
-  --chart-3: 142 71% 45%;
-  --chart-4: 48 96% 53%;
-  --chart-5: 0 84% 60%;
+  --input: 238 30% 18%;
+  --ring: 248 100% 71%;
+
+  /* Chart colors */
+  --chart-1: 248 100% 71%;   /* sgi-purple */
+  --chart-2: 163 96% 44%;   /* sgi-teal */
+  --chart-3: 327 93% 57%;   /* sgi-pink */
+  --chart-4: 38 96% 55%;    /* amber */
+  --chart-5: 210 89% 60%;   /* blue */
 
   --app-font-sans: 'Inter', sans-serif;
+  --app-font-display: 'Space Grotesk', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: Menlo, monospace;
   --radius: .5rem;
-  --shadow-2xs: 0px 2px 4px 0px hsl(222 47% 5% / 0.40);
-  --shadow-xs: 0px 2px 4px 0px hsl(222 47% 5% / 0.40);
-  --shadow-sm: 0px 2px 4px 0px hsl(222 47% 5% / 0.40), 0px 1px 2px -1px hsl(222 47% 5% / 0.30);
-  --shadow: 0px 4px 8px 0px hsl(222 47% 5% / 0.40), 0px 2px 4px -1px hsl(222 47% 5% / 0.30);
-  --shadow-md: 0px 6px 12px 0px hsl(222 47% 5% / 0.40), 0px 2px 4px -1px hsl(222 47% 5% / 0.30);
-  --shadow-lg: 0px 10px 20px 0px hsl(222 47% 5% / 0.40), 0px 4px 6px -1px hsl(222 47% 5% / 0.30);
-  --shadow-xl: 0px 16px 32px 0px hsl(222 47% 5% / 0.40), 0px 8px 10px -1px hsl(222 47% 5% / 0.30);
-  --shadow-2xl: 0px 24px 48px 0px hsl(222 47% 5% / 0.50);
+
+  --shadow-2xs: 0px 2px 4px 0px hsl(240 50% 3% / 0.60);
+  --shadow-xs: 0px 2px 4px 0px hsl(240 50% 3% / 0.60);
+  --shadow-sm: 0px 2px 4px 0px hsl(240 50% 3% / 0.50), 0px 1px 2px -1px hsl(240 50% 3% / 0.40);
+  --shadow: 0px 4px 8px 0px hsl(240 50% 3% / 0.50), 0px 2px 4px -1px hsl(240 50% 3% / 0.40);
+  --shadow-md: 0px 6px 12px 0px hsl(240 50% 3% / 0.50), 0px 2px 4px -1px hsl(240 50% 3% / 0.40);
+  --shadow-lg: 0px 10px 20px 0px hsl(240 50% 3% / 0.50), 0px 4px 6px -1px hsl(240 50% 3% / 0.40);
+  --shadow-xl: 0px 16px 32px 0px hsl(240 50% 3% / 0.50), 0px 8px 10px -1px hsl(240 50% 3% / 0.40);
+  --shadow-2xl: 0px 24px 48px 0px hsl(240 50% 3% / 0.70);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
@@ -176,57 +194,59 @@
 }
 
 .dark {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --sgi-purple: #7c6bff;
+  --sgi-teal: #06d6a0;
+  --sgi-pink: #f72585;
 
+  --button-outline: rgba(255,255,255,.10);
+  --badge-outline: rgba(255,255,255,.05);
   --opaque-button-border-intensity: 9;
+  --elevate-1: rgba(255,255,255,.04);
+  --elevate-2: rgba(255,255,255,.09);
 
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
-
-  --background: 222 47% 11%;
-  --foreground: 210 40% 98%;
-  --border: 217 33% 22%;
-  --card: 217 33% 15%;
-  --card-foreground: 210 40% 98%;
-  --card-border: 217 33% 22%;
-  --sidebar: 222 47% 9%;
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-border: 217 33% 18%;
-  --sidebar-primary: 199 89% 48%;
-  --sidebar-primary-foreground: 222 47% 11%;
-  --sidebar-accent: 217 33% 20%;
-  --sidebar-accent-foreground: 210 40% 98%;
-  --sidebar-ring: 199 89% 48%;
-  --popover: 222 47% 13%;
-  --popover-foreground: 210 40% 98%;
-  --popover-border: 217 33% 22%;
-  --primary: 199 89% 48%;
-  --primary-foreground: 222 47% 11%;
-  --secondary: 217 33% 20%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20% 65%;
-  --accent: 199 89% 48%;
-  --accent-foreground: 222 47% 11%;
-  --destructive: 0 84% 60%;
+  --background: 240 50% 5%;
+  --foreground: 240 30% 97%;
+  --border: 238 30% 16%;
+  --card: 237 40% 10%;
+  --card-foreground: 240 30% 97%;
+  --card-border: 238 30% 18%;
+  --sidebar: 240 50% 7%;
+  --sidebar-foreground: 240 30% 97%;
+  --sidebar-border: 238 30% 14%;
+  --sidebar-primary: 248 100% 71%;
+  --sidebar-primary-foreground: 248 100% 10%;
+  --sidebar-accent: 237 35% 16%;
+  --sidebar-accent-foreground: 240 30% 97%;
+  --sidebar-ring: 248 100% 71%;
+  --popover: 237 40% 10%;
+  --popover-foreground: 240 30% 97%;
+  --popover-border: 238 30% 18%;
+  --primary: 248 100% 71%;
+  --primary-foreground: 248 100% 10%;
+  --secondary: 237 35% 16%;
+  --secondary-foreground: 240 30% 97%;
+  --muted: 237 35% 13%;
+  --muted-foreground: 240 15% 55%;
+  --accent: 248 100% 71%;
+  --accent-foreground: 248 100% 10%;
+  --destructive: 327 93% 57%;
   --destructive-foreground: 0 0% 98%;
-  --input: 217 33% 22%;
-  --ring: 199 89% 48%;
-  --chart-1: 199 89% 48%;
-  --chart-2: 262 83% 58%;
-  --chart-3: 142 71% 45%;
-  --chart-4: 48 96% 53%;
-  --chart-5: 0 84% 60%;
+  --input: 238 30% 18%;
+  --ring: 248 100% 71%;
+  --chart-1: 248 100% 71%;
+  --chart-2: 163 96% 44%;
+  --chart-3: 327 93% 57%;
+  --chart-4: 38 96% 55%;
+  --chart-5: 210 89% 60%;
 
-  --shadow-2xs: 0px 2px 4px 0px hsl(222 47% 5% / 0.40);
-  --shadow-xs: 0px 2px 4px 0px hsl(222 47% 5% / 0.40);
-  --shadow-sm: 0px 2px 4px 0px hsl(222 47% 5% / 0.40), 0px 1px 2px -1px hsl(222 47% 5% / 0.30);
-  --shadow: 0px 4px 8px 0px hsl(222 47% 5% / 0.40), 0px 2px 4px -1px hsl(222 47% 5% / 0.30);
-  --shadow-md: 0px 6px 12px 0px hsl(222 47% 5% / 0.40), 0px 2px 4px -1px hsl(222 47% 5% / 0.30);
-  --shadow-lg: 0px 10px 20px 0px hsl(222 47% 5% / 0.40), 0px 4px 6px -1px hsl(222 47% 5% / 0.30);
-  --shadow-xl: 0px 16px 32px 0px hsl(222 47% 5% / 0.40), 0px 8px 10px -1px hsl(222 47% 5% / 0.30);
-  --shadow-2xl: 0px 24px 48px 0px hsl(222 47% 5% / 0.50);
+  --shadow-2xs: 0px 2px 4px 0px hsl(240 50% 3% / 0.60);
+  --shadow-xs: 0px 2px 4px 0px hsl(240 50% 3% / 0.60);
+  --shadow-sm: 0px 2px 4px 0px hsl(240 50% 3% / 0.50), 0px 1px 2px -1px hsl(240 50% 3% / 0.40);
+  --shadow: 0px 4px 8px 0px hsl(240 50% 3% / 0.50), 0px 2px 4px -1px hsl(240 50% 3% / 0.40);
+  --shadow-md: 0px 6px 12px 0px hsl(240 50% 3% / 0.50), 0px 2px 4px -1px hsl(240 50% 3% / 0.40);
+  --shadow-lg: 0px 10px 20px 0px hsl(240 50% 3% / 0.50), 0px 4px 6px -1px hsl(240 50% 3% / 0.40);
+  --shadow-xl: 0px 16px 32px 0px hsl(240 50% 3% / 0.50), 0px 8px 10px -1px hsl(240 50% 3% / 0.40);
+  --shadow-2xl: 0px 24px 48px 0px hsl(240 50% 3% / 0.70);
 }
 
 @layer base {
@@ -237,36 +257,121 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(124,107,255,0.3); border-radius: 2px; }
 }
 
-/**
- * Using the elevate system.
- * Automatic contrast adjustment.
- *
- * <element className="hover-elevate" />
- * <element className="active-elevate-2" />
- *
- * // Using the tailwind utility when a data attribute is "on"
- * <element className="toggle-elevate data-[state=on]:toggle-elevated" />
- * // Or manually controlling the toggle state
- * <element className="toggle-elevate toggle-elevated" />
- *
- * Elevation systems have to handle many states.
- * - not-hovered, vs. hovered vs. active  (three mutually exclusive states)
- * - toggled or not
- * - focused or not (this is not handled with these utilities)
- *
- * Even without handling focused or not, this is six possible combinations that
- * need to be distinguished from eachother visually.
- */
+/* ============================================================
+   SGI-SPECIFIC COMPONENT UTILITIES
+   ============================================================ */
 @layer utilities {
 
-  /* Hide ugly search cancel button in Chrome until we can style it properly */
+  /* Gradient text — SGI brand */
+  .text-sgi-gradient {
+    background: linear-gradient(135deg, var(--sgi-purple), var(--sgi-teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Font display (Space Grotesk) */
+  .font-display {
+    font-family: var(--app-font-display);
+  }
+
+  /* SGI update bubble — shown after AI response in chat */
+  .sgi-update {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 7px 11px;
+    background: rgba(124,107,255,0.1);
+    border: 1px solid rgba(124,107,255,0.25);
+    border-radius: 8px;
+    font-size: 11px;
+    color: #b8b0ff;
+    margin-top: 6px;
+  }
+
+  .sgi-tag {
+    background: rgba(124,107,255,0.25);
+    color: #c8c0ff;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  /* Badge color variants */
+  .badge-purple {
+    background: rgba(124,107,255,0.15);
+    color: #b8b0ff;
+    border: 1px solid rgba(124,107,255,0.25);
+  }
+  .badge-teal {
+    background: rgba(6,214,160,0.12);
+    color: #4eeec0;
+    border: 1px solid rgba(6,214,160,0.25);
+  }
+  .badge-amber {
+    background: rgba(255,153,0,0.12);
+    color: #ffbb55;
+    border: 1px solid rgba(255,153,0,0.25);
+  }
+  .badge-pink {
+    background: rgba(247,37,133,0.12);
+    color: #ff7ab8;
+    border: 1px solid rgba(247,37,133,0.25);
+  }
+  .badge-blue {
+    background: rgba(0,150,255,0.12);
+    color: #66c0ff;
+    border: 1px solid rgba(0,150,255,0.25);
+  }
+
+  /* Leaderboard "me" row */
+  .ldr-me {
+    background: rgba(124,107,255,0.08);
+    border-left: 2px solid var(--sgi-purple);
+  }
+
+  /* Card with purple glow */
+  .card-glow {
+    background: linear-gradient(135deg, rgba(124,107,255,0.10), rgba(6,214,160,0.06));
+    border-color: rgba(124,107,255,0.25);
+  }
+
+  /* Typing indicator dots */
+  @keyframes sgi-bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-5px); }
+  }
+  .typing-dot {
+    width: 6px; height: 6px;
+    background: var(--sgi-purple);
+    border-radius: 50%;
+    animation: sgi-bounce 1.2s infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  /* Streak grid cell */
+  .streak-cell {
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  /* Hide ugly search cancel button */
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
   }
 
-  /* Placeholder styling for contentEditable div */
   [contenteditable][data-placeholder]:empty::before {
     content: attr(data-placeholder);
     color: hsl(var(--muted-foreground));
@@ -274,15 +379,8 @@
   }
 
   .no-default-hover-elevate {}
-
   .no-default-active-elevate {}
 
-  /**
-   * Toggleable backgrounds go behind the content. Hoverable/active goes on top.
-   * This way they can stack/compound. Both will overlap the parent's borders!
-   * So borders will be automatically adjusted both on toggle, and hover/active,
-   * and they will be compounded.
-   */
   .toggle-elevate::before,
   .toggle-elevate-2::before {
     content: "";

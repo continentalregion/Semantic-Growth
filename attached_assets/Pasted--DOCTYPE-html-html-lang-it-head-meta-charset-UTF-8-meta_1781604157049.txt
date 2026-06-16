@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SGI — Semantic Growth Index</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+<style>
+/* ============================================================
+   SGI — DESIGN SYSTEM
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg0: #08090f;
+  --bg1: #0f1020;
+  --bg2: #151728;
+  --bg3: #1b1d30;
+  --accent: #7c6bff;
+  --accent-dim: rgba(124,107,255,0.15);
+  --accent2: #06d6a0;
+  --accent2-dim: rgba(6,214,160,0.15);
+  --accent3: #f72585;
+  --text1: #eeeeff;
+  --text2: #9090b8;
+  --text3: #4a4a6a;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --card: rgba(255,255,255,0.04);
+  --card2: rgba(255,255,255,0.07);
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg0);
+  color: var(--text1);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(124,107,255,0.3); border-radius: 2px; }
+
+/* ============================================================
+   AUTH SCREEN
+   ============================================================ */
+#auth-screen {
+  position: fixed; inset: 0; z-index: 999;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg0);
+  background-image:
+    radial-gradient(ellipse at 15% 50%, rgba(124,107,255,0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 15%, rgba(6,214,160,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 90%, rgba(247,37,133,0.06) 0%, transparent 45%);
+}
+
+.auth-box {
+  width: 440px;
+  padding: 40px;
+  background: var(--bg1);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  position: relative;
+}
+
+.auth-logo {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  text-align: center;
+  background: linear-gradient(135deg, #7c6bff, #06d6a0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+
+.auth-tagline {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text3);
+  letter-spacing: 0.4px;
+  margin-bottom: 24px;
+}
+
+.auth-lang-bar {
+  display: flex; justify-content: center; gap: 6px; margin-bottom: 22px;
+}
+
+.auth-lang-btn {
+  padding: 5px 13px;
+  border-radius: 20px;
+  font-size: 11px; font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text2);
+  font-family: 'Inter', sans-serif;
+  transition: all 0.15s;
+}
+.auth-lang-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.auth-tabs {
+  display: flex;
+  background: var(--bg0);
+  border-radius: 10px;
+  padding: 3px; gap: 3px;
+  margin-bottom: 22px;
+}
+
+.auth-tab {
+  flex: 1; padding: 8px;
+  text-align: center;
+  font-size: 13px; font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text2);
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
+  border: none; background: transparent;
+}
+.auth-tab.active { background: var(--accent); color: #fff; }
+
+.auth-field { margin-bottom: 14px; }
+.auth-field label { display: block; font-size: 11px; color: var(--text2); margin-bottom: 6px; letter-spacing: 0.3px; }
+
+.auth-input {
+  width: 100%; padding: 11px 14px;
+  background: var(--bg0);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  color: var(--text1);
+  font-size: 13px; font-family: 'Inter', sans-serif;
+  outline: none;
+  transition: border 0.2s;
+}
+.auth-input:focus { border-color: var(--accent); }
+.auth-input::placeholder { color: var(--text3); }
+
+.auth-btn {
+  width: 100%; padding: 13px;
+  background: linear-gradient(135deg, #7c6bff, #5b4de0);
+  border: none; border-radius: 10px;
+  color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: 'Inter', sans-serif;
+  transition: opacity 0.2s; margin-top: 4px;
+}
+.auth-btn:hover { opacity: 0.88; }
+
+.auth-divider {
+  display: flex; align-items: center; gap: 10px;
+  margin: 16px 0; color: var(--text3); font-size: 11px;
+}
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+.auth-social-btn {
+  width: 100%; padding: 10px;
+  background: var(--bg0);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  color: var(--text1); font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer; margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: border 0.2s;
+}
+.auth-social-btn:hover { border-color: var(--border2); background: var(--card2); }
+
+.auth-terms {
+  display: flex; align-items: flex-start; gap: 8px; margin-bottom: 14px;
+}
+.auth-terms input { margin-top: 3px; accent-color: var(--accent); }
+.auth-terms label { font-size: 11px; color: var(--text2); line-height: 1.5; }
+
+.auth-note {
+  text-align: center; font-size: 10px; color: var(--text3);
+  margin-top: 16px; line-height: 1.6;
+}
+
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+#app {
+  display: flex; height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 214px; flex-shrink: 0;
+  background: var(--bg1);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  padding: 18px 0;
+}
+
+.sidebar-logo {
+  padding: 0 18px 22px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px; font-weight: 700;
+  background: linear-gradient(135deg, #7c6bff, #06d6a0);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.sidebar-logo span {
+  font-size: 9px; font-family: 'Inter', sans-serif; font-weight: 400;
+  display: block; margin-top: 2px;
+  -webkit-text-fill-color: var(--text3);
+  letter-spacing: 0.6px; text-transform: uppercase;
+}
+
+.nav-section-label {
+  font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--text3);
+  padding: 14px 18px 5px; font-weight: 500;
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 18px;
+  font-size: 12.5px; color: var(--text2);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all 0.15s; margin: 1px 0;
+  text-decoration: none;
+}
+.nav-item:hover { background: var(--card); color: var(--text1); }
+.nav-item.active {
+  color: #fff;
+  border-left-color: var(--accent);
+  background: linear-gradient(90deg, rgba(124,107,255,0.12), transparent);
+  font-weight: 500;
+}
+.nav-item i { font-size: 15px; width: 18px; flex-shrink: 0; }
+
+.sidebar-footer { margin-top: auto; padding: 14px; }
+.upgrade-box {
+  background: linear-gradient(135deg, rgba(124,107,255,0.15), rgba(6,214,160,0.08));
+  border: 1px solid rgba(124,107,255,0.3);
+  border-radius: 12px; padding: 14px;
+}
+.upgrade-title { font-size: 12px; font-weight: 600; color: var(--text1); margin-bottom: 3px; }
+.upgrade-desc { font-size: 10px; color: var(--text2); margin-bottom: 10px; line-height: 1.5; }
+.upgrade-btn {
+  width: 100%; padding: 8px;
+  background: linear-gradient(135deg, #7c6bff, #5b4de0);
+  border: none; border-radius: 8px;
+  color: #fff; font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: 'Inter', sans-serif;
+}
+
+/* MAIN */
+.main {
+  flex: 1; overflow: hidden;
+  display: flex; flex-direction: column;
+  background: var(--bg0);
+  min-width: 0;
+}
+
+/* TOPBAR */
+.topbar {
+  padding: 11px 22px;
+  background: var(--bg1);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.topbar-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px; font-weight: 600; color: var(--text1);
+}
+
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+
+.lang-switcher {
+  display: flex; background: var(--bg0);
+  border: 1px solid var(--border); border-radius: 20px;
+  padding: 2px; gap: 2px;
+}
+.ls-btn {
+  padding: 4px 10px; border-radius: 16px;
+  font-size: 10px; font-weight: 500;
+  cursor: pointer; border: none;
+  background: transparent; color: var(--text2);
+  transition: all 0.15s; font-family: 'Inter', sans-serif;
+}
+.ls-btn.active { background: var(--accent); color: #fff; }
+
+.sgi-pill {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: 20px; padding: 5px 13px;
+}
+.sgi-pill-val {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px; font-weight: 700;
+  background: linear-gradient(135deg, #7c6bff, #06d6a0);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.sgi-pill-lbl { font-size: 9px; color: var(--text3); letter-spacing: 0.5px; }
+.sgi-pill-delta { font-size: 11px; color: var(--accent2); font-weight: 600; display: none; }
+
+.user-chip {
+  display: flex; align-items: center; gap: 7px;
+  cursor: pointer; padding: 4px 10px 4px 4px;
+  border-radius: 20px; border: 1px solid var(--border);
+  transition: border 0.15s;
+}
+.user-chip:hover { border-color: var(--border2); }
+.user-avatar {
+  width: 27px; height: 27px; border-radius: 50%;
+  background: linear-gradient(135deg, #7c6bff, #06d6a0);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #fff;
+}
+.user-name-chip { font-size: 12px; color: var(--text1); }
+
+/* ============================================================
+   CONTENT / PAGES
+   ============================================================ */
+.content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+.page {
+  display: none; flex: 1;
+  overflow-y: auto; padding: 18px 22px;
+  flex-direction: column; gap: 13px;
+}
+.page.active { display: flex; }
+
+/* CHAT page is special — no scroll, flex column */
+.chat-page { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+.chat-page.active { display: flex; }
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: var(--border2); }
+.card-glow { background: linear-gradient(135deg, rgba(124,107,255,0.1), rgba(6,214,160,0.06)); border-color: rgba(124,107,255,0.25); }
+
+.card-title {
+  font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.8px; color: var(--text3);
+  margin-bottom: 12px; font-weight: 500;
+}
+
+/* GRIDS */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+.g3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; }
+.g4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 11px; }
+
+/* METRICS */
+.metric {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 28px; font-weight: 700; letter-spacing: -1px;
+  color: var(--text1);
+}
+.metric-sub { font-size: 11px; color: var(--text2); margin-top: 5px; }
+.metric-grad {
+  background: linear-gradient(135deg, #7c6bff, #06d6a0);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.pos { color: var(--accent2); font-weight: 600; }
+.neg { color: var(--accent3); font-weight: 600; }
+
+/* PROGRESS BAR */
+.pbar { height: 4px; background: rgba(255,255,255,0.07); border-radius: 2px; overflow: hidden; }
+.pbar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+
+/* DIM ROWS */
+.dim-row { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+.dim-row:last-child { margin-bottom: 0; }
+.dim-label { font-size: 11px; color: var(--text2); width: 148px; flex-shrink: 0; }
+.dim-val { font-size: 11px; font-weight: 600; color: var(--text1); width: 26px; text-align: right; flex-shrink: 0; }
+
+/* BADGES */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: 10px; font-weight: 500;
+}
+.badge-purple { background: rgba(124,107,255,0.15); color: #b8b0ff; border: 1px solid rgba(124,107,255,0.25); }
+.badge-teal   { background: rgba(6,214,160,0.12);  color: #4eeec0; border: 1px solid rgba(6,214,160,0.25); }
+.badge-amber  { background: rgba(255,153,0,0.12);  color: #ffbb55; border: 1px solid rgba(255,153,0,0.25); }
+.badge-red    { background: rgba(247,37,133,0.12); color: #ff7ab8; border: 1px solid rgba(247,37,133,0.25); }
+.badge-blue   { background: rgba(0,150,255,0.12);  color: #66c0ff; border: 1px solid rgba(0,150,255,0.25); }
+.badge-gray   { background: rgba(255,255,255,0.06); color: var(--text3); border: 1px solid var(--border); }
+
+/* RECOMMENDATIONS */
+.rec-item {
+  display: flex; align-items: flex-start; gap: 11px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.rec-item:last-child { border-bottom: none; }
+.rec-icon {
+  width: 30px; height: 30px;
+  background: rgba(124,107,255,0.15);
+  border: 1px solid rgba(124,107,255,0.25);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.rec-icon i { font-size: 14px; color: #b8b0ff; }
+.rec-title { font-size: 12px; font-weight: 500; color: var(--text1); margin-bottom: 2px; }
+.rec-desc { font-size: 11px; color: var(--text2); }
+.rec-delta { margin-left: auto; color: var(--accent2); font-size: 11px; font-weight: 600; flex-shrink: 0; padding-left: 8px; }
+
+/* LEADERBOARD */
+.ldr-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.ldr-row:last-child { border-bottom: none; }
+.ldr-row.me {
+  background: rgba(124,107,255,0.08);
+  border-radius: 8px; padding: 9px 8px;
+  border-left: 2px solid var(--accent);
+  border-bottom: 1px solid rgba(124,107,255,0.2);
+  margin: 2px 0;
+}
+
+/* SCENARIO CARDS */
+.sc-cards { display: flex; gap: 10px; margin-top: 10px; }
+.sc-card { flex: 1; padding: 14px; border-radius: 12px; border: 1px solid var(--border); }
+.sc-card.conservative { background: rgba(255,255,255,0.03); }
+.sc-card.realistic    { background: rgba(6,214,160,0.07); border-color: rgba(6,214,160,0.25); }
+.sc-card.optimistic   { background: rgba(124,107,255,0.08); border-color: rgba(124,107,255,0.25); }
+.sc-type { font-size: 9px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text3); margin-bottom: 7px; }
+.sc-rank { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; }
+.sc-delta { font-size: 11px; color: var(--accent2); margin-top: 4px; }
+
+/* GAMIFICATION */
+.badge-card {
+  text-align: center; padding: 14px 10px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.badge-card.locked { opacity: 0.28; }
+.badge-card .icon { font-size: 22px; margin-bottom: 6px; }
+.badge-card .name { font-size: 10px; font-weight: 600; color: var(--text1); }
+
+.mission-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid var(--border);
+}
+.mission-item:last-child { border-bottom: none; }
+.mcheck {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1.5px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; flex-shrink: 0;
+}
+.mcheck.done { background: var(--accent2); border-color: var(--accent2); }
+.mcheck.done::after { content: '✓'; font-size: 9px; color: #000; font-weight: 700; }
+.mission-text { flex: 1; font-size: 12px; color: var(--text1); }
+.mission-xp { font-size: 11px; color: var(--accent); font-weight: 600; }
+
+.streak-grid { display: grid; grid-template-columns: repeat(21, 1fr); gap: 3px; margin-top: 8px; }
+.streak-day { height: 16px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.05); }
+
+/* ============================================================
+   CHAT
+   ============================================================ */
+.chat-header {
+  padding: 10px 22px;
+  background: var(--bg1); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 16px; flex-shrink: 0;
+}
+.chat-stat { text-align: center; }
+.chat-stat-val {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px; font-weight: 700;
+  background: linear-gradient(135deg, #7c6bff, #06d6a0);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.chat-stat-lbl { font-size: 9px; color: var(--text3); letter-spacing: 0.4px; text-transform: uppercase; }
+.chat-hdivider { width: 1px; height: 30px; background: var(--border); flex-shrink: 0; }
+.chat-desc { font-size: 11px; color: var(--text2); flex: 1; line-height: 1.6; }
+
+.chat-messages {
+  flex: 1; overflow-y: auto;
+  padding: 18px 22px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+
+.msg { display: flex; gap: 10px; align-items: flex-start; animation: fadeUp 0.3s ease; }
+.msg.user { flex-direction: row-reverse; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+.msg-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; flex-shrink: 0;
+}
+.msg.ai .msg-avatar { background: linear-gradient(135deg, #7c6bff, #5b4de0); color: #fff; }
+.msg.user .msg-avatar { background: linear-gradient(135deg, #06d6a0, #04a87a); color: #fff; }
+
+.msg-body { max-width: 76%; }
+.msg-bubble {
+  padding: 11px 15px; border-radius: 14px;
+  font-size: 13px; line-height: 1.7; white-space: pre-wrap;
+}
+.msg.ai .msg-bubble { background: var(--bg2); border: 1px solid var(--border); color: var(--text1); }
+.msg.user .msg-bubble { background: linear-gradient(135deg, #7c6bff, #5b4de0); color: #fff; border: none; }
+
+.sgi-update {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  padding: 7px 11px;
+  background: rgba(124,107,255,0.1);
+  border: 1px solid rgba(124,107,255,0.25);
+  border-radius: 8px;
+  font-size: 11px; color: #b8b0ff;
+  margin-top: 7px;
+}
+.sgi-tag {
+  background: rgba(124,107,255,0.25); color: #c8c0ff;
+  padding: 2px 7px; border-radius: 4px;
+  font-size: 9px; font-weight: 600; letter-spacing: 0.3px;
+}
+
+.typing-indicator {
+  display: flex; align-items: center; gap: 5px;
+  padding: 11px 15px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 14px; width: fit-content;
+}
+.typing-indicator span {
+  width: 6px; height: 6px;
+  background: var(--accent); border-radius: 50%;
+  animation: bounce 1.2s infinite;
+}
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+.chat-input-wrap {
+  padding: 12px 22px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 10px; align-items: flex-end;
+  background: var(--bg1); flex-shrink: 0;
+}
+.chat-textarea {
+  flex: 1; resize: none;
+  min-height: 42px; max-height: 110px;
+  padding: 10px 14px;
+  font-size: 13px; font-family: 'Inter', sans-serif;
+  border: 1px solid var(--border2); border-radius: 12px;
+  background: var(--bg0); color: var(--text1);
+  line-height: 1.5; outline: none;
+  transition: border-color 0.2s;
+}
+.chat-textarea:focus { border-color: var(--accent); }
+.chat-textarea::placeholder { color: var(--text3); }
+
+.send-btn {
+  width: 42px; height: 42px;
+  background: linear-gradient(135deg, #7c6bff, #5b4de0);
+  border: none; border-radius: 12px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: opacity 0.2s;
+}
+.send-btn:hover { opacity: 0.85; }
+.send-btn:disabled { background: var(--bg2); cursor: not-allowed; opacity: 1; }
+.send-btn i { color: #fff; font-size: 17px; }
+
+/* ============================================================
+   HEATMAP
+   ============================================================ */
+.heatmap-grid {
+  display: grid; grid-template-columns: repeat(52, 1fr);
+  gap: 2px; margin-bottom: 8px;
+}
+.hm-cell { height: 10px; border-radius: 2px; }
+
+/* ============================================================
+   API CONFIG NOTICE
+   ============================================================ */
+.api-notice {
+  padding: 10px 14px;
+  background: rgba(255,153,0,0.08);
+  border: 1px solid rgba(255,153,0,0.25);
+  border-radius: 8px;
+  font-size: 11px; color: #ffbb55;
+  margin-bottom: 12px;
+  display: none; /* nascosto di default — mostra solo se API_KEY non configurata */
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     AUTH SCREEN
+     ============================================================ -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-lang-bar">
+      <button class="auth-lang-btn active" data-lang="it">🇮🇹 IT</button>
+      <button class="auth-lang-btn" data-lang="en">🇬🇧 EN</button>
+      <button class="auth-lang-btn" data-lang="es">🇪🇸 ES</button>
+    </div>
+    <div class="auth-logo">Semantic Growth Index</div>
+    <div class="auth-tagline" id="auth-tagline">Piattaforma di analisi dell'evoluzione del linguaggio</div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login" id="tab-login">Accedi</button>
+      <button class="auth-tab" data-tab="register" id="tab-register">Registrati</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div id="form-login">
+      <div class="auth-field">
+        <label id="lbl-email">Email</label>
+        <input class="auth-input" type="email" id="inp-email" placeholder="nome@email.com">
+      </div>
+      <div class="auth-field">
+        <label id="lbl-password">Password</label>
+        <input class="auth-input" type="password" id="inp-password" placeholder="••••••••">
+      </div>
+      <button class="auth-btn" id="btn-login">Accedi</button>
+      <div class="auth-divider" id="auth-or">oppure</div>
+      <button class="auth-social-btn">🔵 <span id="btn-google">Continua con Google</span></button>
+      <button class="auth-social-btn">⚫ <span id="btn-github">Continua con GitHub</span></button>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div id="form-register" style="display:none">
+      <div class="auth-field">
+        <label id="lbl-name">Nome</label>
+        <input class="auth-input" type="text" id="inp-name" placeholder="Francesco">
+      </div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input class="auth-input" type="email" placeholder="nome@email.com">
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input class="auth-input" type="password" placeholder="Min. 8 caratteri">
+      </div>
+      <div class="auth-terms">
+        <input type="checkbox" id="terms-check">
+        <label for="terms-check" id="lbl-terms">Accetto i Termini di Servizio. SGI analizza il linguaggio delle conversazioni — non misura intelligenza, QI o salute mentale.</label>
+      </div>
+      <button class="auth-btn" id="btn-register">Crea account</button>
+    </div>
+
+    <div class="auth-note" id="auth-note">🔒 Dati protetti · Nessuna condivisione con terzi<br>Backend: PostgreSQL + Drizzle · Anthropic API</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     APP
+     ============================================================ -->
+<div id="app" style="display:none">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">SGI<span>Semantic Growth Index</span></div>
+
+    <div class="nav-section-label" data-i18n="nav_core">Core</div>
+    <div class="nav-item active" data-page="dashboard"><i class="ti ti-layout-dashboard"></i><span data-i18n="nav_dashboard">Dashboard</span></div>
+    <div class="nav-item" data-page="chat"><i class="ti ti-message-circle"></i><span data-i18n="nav_chat">Chat AI</span></div>
+    <div class="nav-item" data-page="ranking"><i class="ti ti-trophy"></i><span data-i18n="nav_ranking">Classifica</span></div>
+
+    <div class="nav-section-label" data-i18n="nav_analytics">Analytics</div>
+    <div class="nav-item" data-page="semantic"><i class="ti ti-topology-star-3"></i><span data-i18n="nav_semantic">Mappa Semantica</span></div>
+    <div class="nav-item" data-page="forecast"><i class="ti ti-chart-line"></i><span data-i18n="nav_forecast">Previsioni</span></div>
+    <div class="nav-item" data-page="gamification"><i class="ti ti-medal"></i><span data-i18n="nav_progress">Progressi</span></div>
+
+    <div class="sidebar-footer">
+      <div class="upgrade-box">
+        <div class="upgrade-title" data-i18n="plan_title">Piano Premium</div>
+        <div class="upgrade-desc" data-i18n="plan_desc">Chat AI illimitata · Analytics avanzate · Report settimanali</div>
+        <button class="upgrade-btn" data-i18n="plan_btn">✓ Attivo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">Dashboard</div>
+      <div class="topbar-right">
+        <div class="lang-switcher">
+          <button class="ls-btn active" data-lang="it">IT</button>
+          <button class="ls-btn" data-lang="en">EN</button>
+          <button class="ls-btn" data-lang="es">ES</button>
+        </div>
+        <div class="sgi-pill">
+          <div>
+            <div class="sgi-pill-lbl">SGI</div>
+            <div class="sgi-pill-val" id="top-sgi">74.2</div>
+          </div>
+          <div class="sgi-pill-delta" id="top-delta"></div>
+        </div>
+        <div class="user-chip" onclick="SGI.logout()">
+          <div class="user-avatar" id="user-avatar">FR</div>
+          <div class="user-name-chip" id="user-name">Francesco</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- ==================== DASHBOARD ==================== -->
+      <div id="page-dashboard" class="page active">
+
+        <div class="g4">
+          <div class="card card-glow">
+            <div class="card-title" data-i18n="d_sgi">SGI attuale</div>
+            <div class="metric metric-grad" id="d-sgi-val">74.2</div>
+            <div class="metric-sub" id="d-sgi-sub"><span class="pos">+0.0</span> sessione</div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-i18n="d_rank">Posizione globale</div>
+            <div class="metric" id="d-rank-val">#12.431</div>
+            <div class="metric-sub" data-i18n="d_rank_sub">su 1.200.000 utenti</div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-i18n="d_percentile">Percentile</div>
+            <div class="metric pos">1.2%</div>
+            <div class="metric-sub" id="d-pct-sub"><span class="pos">+243</span> pos. questo mese</div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-i18n="d_streak">Streak</div>
+            <div class="metric">🔥 14</div>
+            <div class="metric-sub" data-i18n="d_streak_sub">giorni consecutivi</div>
+          </div>
+        </div>
+
+        <div class="g2">
+          <div class="card">
+            <div class="card-title" data-i18n="d_dims">Dimensioni SGI</div>
+            <div id="dim-bars"></div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-i18n="d_evolution">Evoluzione SGI — 8 settimane</div>
+            <div style="position:relative;height:188px;margin-top:8px">
+              <canvas id="chart-sgi" role="img" aria-label="Evoluzione SGI 8 settimane">Evoluzione da 61 a 74.</canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="g2">
+          <div class="card">
+            <div class="card-title" data-i18n="d_strong">Aree forti</div>
+            <div id="strong-areas" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
+            <div class="card-title" data-i18n="d_weak">Aree da sviluppare</div>
+            <div id="weak-areas" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-i18n="d_recs">Raccomandazioni per +12% SGI</div>
+            <div id="recs-list">
+              <div class="rec-item">
+                <div class="rec-icon"><i class="ti ti-atom"></i></div>
+                <div><div class="rec-title" data-i18n="r1t">Teoria dei sistemi</div><div class="rec-desc" data-i18n="r1d">Feedback loop e sistemi complessi</div></div>
+                <div class="rec-delta">+3.2</div>
+              </div>
+              <div class="rec-item">
+                <div class="rec-icon"><i class="ti ti-dice"></i></div>
+                <div><div class="rec-title" data-i18n="r2t">Probabilità bayesiana</div><div class="rec-desc" data-i18n="r2d">Ragionamento sotto incertezza</div></div>
+                <div class="rec-delta">+2.8</div>
+              </div>
+              <div class="rec-item">
+                <div class="rec-icon"><i class="ti ti-arrows-exchange"></i></div>
+                <div><div class="rec-title" data-i18n="r3t">Economia ↔ Psicologia</div><div class="rec-desc" data-i18n="r3d">Economia comportamentale e bias</div></div>
+                <div class="rec-delta">+2.1</div>
+              </div>
+              <div class="rec-item">
+                <div class="rec-icon"><i class="ti ti-binary"></i></div>
+                <div><div class="rec-title" data-i18n="r4t">Teoria dell'informazione</div><div class="rec-desc" data-i18n="r4d">Entropia e flussi semantici</div></div>
+                <div class="rec-delta">+1.9</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== CHAT ==================== -->
+      <div id="page-chat" class="chat-page">
+        <div class="chat-header">
+          <div class="chat-stat">
+            <div class="chat-stat-val" id="chat-sgi">74.2</div>
+            <div class="chat-stat-lbl">SGI LIVE</div>
+          </div>
+          <div class="chat-hdivider"></div>
+          <div class="chat-stat">
+            <div class="chat-stat-val" id="chat-delta" style="color:var(--accent2)">+0.0</div>
+            <div class="chat-stat-lbl" data-i18n="chat_session">SESSIONE</div>
+          </div>
+          <div class="chat-hdivider"></div>
+          <div class="chat-stat">
+            <div class="chat-stat-val" id="chat-count">0</div>
+            <div class="chat-stat-lbl" data-i18n="chat_msgs">MSG</div>
+          </div>
+          <div class="chat-hdivider"></div>
+          <div class="chat-desc" data-i18n="chat_desc">Parla di qualsiasi argomento. Il sistema analizza complessità, varietà semantica e connessioni interdisciplinari aggiornando il tuo SGI in tempo reale.</div>
+        </div>
+
+        <div class="api-notice" id="api-notice">
+          ⚠ Configura <strong>ANTHROPIC_API_KEY</strong> nelle variabili d'ambiente di Replit per attivare la chat AI reale.
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+          <div class="msg ai">
+            <div class="msg-avatar">AI</div>
+            <div class="msg-body">
+              <div class="msg-bubble" id="welcome-msg">Ciao! Sono un'AI reale. Puoi parlarmi di qualsiasi tema — filosofia, tecnologia, economia, scienza, matematica. Ogni messaggio aggiorna il tuo Semantic Growth Index. Su cosa vuoi ragionare?</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-input-wrap">
+          <textarea class="chat-textarea" id="chat-input" placeholder="Scrivi il tuo messaggio..." rows="1"></textarea>
+          <button class="send-btn" id="send-btn"><i class="ti ti-send"></i></button>
+        </div>
+      </div>
+
+      <!-- ==================== RANKING ==================== -->
+      <div id="page-ranking" class="page">
+        <div class="g3">
+          <div class="card" style="text-align:center">
+            <div class="card-title" data-i18n="r_global">Posizione globale</div>
+            <div class="metric" style="font-size:30px">#12.431</div>
+            <div class="metric-sub" data-i18n="r_total">su 1.200.000 utenti</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div class="card-title" data-i18n="r_pct">Percentile</div>
+            <div class="metric pos" style="font-size:30px">1.2%</div>
+            <div class="metric-sub" data-i18n="r_top">Top performers</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div class="card-title" data-i18n="r_change">Variazione 30gg</div>
+            <div class="metric pos" style="font-size:30px">+243</div>
+            <div class="metric-sub" data-i18n="r_positions">posizioni guadagnate</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" data-i18n="r_nearby">Utenti vicini a te</div>
+          <div class="ldr-row">
+            <span style="width:70px;color:var(--text3)">#12.429</span>
+            <span style="flex:1">User_K7X92</span>
+            <span style="color:var(--accent);font-weight:600">74.5</span>
+            <span style="width:72px;text-align:right;color:var(--text3)">Top 1.2%</span>
+          </div>
+          <div class="ldr-row me">
+            <span style="width:70px;color:var(--accent)">#12.431</span>
+            <span style="flex:1;color:var(--accent);font-weight:600" id="rank-me">Tu — Francesco</span>
+            <span style="color:var(--accent);font-weight:700" id="rank-sgi">74.2</span>
+            <span style="width:72px;text-align:right;color:var(--text3)">Top 1.2%</span>
+          </div>
+          <div class="ldr-row"><span style="width:70px;color:var(--text3)">#12.433</span><span style="flex:1">User_M3T44</span><span style="color:var(--accent);font-weight:600">74.0</span><span style="width:72px;text-align:right;color:var(--text3)">Top 1.2%</span></div>
+          <div class="ldr-row"><span style="width:70px;color:var(--text3)">#12.450</span><span style="flex:1">User_P9Z21</span><span style="color:var(--accent);font-weight:600">73.7</span><span style="width:72px;text-align:right;color:var(--text3)">Top 1.3%</span></div>
+          <div class="ldr-row"><span style="width:70px;color:var(--text3)">#12.500</span><span style="flex:1">User_Q1A88</span><span style="color:var(--accent);font-weight:600">73.3</span><span style="width:72px;text-align:right;color:var(--text3)">Top 1.3%</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" data-i18n="r_top5">Top 5 globale (anonimo)</div>
+          <div class="ldr-row"><span style="width:50px">🥇 #1</span><span style="flex:1">User_A1X99</span><span style="color:var(--accent);font-weight:700">98.7</span><span style="width:80px;text-align:right;color:var(--text3)">Top 0.001%</span></div>
+          <div class="ldr-row"><span style="width:50px">🥈 #2</span><span style="flex:1">User_B7Z12</span><span style="color:var(--accent);font-weight:700">97.4</span><span style="width:80px;text-align:right;color:var(--text3)">Top 0.001%</span></div>
+          <div class="ldr-row"><span style="width:50px">🥉 #3</span><span style="flex:1">User_C3K55</span><span style="color:var(--accent);font-weight:700">96.9</span><span style="width:80px;text-align:right;color:var(--text3)">Top 0.001%</span></div>
+          <div class="ldr-row"><span style="width:50px">#4</span><span style="flex:1">User_D8M34</span><span style="color:var(--accent);font-weight:700">95.2</span><span style="width:80px;text-align:right;color:var(--text3)">Top 0.001%</span></div>
+          <div class="ldr-row"><span style="width:50px">#5</span><span style="flex:1">User_E2N78</span><span style="color:var(--accent);font-weight:700">94.8</span><span style="width:80px;text-align:right;color:var(--text3)">Top 0.001%</span></div>
+        </div>
+      </div>
+
+      <!-- ==================== SEMANTIC MAP ==================== -->
+      <div id="page-semantic" class="page">
+        <div class="g2">
+          <div class="card">
+            <div class="card-title" data-i18n="s_radar">Radar semantico</div>
+            <div style="position:relative;height:230px">
+              <canvas id="chart-radar" role="img" aria-label="Radar profilo semantico">Profilo 8 dimensioni.</canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-i18n="s_domains" style="margin-bottom:10px">Domini esplorati</div>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px" id="domains-list">
+              <span class="badge badge-purple" data-i18n="dom1">Filosofia — Alta</span>
+              <span class="badge badge-teal" data-i18n="dom2">Tecnologia — Alta</span>
+              <span class="badge badge-blue" data-i18n="dom3">Robotica — Alta</span>
+              <span class="badge badge-amber" data-i18n="dom4">Economia — Media</span>
+              <span class="badge badge-teal" data-i18n="dom5">Pedagogia — Media</span>
+              <span class="badge badge-red" data-i18n="dom6">Matematica — Bassa</span>
+              <span class="badge badge-gray" data-i18n="dom7">Biologia — Inesplorato</span>
+            </div>
+            <div class="card-title" data-i18n="s_connections" style="margin-bottom:8px">Connessioni attive</div>
+            <div style="font-size:12px;color:var(--text2);line-height:2.1" id="connections-list">
+              <div>• Filosofia ↔ Tecnologia <span style="color:var(--accent);font-weight:600">●●●</span></div>
+              <div>• Pedagogia ↔ Psicologia <span style="color:var(--accent);font-weight:600">●●●</span></div>
+              <div>• Economia ↔ Tecnologia <span style="color:var(--accent2);font-weight:600">●●○</span></div>
+              <div>• Matematica ↔ Economia <span style="color:#ff9900;font-weight:600">●○○</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" data-i18n="s_heatmap">Heatmap attività — 12 mesi</div>
+          <div class="heatmap-grid" id="heatmap"></div>
+          <div style="display:flex;gap:7px;align-items:center;font-size:10px;color:var(--text3)">
+            <span data-i18n="less">Meno</span>
+            <div style="width:10px;height:10px;border-radius:2px;background:rgba(124,107,255,0.15)"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:rgba(124,107,255,0.35)"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:rgba(124,107,255,0.6)"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:rgba(124,107,255,0.82)"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:#7c6bff"></div>
+            <span data-i18n="more">Di più</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== FORECAST ==================== -->
+      <div id="page-forecast" class="page">
+        <div class="card">
+          <div class="card-title" data-i18n="f_scenarios">Scenari previsionali — 180 giorni</div>
+          <div class="sc-cards">
+            <div class="sc-card conservative">
+              <div class="sc-type" data-i18n="f_cons">Conservativo</div>
+              <div class="sc-rank">#11.200</div>
+              <div class="sc-delta">+1.231 posizioni</div>
+            </div>
+            <div class="sc-card realistic">
+              <div class="sc-type" style="color:var(--accent2)" data-i18n="f_real">Realistico</div>
+              <div class="sc-rank">#8.200</div>
+              <div class="sc-delta">+4.231 posizioni</div>
+            </div>
+            <div class="sc-card optimistic">
+              <div class="sc-type" style="color:var(--accent)" data-i18n="f_opt">Ottimistico</div>
+              <div class="sc-rank">#5.900</div>
+              <div class="sc-delta" style="color:var(--accent)">+6.531 posizioni</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="g2">
+          <div class="card">
+            <div class="card-title" data-i18n="f_trajectory">Traiettoria SGI prevista</div>
+            <div style="position:relative;height:188px;margin-top:8px">
+              <canvas id="chart-forecast" role="img" aria-label="Previsione SGI 6 mesi">Tre scenari crescita.</canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-i18n="f_plan">Piano d'azione</div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+              <div style="padding:11px;background:var(--card2);border-radius:9px;border:1px solid var(--border)">
+                <div style="font-size:9px;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px" data-i18n="f_30d">Prossimi 30 giorni</div>
+                <div style="font-size:11px;line-height:1.9;color:var(--text2)" data-i18n="f_30d_c">• Probabilità bayesiana<br>• 2+ chat/giorno<br>• Connetti economia ↔ psicologia</div>
+              </div>
+              <div style="padding:11px;background:var(--card2);border-radius:9px;border:1px solid var(--border)">
+                <div style="font-size:9px;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px" data-i18n="f_90d">30–90 giorni</div>
+                <div style="font-size:11px;line-height:1.9;color:var(--text2)" data-i18n="f_90d_c">• Teoria dell'informazione<br>• Esplora biologia e fisica<br>• Missioni avanzate</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== GAMIFICATION ==================== -->
+      <div id="page-gamification" class="page">
+        <div class="g3">
+          <div class="card" style="text-align:center">
+            <div class="card-title" data-i18n="g_level">Livello</div>
+            <div class="metric">Lv. 12</div>
+            <div class="metric-sub">Semantic Explorer</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div class="card-title" data-i18n="g_xp">XP totale</div>
+            <div class="metric metric-grad" id="xp-total">4.820</div>
+            <div class="metric-sub">+180 questa settimana</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div class="card-title" data-i18n="g_badges">Badge</div>
+            <div class="metric" style="color:var(--accent3)">7/24</div>
+            <div class="metric-sub" data-i18n="g_unlocked">sbloccati</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" data-i18n="g_xp_bar">XP verso Lv. 13</div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:7px">
+            <span id="xp-label">4.820 / 5.500 XP</span>
+            <span style="color:var(--accent);font-weight:600" id="xp-pct">88%</span>
+          </div>
+          <div class="pbar" style="height:8px">
+            <div class="pbar-fill" id="xp-fill" style="background:linear-gradient(90deg,#7c6bff,#06d6a0);width:88%"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px">
+            <span data-i18n="g_missing">Mancano</span> <span id="xp-left">680</span> XP al prossimo livello
+          </div>
+        </div>
+
+        <div class="g2">
+          <div class="card">
+            <div class="card-title" data-i18n="g_badge_list" style="margin-bottom:10px">Badge</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+              <div class="badge-card"><div class="icon">🧭</div><div class="name">Explorer</div></div>
+              <div class="badge-card"><div class="icon">🔗</div><div class="name">Cross-Domain</div></div>
+              <div class="badge-card"><div class="icon">🧠</div><div class="name">Systems Thinker</div></div>
+              <div class="badge-card"><div class="icon">🚀</div><div class="name">High Growth</div></div>
+              <div class="badge-card"><div class="icon">🔥</div><div class="name">14-Day Streak</div></div>
+              <div class="badge-card locked"><div class="icon">⚡</div><div class="name">Lightning</div></div>
+              <div class="badge-card locked"><div class="icon">🎯</div><div class="name">Precision</div></div>
+              <div class="badge-card locked"><div class="icon">🌐</div><div class="name">Polymath</div></div>
+              <div class="badge-card locked"><div class="icon">♾️</div><div class="name">Abstract</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-i18n="g_missions" style="margin-bottom:10px">Missioni settimanali</div>
+            <div class="mission-item">
+              <div class="mcheck done"></div>
+              <div class="mission-text" data-i18n="m1">3 sessioni di chat</div>
+              <div class="mission-xp">+50 XP</div>
+            </div>
+            <div class="mission-item">
+              <div class="mcheck done"></div>
+              <div class="mission-text" data-i18n="m2">Nuovo dominio semantico</div>
+              <div class="mission-xp">+80 XP</div>
+            </div>
+            <div class="mission-item">
+              <div class="mcheck"></div>
+              <div class="mission-text" data-i18n="m3">3+ connessioni interdisciplinari</div>
+              <div class="mission-xp">+100 XP</div>
+            </div>
+            <div class="mission-item">
+              <div class="mcheck"></div>
+              <div class="mission-text" data-i18n="m4">Studia probabilità bayesiana</div>
+              <div class="mission-xp">+120 XP</div>
+            </div>
+            <div class="mission-item">
+              <div class="mcheck"></div>
+              <div class="mission-text" data-i18n="m5">SGI +2 punti questa settimana</div>
+              <div class="mission-xp">+150 XP</div>
+            </div>
+
+            <div class="card-title" style="margin:14px 0 7px" data-i18n="g_streak">Streak — 21 giorni</div>
+            <div class="streak-grid" id="streak-grid"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+/* ============================================================
+   SGI — CORE APPLICATION
+   v1.0 — Frontend MVP
+   
+   INTEGRATION POINTS (cerca "TODO: BACKEND"):
+   - Auth: sostituisci doLogin() con chiamata a /api/auth/login
+   - SGI load: sostituisci STATE iniziale con GET /api/user/profile
+   - Chat: il proxy Anthropic va su /api/chat (server-side con API key)
+   - Salvataggio sessione: POST /api/sessions dopo ogni chat
+   - Ranking: GET /api/leaderboard
+   ============================================================ */
+
+/* ---- I18N ------------------------------------------------- */
+const TRANSLATIONS = {
+  it: {
+    nav_core:'Core', nav_dashboard:'Dashboard', nav_chat:'Chat AI',
+    nav_ranking:'Classifica', nav_analytics:'Analytics',
+    nav_semantic:'Mappa Semantica', nav_forecast:'Previsioni', nav_progress:'Progressi',
+    plan_title:'Piano Premium', plan_desc:'Chat AI illimitata · Analytics avanzate · Report settimanali', plan_btn:'✓ Attivo',
+    d_sgi:'SGI attuale', d_rank:'Posizione globale', d_rank_sub:'su 1.200.000 utenti',
+    d_percentile:'Percentile', d_streak:'Streak', d_streak_sub:'giorni consecutivi',
+    d_dims:'Dimensioni SGI', d_evolution:'Evoluzione SGI — 8 settimane',
+    d_strong:'Aree forti', d_weak:'Aree da sviluppare', d_recs:'Raccomandazioni per +12% SGI',
+    r1t:'Teoria dei sistemi', r1d:'Feedback loop e sistemi complessi',
+    r2t:'Probabilità bayesiana', r2d:'Ragionamento sotto incertezza',
+    r3t:'Economia ↔ Psicologia', r3d:'Economia comportamentale e bias cognitivi',
+    r4t:"Teoria dell'informazione", r4d:'Entropia e flussi semantici',
+    chat_session:'SESSIONE', chat_msgs:'MSG',
+    chat_desc:'Parla di qualsiasi argomento. Il sistema analizza complessità, varietà semantica e connessioni interdisciplinari aggiornando il tuo SGI in tempo reale.',
+    welcome:'Ciao! Sono un\'AI reale. Puoi parlarmi di qualsiasi tema — filosofia, tecnologia, economia, scienza. Ogni messaggio aggiorna il tuo Semantic Growth Index. Su cosa vuoi ragionare?',
+    chat_placeholder:'Scrivi il tuo messaggio...',
+    r_global:'Posizione globale', r_total:'su 1.200.000 utenti', r_pct:'Percentile',
+    r_top:'Top performers', r_change:'Variazione 30gg', r_positions:'posizioni guadagnate',
+    r_nearby:'Utenti vicini a te', r_top5:'Top 5 globale (anonimo)',
+    s_radar:'Radar semantico', s_domains:'Domini esplorati', s_connections:'Connessioni attive',
+    s_heatmap:'Heatmap attività — 12 mesi', less:'Meno', more:'Di più',
+    dom1:'Filosofia — Alta', dom2:'Tecnologia — Alta', dom3:'Robotica — Alta',
+    dom4:'Economia — Media', dom5:'Pedagogia — Media', dom6:'Matematica — Bassa', dom7:'Biologia — Inesplorato',
+    f_scenarios:'Scenari previsionali — 180 giorni', f_cons:'Conservativo', f_real:'Realistico', f_opt:'Ottimistico',
+    f_trajectory:'Traiettoria SGI prevista', f_plan:"Piano d'azione",
+    f_30d:'Prossimi 30 giorni', f_30d_c:'• Probabilità bayesiana<br>• 2+ chat/giorno<br>• Connetti economia ↔ psicologia',
+    f_90d:'30–90 giorni', f_90d_c:"• Teoria dell'informazione<br>• Esplora biologia e fisica<br>• Missioni avanzate",
+    g_level:'Livello', g_xp:'XP totale', g_badges:'Badge', g_unlocked:'sbloccati',
+    g_xp_bar:'XP verso Lv. 13', g_missing:'Mancano', g_badge_list:'Badge',
+    g_missions:'Missioni settimanali', g_streak:'Streak — 21 giorni',
+    m1:'3 sessioni di chat', m2:'Nuovo dominio semantico',
+    m3:'3+ connessioni interdisciplinari', m4:'Studia probabilità bayesiana', m5:'SGI +2 punti questa settimana',
+    auth_tagline:"Piattaforma di analisi dell'evoluzione del linguaggio",
+    tab_login:'Accedi', tab_register:'Registrati', lbl_email:'Email', lbl_password:'Password',
+    lbl_name:'Nome', btn_login:'Accedi', btn_register:'Crea account',
+    btn_google:'Continua con Google', btn_github:'Continua con GitHub',
+    auth_or:'oppure',
+    lbl_terms:'Accetto i Termini di Servizio. SGI analizza il linguaggio — non misura intelligenza, QI o salute mentale.',
+    auth_note:'🔒 Dati protetti · Nessuna condivisione con terzi\nBackend: PostgreSQL + Drizzle · Anthropic API',
+    rank_me:'Tu — ', d_pct_sub:'+243 pos. questo mese',
+    dims:['Complessità','Varietà semantica','Interdiscipl.','Profondità','Originalità','Probabilistico','Sintesi','Stabilità'],
+    dims_chart:['Complessità','Varietà','Interdiscipl.','Profondità','Originalità','Probabilistico','Sintesi','Stabilità'],
+    strong:['Pensiero sistemico','Connessioni interdiscipl.','Ragionamento astratto'],
+    weak:['Ragionamento probabilistico','Strutture causali','Sintesi concettuale'],
+  },
+  en: {
+    nav_core:'Core', nav_dashboard:'Dashboard', nav_chat:'AI Chat',
+    nav_ranking:'Leaderboard', nav_analytics:'Analytics',
+    nav_semantic:'Semantic Map', nav_forecast:'Forecast', nav_progress:'Progress',
+    plan_title:'Premium Plan', plan_desc:'Unlimited AI Chat · Advanced Analytics · Weekly Reports', plan_btn:'✓ Active',
+    d_sgi:'Current SGI', d_rank:'Global Rank', d_rank_sub:'out of 1,200,000 users',
+    d_percentile:'Percentile', d_streak:'Streak', d_streak_sub:'consecutive days',
+    d_dims:'SGI Dimensions', d_evolution:'SGI Evolution — 8 weeks',
+    d_strong:'Strong Areas', d_weak:'Areas to Develop', d_recs:'Recommendations for +12% SGI',
+    r1t:'Systems Theory', r1d:'Feedback loops and complex systems',
+    r2t:'Bayesian Probability', r2d:'Reasoning under uncertainty',
+    r3t:'Economics ↔ Psychology', r3d:'Behavioral economics and cognitive biases',
+    r4t:'Information Theory', r4d:'Entropy and semantic flows',
+    chat_session:'SESSION', chat_msgs:'MSG',
+    chat_desc:'Talk about any topic. The system analyzes complexity, semantic variety and interdisciplinary connections, updating your SGI in real time.',
+    welcome:"Hello! I'm a real AI. Talk to me about any topic — philosophy, technology, economics, science. Every message updates your Semantic Growth Index. What would you like to explore?",
+    chat_placeholder:'Type your message...',
+    r_global:'Global Rank', r_total:'out of 1,200,000 users', r_pct:'Percentile',
+    r_top:'Top performers', r_change:'30-day Change', r_positions:'positions gained',
+    r_nearby:'Users near you', r_top5:'Global Top 5 (anonymous)',
+    s_radar:'Semantic Radar', s_domains:'Explored Domains', s_connections:'Active Connections',
+    s_heatmap:'Activity Heatmap — 12 months', less:'Less', more:'More',
+    dom1:'Philosophy — High', dom2:'Technology — High', dom3:'Robotics — High',
+    dom4:'Economics — Medium', dom5:'Education — Medium', dom6:'Mathematics — Low', dom7:'Biology — Unexplored',
+    f_scenarios:'Forecast Scenarios — 180 days', f_cons:'Conservative', f_real:'Realistic', f_opt:'Optimistic',
+    f_trajectory:'Projected SGI Trajectory', f_plan:'Action Plan',
+    f_30d:'Next 30 days', f_30d_c:'• Bayesian probability<br>• 2+ chats/day<br>• Connect economics ↔ psychology',
+    f_90d:'30–90 days', f_90d_c:'• Information theory<br>• Explore biology and physics<br>• Advanced missions',
+    g_level:'Level', g_xp:'Total XP', g_badges:'Badges', g_unlocked:'unlocked',
+    g_xp_bar:'XP toward Lv. 13', g_missing:'Missing', g_badge_list:'Badges',
+    g_missions:'Weekly Missions', g_streak:'Streak — 21 days',
+    m1:'3 chat sessions', m2:'New semantic domain',
+    m3:'3+ interdisciplinary connections', m4:'Study Bayesian probability', m5:'SGI +2 points this week',
+    auth_tagline:'Language evolution analysis platform',
+    tab_login:'Sign In', tab_register:'Sign Up', lbl_email:'Email', lbl_password:'Password',
+    lbl_name:'Name', btn_login:'Sign In', btn_register:'Create Account',
+    btn_google:'Continue with Google', btn_github:'Continue with GitHub',
+    auth_or:'or',
+    lbl_terms:'I accept the Terms of Service. SGI analyzes language — it does not measure intelligence, IQ or mental health.',
+    auth_note:'🔒 Data protected · No third-party sharing\nBackend: PostgreSQL + Drizzle · Anthropic API',
+    rank_me:'You — ', d_pct_sub:'+243 pos. this month',
+    dims:['Complexity','Sem. Variety','Interdiscipl.','Depth','Originality','Probabilistic','Synthesis','Stability'],
+    dims_chart:['Complexity','Variety','Interdiscipl.','Depth','Originality','Probabilistic','Synthesis','Stability'],
+    strong:['Systems Thinking','Interdisciplinary Connections','Abstract Reasoning'],
+    weak:['Probabilistic Reasoning','Causal Structures','Conceptual Synthesis'],
+  },
+  es: {
+    nav_core:'Principal', nav_dashboard:'Dashboard', nav_chat:'Chat IA',
+    nav_ranking:'Clasificación', nav_analytics:'Analíticas',
+    nav_semantic:'Mapa Semántico', nav_forecast:'Previsiones', nav_progress:'Progreso',
+    plan_title:'Plan Premium', plan_desc:'Chat IA ilimitado · Analíticas avanzadas · Informes semanales', plan_btn:'✓ Activo',
+    d_sgi:'SGI actual', d_rank:'Posición global', d_rank_sub:'de 1.200.000 usuarios',
+    d_percentile:'Percentil', d_streak:'Racha', d_streak_sub:'días consecutivos',
+    d_dims:'Dimensiones SGI', d_evolution:'Evolución SGI — 8 semanas',
+    d_strong:'Áreas fuertes', d_weak:'Áreas a desarrollar', d_recs:'Recomendaciones para +12% SGI',
+    r1t:'Teoría de sistemas', r1d:'Bucles de retroalimentación y sistemas complejos',
+    r2t:'Probabilidad bayesiana', r2d:'Razonamiento bajo incertidumbre',
+    r3t:'Economía ↔ Psicología', r3d:'Economía conductual y sesgos cognitivos',
+    r4t:'Teoría de la información', r4d:'Entropía y flujos semánticos',
+    chat_session:'SESIÓN', chat_msgs:'MSG',
+    chat_desc:'Habla sobre cualquier tema. El sistema analiza complejidad, variedad semántica y conexiones interdisciplinarias, actualizando tu SGI en tiempo real.',
+    welcome:'¡Hola! Soy una IA real. Puedes hablarme de cualquier tema — filosofía, tecnología, economía, ciencia. Cada mensaje actualiza tu Semantic Growth Index. ¿Sobre qué quieres reflexionar?',
+    chat_placeholder:'Escribe tu mensaje...',
+    r_global:'Posición global', r_total:'de 1.200.000 usuarios', r_pct:'Percentil',
+    r_top:'Top performers', r_change:'Variación 30 días', r_positions:'posiciones ganadas',
+    r_nearby:'Usuarios cerca de ti', r_top5:'Top 5 global (anónimo)',
+    s_radar:'Radar semántico', s_domains:'Dominios explorados', s_connections:'Conexiones activas',
+    s_heatmap:'Mapa de actividad — 12 meses', less:'Menos', more:'Más',
+    dom1:'Filosofía — Alta', dom2:'Tecnología — Alta', dom3:'Robótica — Alta',
+    dom4:'Economía — Media', dom5:'Pedagogía — Media', dom6:'Matemáticas — Baja', dom7:'Biología — Sin explorar',
+    f_scenarios:'Escenarios previsionales — 180 días', f_cons:'Conservador', f_real:'Realista', f_opt:'Optimista',
+    f_trajectory:'Trayectoria SGI prevista', f_plan:'Plan de acción',
+    f_30d:'Próximos 30 días', f_30d_c:'• Probabilidad bayesiana<br>• 2+ chats/día<br>• Conecta economía ↔ psicología',
+    f_90d:'30–90 días', f_90d_c:'• Teoría de la información<br>• Explora biología y física<br>• Misiones avanzadas',
+    g_level:'Nivel', g_xp:'XP total', g_badges:'Insignias', g_unlocked:'desbloqueadas',
+    g_xp_bar:'XP hacia Nv. 13', g_missing:'Faltan', g_badge_list:'Insignias',
+    g_missions:'Misiones semanales', g_streak:'Racha — 21 días',
+    m1:'3 sesiones de chat', m2:'Nuevo dominio semántico',
+    m3:'3+ conexiones interdisciplinarias', m4:'Estudia probabilidad bayesiana', m5:'SGI +2 puntos esta semana',
+    auth_tagline:'Plataforma de análisis de evolución del lenguaje',
+    tab_login:'Iniciar sesión', tab_register:'Registrarse', lbl_email:'Correo', lbl_password:'Contraseña',
+    lbl_name:'Nombre', btn_login:'Iniciar sesión', btn_register:'Crear cuenta',
+    btn_google:'Continuar con Google', btn_github:'Continuar con GitHub',
+    auth_or:'o',
+    lbl_terms:'Acepto los Términos. SGI analiza el lenguaje — no mide inteligencia, CI ni salud mental.',
+    auth_note:'🔒 Datos protegidos · Sin terceros\nBackend: PostgreSQL + Drizzle · Anthropic API',
+    rank_me:'Tú — ', d_pct_sub:'+243 pos. este mes',
+    dims:['Complejidad','Variedad semántica','Interdiscipl.','Profundidad','Originalidad','Probabilístico','Síntesis','Estabilidad'],
+    dims_chart:['Complejidad','Variedad','Interdiscipl.','Profundidad','Originalidad','Probabilístico','Síntesis','Estabilidad'],
+    strong:['Pensamiento sistémico','Conexiones interdiscipl.','Razonamiento abstracto'],
+    weak:['Razonamiento probabilístico','Estructuras causales','Síntesis conceptual'],
+  }
+};
+
+/* ---- STATE ------------------------------------------------ */
+const STATE = {
+  lang: 'it',
+  user: { name: 'Francesco', initials: 'FR' },
+  sgi: 74.2,
+  sessionDelta: 0,
+  msgCount: 0,
+  xp: 4820,
+  dims: {
+    'Complessità': 82, 'Varietà semantica': 76, 'Interdiscipl.': 88,
+    'Profondità': 70, 'Originalità': 79, 'Probabilistico': 41,
+    'Sintesi': 55, 'Stabilità': 73
+  },
+  chatHistory: [],
+  charts: {},
+  chartsInited: false
+};
+
+/* ---- HELPERS ---------------------------------------------- */
+const $ = id => document.getElementById(id);
+const t = key => (TRANSLATIONS[STATE.lang] || TRANSLATIONS.it)[key] || key;
+
+function setLang(lang) {
+  STATE.lang = lang;
+  document.querySelectorAll('[data-lang]').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  applyI18n();
+}
+
+function applyI18n() {
+  const L = TRANSLATIONS[STATE.lang] || TRANSLATIONS.it;
+
+  // data-i18n attributes
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (L[key] !== undefined) {
+      if (el.innerHTML.includes('<br>')) el.innerHTML = L[key];
+      else el.textContent = L[key];
+    }
+  });
+
+  // Auth specific
+  $('auth-tagline').textContent = L.auth_tagline;
+  $('tab-login').textContent = L.tab_login;
+  $('tab-register').textContent = L.tab_register;
+  $('lbl-email').textContent = L.lbl_email;
+  $('lbl-password').textContent = L.lbl_password;
+  $('lbl-name').textContent = L.lbl_name;
+  $('btn-login').textContent = L.btn_login;
+  $('btn-register').textContent = L.btn_register;
+  $('btn-google').textContent = L.btn_google;
+  $('btn-github').textContent = L.btn_github;
+  $('auth-or').textContent = L.auth_or;
+  $('lbl-terms').textContent = L.lbl_terms;
+  $('auth-note').innerHTML = L.auth_note.replace('\n', '<br>');
+
+  // Chat
+  $('welcome-msg').textContent = L.welcome;
+  $('chat-input').placeholder = L.chat_placeholder;
+
+  // Dynamic
+  $('rank-me').textContent = L.rank_me + STATE.user.name;
+  $('d-pct-sub').innerHTML = '<span class="pos">' + L.d_pct_sub + '</span>';
+
+  buildDimBars();
+  buildAreas();
+
+  // Update radar labels if built
+  if (STATE.charts.radar) {
+    STATE.charts.radar.data.labels = L.dims_chart;
+    STATE.charts.radar.update();
+  }
+}
+
+/* ---- AUTH ------------------------------------------------- */
+function doLogin(name) {
+  /* TODO: BACKEND — sostituisci con:
+     const res = await fetch('/api/auth/login', { method:'POST', body: JSON.stringify({email, password}) });
+     const { user, token } = await res.json();
+     localStorage.setItem('sgi_token', token);
+     loadUserProfile(user);
+  */
+  STATE.user.name = name || 'Francesco';
+  const parts = (name || 'FR').trim().split(' ');
+  STATE.user.initials = parts.map(p => p[0]).join('').toUpperCase().slice(0, 2) || 'FR';
+  $('user-avatar').textContent = STATE.user.initials;
+  $('user-name').textContent = STATE.user.name.split(' ')[0];
+
+  $('auth-screen').style.display = 'none';
+  $('app').style.display = 'flex';
+  applyI18n();
+  if (!STATE.chartsInited) { initCharts(); STATE.chartsInited = true; }
+  buildHeatmap();
+  buildDimBars();
+  buildAreas();
+  updateUI();
+}
+
+function logout() {
+  /* TODO: BACKEND — fetch('/api/auth/logout', { method:'POST' }) */
+  $('auth-screen').style.display = 'flex';
+  $('app').style.display = 'none';
+}
+
+// Auth UI
+document.querySelectorAll('.auth-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const isLogin = tab.dataset.tab === 'login';
+    $('form-login').style.display = isLogin ? 'block' : 'none';
+    $('form-register').style.display = isLogin ? 'none' : 'block';
+  });
+});
+
+$('btn-login').addEventListener('click', () => {
+  const email = $('inp-email').value || 'user@email.com';
+  const name = email.split('@')[0];
+  doLogin(name.charAt(0).toUpperCase() + name.slice(1));
+});
+$('btn-register').addEventListener('click', () => {
+  const name = $('inp-name').value || 'Francesco';
+  doLogin(name);
+});
+$('inp-password').addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-login').click(); });
+
+// Lang buttons (auth + app)
+document.querySelectorAll('[data-lang]').forEach(btn => {
+  btn.addEventListener('click', () => setLang(btn.dataset.lang));
+});
+
+/* ---- NAVIGATION ------------------------------------------ */
+const PAGE_TITLE_KEYS = {
+  dashboard: 'nav_dashboard', chat: 'nav_chat', ranking: 'nav_ranking',
+  semantic: 'nav_semantic', forecast: 'nav_forecast', gamification: 'nav_progress'
+};
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const p = item.dataset.page;
+    document.querySelectorAll('.page, .chat-page').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const target = $('page-' + p);
+    if (target) target.classList.add('active');
+    item.classList.add('active');
+    $('page-title').textContent = t(PAGE_TITLE_KEYS[p] || p);
+
+    if (p === 'semantic' && !STATE.charts.radar) setTimeout(buildRadar, 80);
+    if (p === 'forecast' && !STATE.charts.forecast) setTimeout(buildForecast, 80);
+    if (p === 'gamification') buildStreak();
+  });
+});
+
+/* ---- CHARTS ---------------------------------------------- */
+const CHART_COLORS = {
+  grid: 'rgba(255,255,255,0.05)',
+  tick: 'rgba(255,255,255,0.35)',
+  accent: '#7c6bff',
+  accent2: '#06d6a0'
+};
+
+function initCharts() {
+  // SGI Evolution
+  STATE.charts.sgi = new Chart($('chart-sgi'), {
+    type: 'line',
+    data: {
+      labels: ['W1','W2','W3','W4','W5','W6','W7','W8'],
+      datasets: [{
+        data: [61, 63, 64, 66, 68, 70, 72, 74.2],
+        borderColor: CHART_COLORS.accent,
+        backgroundColor: 'rgba(124,107,255,0.07)',
+        fill: true, tension: 0.4,
+        pointRadius: 3, pointBackgroundColor: CHART_COLORS.accent, borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min: 55, max: 82, grid: { color: CHART_COLORS.grid }, ticks: { color: CHART_COLORS.tick, font: { size: 10 } } },
+        x: { grid: { display: false }, ticks: { color: CHART_COLORS.tick, font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function buildRadar() {
+  const L = TRANSLATIONS[STATE.lang] || TRANSLATIONS.it;
+  STATE.charts.radar = new Chart($('chart-radar'), {
+    type: 'radar',
+    data: {
+      labels: L.dims_chart,
+      datasets: [
+        {
+          label: 'Tu', data: Object.values(STATE.dims),
+          borderColor: CHART_COLORS.accent, backgroundColor: 'rgba(124,107,255,0.12)',
+          pointRadius: 3, pointBackgroundColor: CHART_COLORS.accent, borderWidth: 2
+        },
+        {
+          label: 'Media globale', data: [55,52,50,58,48,55,56,60],
+          borderColor: 'rgba(255,255,255,0.18)', backgroundColor: 'rgba(255,255,255,0.03)',
+          borderDash: [4,3], pointRadius: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        r: {
+          min: 0, max: 100,
+          ticks: { display: false },
+          grid: { color: 'rgba(255,255,255,0.07)' },
+          pointLabels: { color: 'rgba(255,255,255,0.4)', font: { size: 9 } }
+        }
+      }
+    }
+  });
+}
+
+function buildForecast() {
+  STATE.charts.forecast = new Chart($('chart-forecast'), {
+    type: 'line',
+    data: {
+      labels: ['Now','+1m','+2m','+3m','+4m','+5m','+6m'],
+      datasets: [
+        { data: [STATE.sgi,77,80,83,86,89,91], borderColor: CHART_COLORS.accent, borderDash: [4,3], pointRadius: 2, fill: false, tension: 0.3, borderWidth: 1.5 },
+        { data: [STATE.sgi,76,78,80,81,83,84], borderColor: CHART_COLORS.accent2, pointRadius: 2, fill: false, tension: 0.3, borderWidth: 2 },
+        { data: [STATE.sgi,75,76,76.5,77,77.5,78], borderColor: 'rgba(255,255,255,0.25)', borderDash: [2,4], pointRadius: 2, fill: false, tension: 0.3, borderWidth: 1 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min: 70, max: 95, grid: { color: CHART_COLORS.grid }, ticks: { color: CHART_COLORS.tick, font: { size: 10 } } },
+        x: { grid: { display: false }, ticks: { color: CHART_COLORS.tick, font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+/* ---- UI BUILDERS ------------------------------------------ */
+function buildDimBars() {
+  const L = TRANSLATIONS[STATE.lang] || TRANSLATIONS.it;
+  const keys = Object.keys(STATE.dims);
+  const labels = L.dims || keys;
+  const colors = ['#7c6bff','#7c6bff','#06d6a0','#7c6bff','#7c6bff','#f72585','#ff9900','#7c6bff'];
+  const container = $('dim-bars');
+  container.innerHTML = '';
+  keys.forEach((k, i) => {
+    const v = STATE.dims[k];
+    const row = document.createElement('div');
+    row.className = 'dim-row';
+    row.innerHTML = `
+      <span class="dim-label">${labels[i] || k}</span>
+      <div class="pbar"><div class="pbar-fill" style="width:${v}%;background:${colors[i]}"></div></div>
+      <span class="dim-val">${v}</span>`;
+    container.appendChild(row);
+  });
+}
+
+function buildAreas() {
+  const L = TRANSLATIONS[STATE.lang] || TRANSLATIONS.it;
+  $('strong-areas').innerHTML = (L.strong || []).map(s => `<span class="badge badge-teal">${s}</span>`).join('');
+  $('weak-areas').innerHTML = (L.weak || []).map(s => `<span class="badge badge-red">${s}</span>`).join('');
+}
+
+function buildHeatmap() {
+  const hm = $('heatmap');
+  if (hm.children.length > 0) return;
+  const cols = ['transparent','rgba(124,107,255,0.12)','rgba(124,107,255,0.3)','rgba(124,107,255,0.55)','rgba(124,107,255,0.78)','#7c6bff'];
+  for (let i = 0; i < 52 * 5; i++) {
+    const r = Math.random();
+    const ci = r < 0.25 ? 0 : r < 0.45 ? 1 : r < 0.62 ? 2 : r < 0.78 ? 3 : r < 0.90 ? 4 : 5;
+    const d = document.createElement('div');
+    d.className = 'hm-cell';
+    d.style.background = cols[ci];
+    if (ci > 0) d.style.border = '1px solid rgba(124,107,255,0.15)';
+    hm.appendChild(d);
+  }
+}
+
+function buildStreak() {
+  const g = $('streak-grid');
+  if (g.children.length > 0) return;
+  [1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1].forEach((active, i) => {
+    const d = document.createElement('div');
+    d.className = 'streak-day';
+    d.style.background = active ? (i >= 7 ? '#7c6bff' : 'rgba(124,107,255,0.4)') : 'rgba(255,255,255,0.05)';
+    g.appendChild(d);
+  });
+}
+
+/* ---- UPDATE UI -------------------------------------------- */
+function updateUI() {
+  const sgi = STATE.sgi.toFixed(1);
+  const delta = STATE.sessionDelta.toFixed(1);
+
+  $('top-sgi').textContent = sgi;
+  $('d-sgi-val').textContent = sgi;
+  $('chat-sgi').textContent = sgi;
+  $('rank-sgi').textContent = sgi;
+
+  $('d-sgi-sub').innerHTML = `<span class="pos">+${delta}</span> sessione`;
+  $('chat-delta').textContent = '+' + delta;
+  $('chat-count').textContent = STATE.msgCount;
+
+  if (STATE.sessionDelta > 0) {
+    $('top-delta').textContent = '+' + delta;
+    $('top-delta').style.display = 'block';
+  }
+
+  // XP
+  const xpInLevel = STATE.xp % 680;
+  const xpPct = Math.min(100, Math.round(xpInLevel / 6.8));
+  $('xp-total').textContent = STATE.xp.toLocaleString();
+  $('xp-label').textContent = STATE.xp.toLocaleString() + ' / 5.500 XP';
+  $('xp-pct').textContent = xpPct + '%';
+  $('xp-fill').style.width = xpPct + '%';
+  $('xp-left').textContent = Math.max(0, 5500 - STATE.xp);
+
+  buildDimBars();
+}
+
+/* ---- CHAT AI --------------------------------------------- */
+
+/*
+  TODO: BACKEND
+  In produzione su Replit, la chiamata API va fatta SERVER-SIDE:
+  
+  // server/api/chat.ts
+  app.post('/api/chat', auth, async (req, res) => {
+    const { messages } = req.body;
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      system: SYSTEM_PROMPT,
+      messages
+    });
+    // salva sessione su DB
+    await db.insert(sgiSessions).values({ userId: req.user.id, delta: ... });
+    res.json(response);
+  });
+  
+  Nel frontend sostituisci callAI() con:
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages: STATE.chatHistory.slice(-20) })
+  });
+*/
+
+const SYSTEM_PROMPT = `Sei un assistente AI integrato nella piattaforma Semantic Growth Index (SGI).
+Rispondi in modo approfondito, stimolante e interdisciplinare nella lingua dell'utente.
+Dopo ogni risposta aggiungi ESATTAMENTE questo blocco su una riga separata (niente altro attorno):
+SGI_UPDATE:{"complessita":X,"varieta":X,"interdiscipl":X,"profondita":X,"originalita":X,"probabilistico":X,"sintesi":X,"stabilita":X,"delta":X}
+Dove X per le 8 dimensioni = interi 0-100 che riflettono la qualità del messaggio dell'utente.
+"delta" = float 0.0-1.5: messaggi semplici 0.0-0.2, messaggi profondi/interdisciplinari 0.5-1.5.
+Non affermare mai di misurare intelligenza, QI, personalità o salute mentale.`;
+
+async function callAI(userMsg) {
+  STATE.chatHistory.push({ role: 'user', content: userMsg });
+
+  /* 
+    In produzione su Replit usa /api/chat (server-side).
+    Questo chiamata diretta funziona solo in development con proxy.
+  */
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      system: SYSTEM_PROMPT,
+      messages: STATE.chatHistory.slice(-20)
+    })
+  });
+
+  if (!res.ok) throw new Error('API ' + res.status);
+
+  const data = await res.json();
+  const fullText = data.content.map(b => b.text || '').join('');
+  const match = fullText.match(/SGI_UPDATE:(\{[^}]+\})/);
+  const cleanText = fullText.replace(/\nSGI_UPDATE:\{[^}]+\}/, '').trim();
+  let update = null;
+  if (match) { try { update = JSON.parse(match[1]); } catch(e) {} }
+
+  STATE.chatHistory.push({ role: 'assistant', content: fullText });
+  return { text: cleanText, update };
+}
+
+function applyUpdate(update) {
+  if (!update) return;
+  const delta = parseFloat(update.delta) || 0;
+  STATE.sgi = Math.min(100, Math.round((STATE.sgi + delta) * 10) / 10);
+  STATE.sessionDelta = Math.round((STATE.sessionDelta + delta) * 10) / 10;
+  STATE.xp += Math.round(delta * 40 + 10);
+
+  const dimMap = {
+    complessita: 'Complessità', varieta: 'Varietà semantica',
+    interdiscipl: 'Interdiscipl.', profondita: 'Profondità',
+    originalita: 'Originalità', probabilistico: 'Probabilistico',
+    sintesi: 'Sintesi', stabilita: 'Stabilità'
+  };
+  Object.entries(dimMap).forEach(([k, label]) => {
+    if (update[k] !== undefined)
+      STATE.dims[label] = Math.min(100, Math.round(STATE.dims[label] * 0.75 + update[k] * 0.25));
+  });
+
+  updateUI();
+
+  // TODO: BACKEND — salva aggiornamento SGI:
+  // await fetch('/api/sessions', { method:'POST', body: JSON.stringify({ delta, dims: update }) });
+}
+
+function addMessage(text, isUser, update) {
+  const msgs = $('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + (isUser ? 'user' : 'ai');
+
+  const av = document.createElement('div');
+  av.className = 'msg-avatar';
+  av.textContent = isUser ? STATE.user.initials : 'AI';
+
+  const body = document.createElement('div');
+  body.className = 'msg-body';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.textContent = text;
+  body.appendChild(bubble);
+
+  if (!isUser && update && parseFloat(update.delta) > 0) {
+    const d = parseFloat(update.delta);
+    const tags = [];
+    if (update.interdiscipl > 72) tags.push(STATE.lang === 'es' ? 'conexiones interdiscipl.' : STATE.lang === 'en' ? 'interdisciplinary' : 'connessioni interdiscipl.');
+    if (update.complessita > 72) tags.push(STATE.lang === 'es' ? 'alta complejidad' : STATE.lang === 'en' ? 'high complexity' : 'alta complessità');
+    if (update.originalita > 72) tags.push(STATE.lang === 'es' ? 'originalidad' : STATE.lang === 'en' ? 'originality' : 'originalità');
+
+    const upd = document.createElement('div');
+    upd.className = 'sgi-update';
+    upd.innerHTML = `<i class="ti ti-trending-up" style="font-size:11px"></i> SGI → <strong>${STATE.sgi.toFixed(1)}</strong> <span class="pos">+${d.toFixed(1)}</span>${tags.length ? ' ' + tags.map(tg => `<span class="sgi-tag">${tg}</span>`).join('') : ''}`;
+    body.appendChild(upd);
+  }
+
+  div.appendChild(av);
+  div.appendChild(body);
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs = $('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ai'; div.id = 'typing-ind';
+  div.innerHTML = '<div class="msg-avatar">AI</div><div class="msg-body"><div class="typing-indicator"><span></span><span></span><span></span></div></div>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function hideTyping() { const t = $('typing-ind'); if (t) t.remove(); }
+
+async function sendMessage() {
+  const inp = $('chat-input');
+  const btn = $('send-btn');
+  const text = inp.value.trim();
+  if (!text || btn.disabled) return;
+  inp.value = ''; inp.style.height = 'auto';
+  STATE.msgCount++;
+  addMessage(text, true, null);
+  btn.disabled = true;
+  showTyping();
+
+  try {
+    const { text: reply, update } = await callAI(text);
+    hideTyping();
+    applyUpdate(update);
+    addMessage(reply, false, update);
+  } catch (err) {
+    hideTyping();
+    const errText = STATE.lang === 'en' ? 'Connection error. Please try again.'
+      : STATE.lang === 'es' ? 'Error de conexión. Inténtalo de nuevo.'
+      : 'Errore di connessione. Riprova tra qualche istante.';
+    addMessage(errText, false, null);
+  }
+  btn.disabled = false;
+}
+
+$('send-btn').addEventListener('click', sendMessage);
+$('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+$('chat-input').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 110) + 'px';
+});
+
+/* ---- INIT ------------------------------------------------- */
+applyI18n();
+
+/* ============================================================
+   REPLIT INTEGRATION CHECKLIST
+   ============================================================
+   1. Copia questo file in /client/index.html (o /public/index.html)
+   
+   2. Crea /server/index.ts con Express + endpoint /api/chat
+      che chiama Anthropic con process.env.ANTHROPIC_API_KEY
+   
+   3. Aggiungi in Replit Secrets:
+      ANTHROPIC_API_KEY = sk-ant-...
+   
+   4. Schema Drizzle minimo (db/schema.ts):
+      - users: id, email, name, sgi, xp, createdAt
+      - sgi_sessions: id, userId, delta, dimsJson, createdAt
+      - sgi_history: id, userId, sgi, date
+      - messages: id, sessionId, role, content, createdAt
+   
+   5. Sostituisci callAI() con fetch('/api/chat', ...)
+      e doLogin() con fetch('/api/auth/login', ...)
+   
+   6. Per auth usa Replit Auth oppure:
+      npm install @supabase/supabase-js
+      e configura SUPABASE_URL + SUPABASE_ANON_KEY nei Secrets
+   ============================================================ */
+</script>
+</body>
+</html>

@@ -19,6 +19,7 @@ import MapPage from "@/pages/map";
 import Profile from "@/pages/profile";
 import Predictions from "@/pages/predictions";
 import Recommendations from "@/pages/recommendations";
+import Gamification from "@/pages/gamification";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
@@ -43,14 +44,14 @@ if (!clerkPubKey) {
 const clerkAppearance = {
   cssLayerName: "clerk",
   variables: {
-    colorPrimary: "hsl(199 89% 48%)",
-    colorBackground: "hsl(222 47% 11%)",
-    colorInputBackground: "hsl(217 33% 17%)",
-    colorText: "hsl(210 40% 98%)",
-    colorTextSecondary: "hsl(215 20.2% 65.1%)",
+    colorPrimary: "#7c6bff",
+    colorBackground: "#08090f",
+    colorInputBackground: "#151728",
+    colorText: "#eeeeff",
+    colorTextSecondary: "#9090b8",
   },
   elements: {
-    cardBox: "w-[440px] max-w-full bg-slate-900 border border-slate-800 rounded-xl",
+    cardBox: "w-[440px] max-w-full rounded-xl",
     card: "bg-transparent shadow-none",
     footer: "bg-transparent",
   }
@@ -147,6 +148,7 @@ function ClerkProviderWithRoutes() {
           <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
           <Route path="/predictions" component={() => <ProtectedRoute component={Predictions} />} />
           <Route path="/recommendations" component={() => <ProtectedRoute component={Recommendations} />} />
+          <Route path="/gamification" component={() => <ProtectedRoute component={Gamification} />} />
           <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
           <Route component={NotFound} />
         </Switch>

@@ -1,2 +1,3 @@
 - [SGI CSS theme](sgi-css-theme.md) — index.css had all "red" placeholder HSL values; replaced with dark navy/cyan futuristic theme
 - [SGI leaderboard null bug](sgi-leaderboard-null.md) — seeded leaderboard entries have userId=null; always null-guard before equality check
+- [SGI design system](sgi-design-system.md) — palette viola/teal/pink, Space Grotesk, CSS tokens --sgi-* in index.css; primary=248 100% 71% (purple)
