@@ -6,7 +6,7 @@ import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useSyncUser, useGetMyProfile } from "@workspace/api-client-react";
+import { useSyncUser, useGetMyProfile, setAuthTokenGetter } from "@workspace/api-client-react";
 import Layout from "@/components/layout";
 
 // Pages
@@ -256,6 +256,15 @@ function SignUpPage() {
   );
 }
 
+function ApiClientSetup() {
+  const { getToken } = useAuth();
+  useEffect(() => {
+    setAuthTokenGetter(() => getToken());
+    return () => { setAuthTokenGetter(null); };
+  }, [getToken]);
+  return null;
+}
+
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
   const qc = useQueryClient();
@@ -365,6 +374,7 @@ function ClerkProviderWithRoutes() {
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
       <QueryClientProvider client={queryClient}>
+        <ApiClientSetup />
         <ClerkQueryClientCacheInvalidator />
         <UserSync />
         <Switch>
