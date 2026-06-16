@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ClerkProvider, SignIn, SignUp, Show, useAuth, useUser } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
@@ -305,11 +305,17 @@ function UserSync() {
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isLoaded, isSignedIn } = useAuth();
   const { data: profile, isLoading: profileLoading } = useGetMyProfile();
+  const [splashExpired, setSplashExpired] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setSplashExpired(true), 8000);
+    return () => clearTimeout(t);
+  }, []);
 
   if (!isLoaded) return <ConnectingScreen />;
   if (!isSignedIn) return <Redirect to="/sign-in" />;
 
-  if (!profile && profileLoading) return <ConnectingScreen />;
+  if (!profile && profileLoading && !splashExpired) return <ConnectingScreen />;
 
   return (
     <Layout>
