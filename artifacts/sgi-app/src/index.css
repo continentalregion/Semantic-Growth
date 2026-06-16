@@ -437,3 +437,127 @@
     inset: -1px;
   }
 }
+
+/* ─── Clerk form overrides (non-layered → always beats @layer clerk) ─── */
+.sgi-clerk-input,
+.cl-formFieldInput {
+  background: rgba(124, 107, 255, 0.07) !important;
+  border: 1.5px solid rgba(124, 107, 255, 0.32) !important;
+  border-radius: 10px !important;
+  color: #eeeeff !important;
+  font-size: 14px !important;
+  padding: 11px 14px !important;
+  transition: border-color 0.18s, box-shadow 0.18s !important;
+}
+.sgi-clerk-input:focus,
+.cl-formFieldInput:focus {
+  border-color: #7c6bff !important;
+  box-shadow: 0 0 0 3px rgba(124, 107, 255, 0.18) !important;
+  outline: none !important;
+  background: rgba(124, 107, 255, 0.11) !important;
+}
+.sgi-clerk-input::placeholder,
+.cl-formFieldInput::placeholder {
+  color: rgba(144, 144, 184, 0.5) !important;
+}
+
+.sgi-clerk-btn,
+.cl-formButtonPrimary {
+  background: linear-gradient(135deg, #7c6bff 0%, #5b4ee8 100%) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  letter-spacing: 0.02em !important;
+  transition: opacity 0.18s, box-shadow 0.18s !important;
+  box-shadow: 0 4px 20px rgba(124, 107, 255, 0.35) !important;
+}
+.sgi-clerk-btn:hover,
+.cl-formButtonPrimary:hover {
+  opacity: 0.92 !important;
+  box-shadow: 0 6px 28px rgba(124, 107, 255, 0.5) !important;
+}
+
+.sgi-clerk-social,
+.cl-socialButtonsBlockButton {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.13) !important;
+  border-radius: 10px !important;
+  color: #eeeeff !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  transition: background 0.18s, border-color 0.18s !important;
+}
+.sgi-clerk-social:hover,
+.cl-socialButtonsBlockButton:hover {
+  background: rgba(124, 107, 255, 0.1) !important;
+  border-color: rgba(124, 107, 255, 0.4) !important;
+}
+
+.cl-formFieldLabel {
+  color: #9090b8 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  margin-bottom: 6px !important;
+}
+
+.cl-headerTitle {
+  color: #eeeeff !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  font-family: 'Space Grotesk', 'Inter', sans-serif !important;
+}
+.cl-headerSubtitle {
+  color: #9090b8 !important;
+  font-size: 13px !important;
+}
+
+.cl-dividerLine {
+  background: rgba(124, 107, 255, 0.18) !important;
+  height: 1px !important;
+}
+.cl-dividerText {
+  color: rgba(144, 144, 184, 0.6) !important;
+  font-size: 11px !important;
+  padding: 0 12px !important;
+}
+
+.cl-footerActionText {
+  color: #9090b8 !important;
+  font-size: 13px !important;
+}
+.cl-footerActionLink {
+  color: #7c6bff !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+.cl-footerActionLink:hover {
+  color: #9b8fff !important;
+}
+
+.cl-identityPreviewText {
+  color: #eeeeff !important;
+}
+.cl-identityPreviewEditButton {
+  color: #7c6bff !important;
+}
+
+.cl-formResendCodeLink {
+  color: #7c6bff !important;
+}
+
+.cl-otpCodeFieldInput {
+  background: rgba(124, 107, 255, 0.08) !important;
+  border: 1.5px solid rgba(124, 107, 255, 0.32) !important;
+  border-radius: 10px !important;
+  color: #eeeeff !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+}
+.cl-otpCodeFieldInput:focus {
+  border-color: #7c6bff !important;
+  box-shadow: 0 0 0 3px rgba(124, 107, 255, 0.18) !important;
+}

@@ -45,17 +45,158 @@ const clerkAppearance = {
   cssLayerName: "clerk",
   variables: {
     colorPrimary: "#7c6bff",
-    colorBackground: "#08090f",
-    colorInputBackground: "#151728",
+    colorBackground: "transparent",
+    colorInputBackground: "rgba(124,107,255,0.07)",
+    colorInputText: "#eeeeff",
     colorText: "#eeeeff",
     colorTextSecondary: "#9090b8",
+    colorTextOnPrimaryBackground: "#ffffff",
+    borderRadius: "10px",
+    fontFamily: "'Space Grotesk', 'Inter', sans-serif",
   },
   elements: {
-    cardBox: "w-[440px] max-w-full rounded-xl",
-    card: "bg-transparent shadow-none",
-    footer: "bg-transparent",
-  }
+    cardBox: {
+      style: {
+        width: "100%",
+        maxWidth: "420px",
+        boxShadow: "none",
+        border: "none",
+        background: "transparent",
+      },
+    },
+    card: { style: { background: "transparent", boxShadow: "none", padding: "0" } },
+    footer: { style: { background: "transparent" } },
+    formFieldInput: { className: "sgi-clerk-input" },
+    formButtonPrimary: { className: "sgi-clerk-btn" },
+    socialButtonsBlockButton: { className: "sgi-clerk-social" },
+  },
 };
+
+const AUTH_FEATURES = [
+  { icon: "◈", label: "Cognitive telemetry", desc: "13 semantic dimensions tracked in real time" },
+  { icon: "◉", label: "Global leaderboard", desc: "Rank your growth among thousands of thinkers" },
+  { icon: "◆", label: "Predictive simulation", desc: "AI forecast of your semantic growth curve" },
+];
+
+function AuthLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-[100dvh] bg-background">
+      <div
+        className="hidden lg:flex flex-col justify-between w-[44%] shrink-0 px-14 py-12 relative overflow-hidden"
+        style={{
+          background: "linear-gradient(145deg, #0d0c1f 0%, #12103a 55%, #0e1a2e 100%)",
+          borderRight: "1px solid rgba(124,107,255,0.15)",
+        }}
+      >
+        <div className="absolute inset-0 pointer-events-none">
+          <div
+            className="absolute top-[-15%] left-[-10%] w-[60%] h-[60%] rounded-full blur-[120px]"
+            style={{ background: "rgba(124,107,255,0.18)" }}
+          />
+          <div
+            className="absolute bottom-[-10%] right-[-15%] w-[50%] h-[50%] rounded-full blur-[120px]"
+            style={{ background: "rgba(6,214,160,0.1)" }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(124,107,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(124,107,255,0.04) 1px, transparent 1px)",
+              backgroundSize: "32px 32px",
+            }}
+          />
+        </div>
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-2.5 mb-16">
+            <div
+              className="w-9 h-9 rounded-lg flex items-center justify-center"
+              style={{ background: "linear-gradient(135deg,#7c6bff,#06d6a0)" }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="2" />
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+              </svg>
+            </div>
+            <span className="font-bold text-lg tracking-tight text-white font-display">SGI</span>
+          </div>
+
+          <h2
+            className="text-4xl font-extrabold leading-tight mb-5 font-display"
+            style={{ color: "#eeeeff" }}
+          >
+            Track the evolution
+            <br />
+            <span
+              style={{
+                background: "linear-gradient(90deg,#7c6bff,#06d6a0)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              of your mind.
+            </span>
+          </h2>
+          <p className="text-sm leading-relaxed mb-12" style={{ color: "#9090b8" }}>
+            A platform for measuring cognitive growth across 13 semantic dimensions — in real time.
+          </p>
+
+          <div className="flex flex-col gap-5">
+            {AUTH_FEATURES.map((f) => (
+              <div key={f.label} className="flex items-start gap-4">
+                <div
+                  className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-base font-bold"
+                  style={{
+                    background: "rgba(124,107,255,0.12)",
+                    border: "1px solid rgba(124,107,255,0.25)",
+                    color: "#7c6bff",
+                  }}
+                >
+                  {f.icon}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: "#eeeeff" }}>{f.label}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "#9090b8" }}>{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-1.5 mb-3">
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className="w-2 h-2 rounded-full"
+                style={{ background: i < 4 ? "#7c6bff" : "rgba(124,107,255,0.3)" }}
+              />
+            ))}
+          </div>
+          <p className="text-xs italic leading-relaxed" style={{ color: "#9090b8" }}>
+            "SGI made me realize how narrow my thinking was — now I actively seek out new domains."
+          </p>
+          <p className="text-xs mt-1.5 font-semibold" style={{ color: "#7c6bff" }}>
+            — Community member, Level 12
+          </p>
+        </div>
+      </div>
+
+      <div
+        className="flex flex-1 items-center justify-center px-6 py-12 relative"
+        style={{ background: "#0a0b18" }}
+      >
+        <div
+          className="absolute top-0 right-0 w-[40%] h-[40%] rounded-full blur-[100px] pointer-events-none"
+          style={{ background: "rgba(124,107,255,0.07)" }}
+        />
+        <div className="w-full max-w-[420px] relative z-10">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ConnectingScreen() {
   return (
@@ -73,7 +214,8 @@ function ConnectingScreen() {
           style={{ background: "linear-gradient(135deg,#7c6bff,#06d6a0)" }}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="2" /><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+            <circle cx="12" cy="12" r="2" />
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
           </svg>
         </div>
       </div>
@@ -100,17 +242,17 @@ function ConnectingScreen() {
 
 function SignInPage() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
+    <AuthLayout>
       <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
-    </div>
+    </AuthLayout>
   );
 }
 
 function SignUpPage() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
+    <AuthLayout>
       <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
-    </div>
+    </AuthLayout>
   );
 }
 
