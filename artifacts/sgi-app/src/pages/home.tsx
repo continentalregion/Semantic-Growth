@@ -1,8 +1,13 @@
+import { useEffect } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Network, ChevronRight } from "lucide-react";
 
 export default function Home() {
+  useEffect(() => {
+    fetch("/api/healthz").catch(() => {});
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden relative">
       {/* Background effects */}

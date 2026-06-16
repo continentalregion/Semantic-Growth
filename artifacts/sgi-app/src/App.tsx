@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { ClerkProvider, SignIn, SignUp, Show, useAuth, useUser } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
@@ -6,7 +6,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useSyncUser } from "@workspace/api-client-react";
+import { useSyncUser, useGetMyProfile } from "@workspace/api-client-react";
 import { setAuthTokenGetter } from "@workspace/api-client-react/custom-fetch";
 import Layout from "@/components/layout";
 
@@ -57,6 +57,47 @@ const clerkAppearance = {
   }
 };
 
+function ConnectingScreen() {
+  return (
+    <div
+      className="h-screen w-screen flex flex-col items-center justify-center gap-6"
+      style={{ background: "#08090f" }}
+    >
+      <div className="relative flex items-center justify-center w-16 h-16">
+        <div
+          className="absolute inset-0 rounded-full animate-ping"
+          style={{ background: "rgba(124,107,255,0.25)" }}
+        />
+        <div
+          className="w-12 h-12 rounded-full flex items-center justify-center"
+          style={{ background: "linear-gradient(135deg,#7c6bff,#06d6a0)" }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="2" /><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+          </svg>
+        </div>
+      </div>
+      <div className="text-center space-y-2">
+        <p className="text-sm font-semibold tracking-widest uppercase" style={{ color: "#7c6bff", letterSpacing: "0.18em" }}>
+          SGI
+        </p>
+        <p className="text-xs" style={{ color: "rgba(144,144,184,0.7)" }}>
+          Connecting to intelligence engine…
+        </p>
+      </div>
+      <div className="flex gap-1.5 mt-2">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="typing-dot"
+            style={{ animationDelay: `${i * 0.18}s`, background: "#7c6bff" }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SignInPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
@@ -77,30 +118,56 @@ function UserSync() {
   const { user, isLoaded, isSignedIn } = useUser();
   const { getToken } = useAuth();
   const syncUser = useSyncUser();
+  const attemptRef = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     setAuthTokenGetter(() => getToken());
   }, [getToken]);
 
   useEffect(() => {
-    if (isLoaded && isSignedIn && user) {
-      const email = user.primaryEmailAddress?.emailAddress;
-      if (email) {
-        syncUser.mutate({
-          data: { clerkId: user.id, email }
-        });
-      }
-    }
-  }, [isLoaded, isSignedIn, user]);
+    if (!isLoaded || !isSignedIn || !user) return;
+    const email = user.primaryEmailAddress?.emailAddress;
+    if (!email) return;
+
+    attemptRef.current = 0;
+
+    const trySync = () => {
+      syncUser.mutate(
+        { data: { clerkId: user.id, email } },
+        {
+          onSuccess: () => {
+            attemptRef.current = 0;
+          },
+          onError: () => {
+            if (attemptRef.current < 5) {
+              attemptRef.current += 1;
+              const delay = Math.min(1000 * 2 ** attemptRef.current, 12000);
+              timerRef.current = setTimeout(trySync, delay);
+            }
+          },
+        }
+      );
+    };
+
+    trySync();
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [isLoaded, isSignedIn, user?.id]);
 
   return null;
 }
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isLoaded, isSignedIn } = useAuth();
-  
-  if (!isLoaded) return <div className="h-screen w-screen flex items-center justify-center">Loading...</div>;
+  const { data: profile, isLoading: profileLoading } = useGetMyProfile();
+
+  if (!isLoaded) return <ConnectingScreen />;
   if (!isSignedIn) return <Redirect to="/sign-in" />;
+
+  if (!profile && profileLoading) return <ConnectingScreen />;
 
   return (
     <Layout>
