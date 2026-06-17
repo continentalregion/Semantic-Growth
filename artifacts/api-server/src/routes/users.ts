@@ -301,6 +301,7 @@ async function buildUserProfile(userId: number) {
     percentile,
     rankChange30d,
     createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
   };
 }
 

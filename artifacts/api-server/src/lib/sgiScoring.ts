@@ -84,7 +84,8 @@ export async function scoreMessage(userMessage: string, conversationHistory: Arr
     const rawScore = computeRawScore(dimensions);
 
     return { dimensions, domains, rawScore };
-  } catch {
+  } catch (err) {
+    console.error("[sgiScoring] scoreMessage failed, using fallback dimensions:", err);
     const fallback = defaultDimensions();
     return { dimensions: fallback, domains: [], rawScore: computeRawScore(fallback) };
   }

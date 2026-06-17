@@ -13,6 +13,11 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Disable ETags — API responses (especially /users/me) must always return
+// fresh data. ETags cause 304 Not Modified when the score changes slightly,
+// which makes customFetch return null and React Query lose the profile.
+app.set("etag", false);
+
 app.use(
   pinoHttp({
     logger,

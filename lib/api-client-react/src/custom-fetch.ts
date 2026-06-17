@@ -8,7 +8,12 @@ export type BodyType<T> = T;
 
 export type AuthTokenGetter = () => Promise<string | null> | string | null;
 
-const NO_BODY_STATUS = new Set([204, 205, 304]);
+// 304 is intentionally excluded: the browser Fetch API should handle ETag
+// caching transparently (returning the cached body as a 200). If a raw 304
+// reaches this layer it means no body is available — treat it like the
+// server has no content, so React Query keeps its previous cached value
+// rather than overwriting it with null.
+const NO_BODY_STATUS = new Set([204, 205]);
 const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 // ---------------------------------------------------------------------------
