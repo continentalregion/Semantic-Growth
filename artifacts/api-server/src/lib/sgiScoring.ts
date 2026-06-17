@@ -55,8 +55,9 @@ export async function scoreMessage(userMessage: string, conversationHistory: Arr
     const prompt = `${SCORING_PROMPT}\n\nConversation context:\n${context}\n\nUser message to analyze:\n"${userMessage}"`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-5-nano",
-      max_completion_tokens: 512,
+      model: "gpt-4o-mini",
+      max_tokens: 1024,
+      response_format: { type: "json_object" },
       messages: [
         { role: "user", content: prompt }
       ],
