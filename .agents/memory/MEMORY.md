@@ -3,3 +3,4 @@
 - [SGI design system](sgi-design-system.md) — palette viola/teal/pink, Space Grotesk, CSS tokens --sgi-* in index.css; primary=248 100% 71% (purple)
 - [API server dist committed to git](api-server-dist-committed.md) — must rebuild dist/ and commit before every deploy
 - [Clerk proxy JWT issuer alignment](clerk-proxy-jwt-issuer.md) — clerkMiddleware must include proxyUrl in prod or Bearer token verification fails despite cookies working
+- [req.auth is a function in @clerk/express v2](clerk-req-auth-function.md) — req.auth?.userId is ALWAYS undefined; use getAuth(req).userId from @clerk/express

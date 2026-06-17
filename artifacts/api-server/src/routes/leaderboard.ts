@@ -1,3 +1,4 @@
+import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { leaderboardEntries, users } from "@workspace/db";
@@ -10,7 +11,7 @@ router.get("/leaderboard", async (req, res) => {
     const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? "50"), 10)));
     const offset = Math.max(0, parseInt(String(req.query.offset ?? "0"), 10));
 
-    const clerkId = req.auth?.userId;
+    const clerkId = getAuth(req).userId;
     let currentUserId: number | null = null;
     if (clerkId) {
       const [u] = await db.select({ id: users.id }).from(users).where(eq(users.clerkId, clerkId)).limit(1);

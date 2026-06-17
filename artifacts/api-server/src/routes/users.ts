@@ -1,3 +1,4 @@
+import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { users, sgiSnapshots, leaderboardEntries, gamification, badges, missions, recommendations, semanticDomains } from "@workspace/db";
@@ -9,7 +10,7 @@ const router = Router();
 
 router.post("/users/me", async (req, res) => {
   try {
-    const authUserId = req.auth?.userId;
+    const authUserId = getAuth(req).userId;
     if (!authUserId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
     const parsed = SyncUserBody.safeParse(req.body);
@@ -54,7 +55,7 @@ router.post("/users/me", async (req, res) => {
 
 router.get("/users/me", async (req, res) => {
   try {
-    const clerkId = req.auth?.userId;
+    const clerkId = getAuth(req).userId;
     if (!clerkId) {
       const cookie = req.headers["cookie"] ?? "(none)";
       const authHeader = req.headers["authorization"] ?? "(none)";
@@ -82,7 +83,7 @@ router.get("/users/me", async (req, res) => {
 
 router.get("/users/me/sgi-history", async (req, res) => {
   try {
-    const clerkId = req.auth?.userId;
+    const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
@@ -107,7 +108,7 @@ router.get("/users/me/sgi-history", async (req, res) => {
 
 router.get("/users/me/semantic-map", async (req, res) => {
   try {
-    const clerkId = req.auth?.userId;
+    const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
@@ -144,7 +145,7 @@ router.get("/users/me/semantic-map", async (req, res) => {
 
 router.get("/users/me/domain-strengths", async (req, res) => {
   try {
-    const clerkId = req.auth?.userId;
+    const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
@@ -177,7 +178,7 @@ router.get("/users/me/domain-strengths", async (req, res) => {
 
 router.get("/users/me/predictions", async (req, res) => {
   try {
-    const clerkId = req.auth?.userId;
+    const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
@@ -388,7 +389,7 @@ function formatDomain(d: string): string {
 }
 
 function requireOwner(req: import("express").Request, res: import("express").Response, userId: string): boolean {
-  if (req.auth?.userId !== userId) {
+  if (getAuth(req).userId !== userId) {
     res.status(403).json({ error: "Forbidden" });
     return false;
   }
@@ -397,7 +398,7 @@ function requireOwner(req: import("express").Request, res: import("express").Res
 
 router.get("/users/:clerkId", async (req, res) => {
   if (!requireOwner(req, res, req.params.clerkId!)) return;
-  const clerkId = req.auth?.userId;
+  const clerkId = getAuth(req).userId;
   if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
@@ -407,7 +408,7 @@ router.get("/users/:clerkId", async (req, res) => {
 
 router.get("/users/:clerkId/sgi-history", async (req, res) => {
   if (!requireOwner(req, res, req.params.clerkId!)) return;
-  const clerkId = req.auth?.userId;
+  const clerkId = getAuth(req).userId;
   if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
@@ -423,7 +424,7 @@ router.get("/users/:clerkId/sgi-history", async (req, res) => {
 
 router.get("/users/:clerkId/semantic-map", async (req, res) => {
   if (!requireOwner(req, res, req.params.clerkId!)) return;
-  const clerkId = req.auth?.userId;
+  const clerkId = getAuth(req).userId;
   if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
@@ -444,7 +445,7 @@ router.get("/users/:clerkId/semantic-map", async (req, res) => {
 
 router.get("/users/:clerkId/domain-strengths", async (req, res) => {
   if (!requireOwner(req, res, req.params.clerkId!)) return;
-  const clerkId = req.auth?.userId;
+  const clerkId = getAuth(req).userId;
   if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
@@ -463,7 +464,7 @@ router.get("/users/:clerkId/domain-strengths", async (req, res) => {
 
 router.get("/users/:clerkId/predictions", async (req, res) => {
   if (!requireOwner(req, res, req.params.clerkId!)) return;
-  const clerkId = req.auth?.userId;
+  const clerkId = getAuth(req).userId;
   if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
   if (!user) { res.status(404).json({ error: "User not found" }); return; }

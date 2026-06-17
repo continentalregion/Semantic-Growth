@@ -39,21 +39,38 @@ app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Canonical clerkMiddleware — resolves publishable key from the request host
 app.use(
-  clerkMiddleware((req) => {
-    const host = getClerkProxyHost(req);
-    const isProd = process.env.NODE_ENV === "production";
-    return {
-      publishableKey: publishableKeyFromHost(
-        host ?? "",
-        process.env.CLERK_PUBLISHABLE_KEY,
-      ),
-      ...(isProd && host
-        ? { proxyUrl: `https://${host}/api/__clerk` }
-        : {}),
-    };
-  }),
+  clerkMiddleware((req) => ({
+    publishableKey: publishableKeyFromHost(
+      getClerkProxyHost(req) ?? "",
+      process.env.CLERK_PUBLISHABLE_KEY,
+    ),
+  })),
 );
+
+// Auth diagnostics middleware — logs auth state after clerkMiddleware
+app.use((req, _res, next) => {
+  if (!req.url.startsWith("/api/__clerk") && !req.url.startsWith("/api/healthz")) {
+    const auth = getAuth(req);
+    const token = req.headers.authorization;
+    let bearerInfo: Record<string, unknown> | null = null;
+    if (token?.startsWith("Bearer ")) {
+      const jwt = token.slice(7);
+      try {
+        const parts = jwt.split(".");
+        if (parts.length === 3) {
+          const payload = JSON.parse(Buffer.from(parts[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString());
+          bearerInfo = { iss: payload.iss, sub: payload.sub, exp: payload.exp, expired: payload.exp < Date.now() / 1000 };
+        }
+      } catch {}
+    }
+    if (!auth?.userId) {
+      logger.warn({ url: req.url, bearerInfo, hasBearer: !!token, hasCookie: !!req.headers.cookie }, "clerkMiddleware: no userId");
+    }
+  }
+  next();
+});
 
 // Decode a JWT without verifying — returns header+payload claims
 function decodeJwtUnsafe(token: string): Record<string, unknown> | null {
@@ -91,6 +108,12 @@ app.get("/api/debug-auth", (req, res) => {
     }
   }
 
+  // Decode bearer token if present
+  let bearerDecoded: Record<string, unknown> | null = null;
+  if (authHeader.startsWith("Bearer ")) {
+    bearerDecoded = decodeJwtUnsafe(authHeader.slice(7));
+  }
+
   const result = {
     userId: auth?.userId ?? null,
     sessionId: auth?.sessionId ?? null,
@@ -100,7 +123,7 @@ app.get("/api/debug-auth", (req, res) => {
     secretKeyPrefix: process.env.CLERK_SECRET_KEY?.slice(0, 10),
     cookieNames: Object.keys(cookieMap),
     sessionCookies,
-    authHeaderPresent: authHeader !== "(none)",
+    bearerDecoded,
     nodeEnv: process.env.NODE_ENV,
     fullPubKey: pubKey,
   };

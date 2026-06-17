@@ -1,3 +1,4 @@
+import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { users, conversations, messages, sgiSnapshots, gamification, semanticDomains } from "@workspace/db";
@@ -17,7 +18,7 @@ The platform you are part of tracks the user's semantic growth across conversati
 
 router.get("/openai/conversations", async (req, res) => {
   try {
-    const clerkId = req.auth?.userId;
+    const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
@@ -41,7 +42,7 @@ router.get("/openai/conversations", async (req, res) => {
 
 router.post("/openai/conversations", async (req, res) => {
   try {
-    const clerkId = req.auth?.userId;
+    const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
@@ -59,7 +60,7 @@ router.post("/openai/conversations", async (req, res) => {
 
 router.get("/openai/conversations/:id", async (req, res) => {
   try {
-    const clerkId = req.auth?.userId;
+    const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
@@ -93,7 +94,7 @@ router.get("/openai/conversations/:id", async (req, res) => {
 
 router.delete("/openai/conversations/:id", async (req, res) => {
   try {
-    const clerkId = req.auth?.userId;
+    const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
@@ -113,7 +114,7 @@ router.delete("/openai/conversations/:id", async (req, res) => {
 
 router.post("/openai/conversations/:id/messages", async (req, res) => {
   try {
-    const clerkId = req.auth?.userId;
+    const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }

@@ -1,3 +1,4 @@
+import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { users, gamification, badges, missions } from "@workspace/db";
@@ -118,7 +119,7 @@ export async function updateMissionProgress(userId: number, event: {
 
 router.get("/gamification/me", async (req, res) => {
   try {
-    const clerkId = req.auth?.userId;
+    const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
