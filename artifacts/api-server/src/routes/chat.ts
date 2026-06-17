@@ -265,7 +265,30 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
         .where(eq(messages.id, insertedUserMsg.id));
     }
 
-    res.write(`data: ${JSON.stringify({ done: true, sgiDelta, newSgi: Math.round(newSgi * 10) / 10 })}\n\n`);
+    // Auto-generate a descriptive title after the first message
+    let newTitle: string | undefined;
+    const isFirstMessage = history.filter(m => m.role === "user").length === 1;
+    if (isFirstMessage && (convo.title === "Exploration" || convo.title === "New Conversation")) {
+      try {
+        const titleResp = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          max_tokens: 20,
+          messages: [{
+            role: "user",
+            content: `Summarize this message in 3-5 words, title case, no punctuation: "${userContent.slice(0, 300)}"`
+          }]
+        });
+        const generated = titleResp.choices[0]?.message?.content?.trim().replace(/[".]/g, "");
+        if (generated && generated.length > 0 && generated.length <= 60) {
+          newTitle = generated;
+          await db.update(conversations).set({ title: newTitle }).where(eq(conversations.id, convoId));
+        }
+      } catch (err) {
+        console.error("Failed to generate conversation title:", err);
+      }
+    }
+
+    res.write(`data: ${JSON.stringify({ done: true, sgiDelta, newSgi: Math.round(newSgi * 10) / 10, ...(newTitle ? { title: newTitle } : {}) })}\n\n`);
     res.end();
   } catch (err) {
     console.error(err);

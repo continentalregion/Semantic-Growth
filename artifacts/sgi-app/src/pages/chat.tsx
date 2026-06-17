@@ -120,6 +120,18 @@ export default function Chat() {
               if (parsed.sgiDelta > 0) {
                 toast.success(`SGI +${parsed.sgiDelta.toFixed(2)} pts`);
               }
+              if (parsed.title && activeConvoId) {
+                qc.setQueryData(getListOpenaiConversationsQueryKey(), (old: unknown) => {
+                  if (!Array.isArray(old)) return old;
+                  return old.map((c: { id: number; title: string }) =>
+                    c.id === activeConvoId ? { ...c, title: parsed.title } : c
+                  );
+                });
+                qc.setQueryData(getGetOpenaiConversationQueryKey(activeConvoId), (old: unknown) => {
+                  if (!old || typeof old !== "object") return old;
+                  return { ...(old as object), title: parsed.title };
+                });
+              }
             }
           } catch {}
         }
