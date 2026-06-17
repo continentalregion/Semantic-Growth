@@ -40,12 +40,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env.CLERK_PUBLISHABLE_KEY,
-    ),
-  })),
+  clerkMiddleware((req) => {
+    const host = getClerkProxyHost(req);
+    const isProd = process.env.NODE_ENV === "production";
+    return {
+      publishableKey: publishableKeyFromHost(
+        host ?? "",
+        process.env.CLERK_PUBLISHABLE_KEY,
+      ),
+      ...(isProd && host
+        ? { proxyUrl: `https://${host}/api/__clerk` }
+        : {}),
+    };
+  }),
 );
 
 // Decode a JWT without verifying — returns header+payload claims
