@@ -1,0 +1,62 @@
+Sto trasformando la mia app (SGI) in un sistema che si AUTOFINANZIA in
+automatico: gli abbonamenti premium devono coprire i costi AI, e dal lato
+utente devono scattare blocchi automatici che impediscano a chiunque di
+farmi consumare più token di quanto è sostenibile. Tutto automatico, senza
+mio intervento manuale. Le funzioni esistenti (barra utilizzo, tracking
+costi, reset mensile) restano.
+
+Lavora una fase alla volta e fermati dopo ognuna a spiegarmi cosa hai
+cambiato, in italiano semplice.
+
+REGOLA DI FONDO (vale per tutto):
+Nessun utente deve mai poter generare un costo AI superiore al suo tetto di
+fascia. Il free ha un tetto bassissimo e fisso. Il premium ha un tetto che
+lascia comunque un margine positivo dopo il costo AI e la fee Stripe (~3%).
+
+FASE 1 — DEFINIRE I TETTI IN BASE AL MARGINE (non a numeri a caso)
+- Crea un file di configurazione unico con: prezzo abbonamento premium,
+  costo per chiamata per modello, e il tetto di chiamate/token per fascia.
+- Calcola il tetto premium PARTENDO dal margine: dato il prezzo X, e il
+  costo per chiamata, qual è il numero massimo di chiamate che lascia
+  comunque un margine positivo? Quel numero diventa il limite premium.
+- Free: tetto fisso bassissimo (es. 20 messaggi/mese) su Haiku, così il
+  costo per utente free è prossimo a zero e sempre noto.
+
+FASE 2 — BLOCCHI AUTOMATICI LATO UTENTE (hard stop, non avvisi)
+- Prima di OGNI chiamata AI, controlla il consumo dell'utente nel mese.
+  Se ha raggiunto il tetto della sua fascia, blocca la chiamata PRIMA che
+  parta (così non spendo il token) e mostra il banner di upgrade/limite.
+- Il controllo deve avvenire lato server, non solo nell'interfaccia, così
+  non è aggirabile.
+- Logga ogni blocco, così vedo quanti utenti sbattono sul limite (segnale
+  utile per i prezzi).
+
+FASE 3 — COSTI MINIMI (così il margine è più ampio)
+- Verifica i model ID reali e segnalami eventuali modelli legacy costosi.
+- Free su Haiku 4.5. Premium su Haiku per routine, modello costoso solo
+  per la singola risposta "wow".
+- Attiva il prompt caching sul blocco istruzioni di analisi (è fisso e si
+  ripete: -90% sull'input cacheato).
+- Scoring/traiettorie in job periodico salvato nel DB, non a ogni messaggio;
+  in batch dove possibile (-50%).
+- Output di scoring solo in JSON compatto, con max_tokens limitato.
+
+FASE 4 — IL "CIRCUITO DI AUTOFINANZIAMENTO" (la parte che chiedi)
+- Crea una dashboard admin che mi mostri in tempo reale:
+  * ricavo mensile totale (da Stripe)
+  * costo AI mensile totale
+  * margine netto complessivo (ricavo - costo AI - fee Stripe)
+  * costo AI medio per utente free e per utente premium
+  * un indicatore verde/rosso: "il sistema si autofinanzia?" SI/NO
+- Aggiungi un allarme automatico: se in un dato mese il costo AI totale
+  supera una soglia che definisco (es. una % dei ricavi), mandami una
+  notifica/email. Così il sistema mi avverte da solo prima di andare sotto.
+
+FASE 5 — VALVOLA DI SICUREZZA GLOBALE (opzionale ma la voglio)
+- Aggiungi un tetto di spesa AI mensile GLOBALE configurabile. Se l'app nel
+  suo insieme si avvicina a quel tetto, declassa automaticamente le chiamate
+  non essenziali al modello più economico, e logga l'evento. È il
+  paracadute che impedisce a un picco imprevisto di sfondarmi il budget.
+
+Vincoli: non rimuovere funzioni esistenti, non rifattorizzare file non
+collegati, spiegami tutto in italiano, chiedimi se qualcosa non è chiaro.

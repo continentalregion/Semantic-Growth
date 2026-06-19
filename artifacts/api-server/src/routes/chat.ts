@@ -8,33 +8,27 @@ import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { scoreMessage, computeNewSgiScore } from "../lib/sgiScoring";
 import { updateLeaderboardRank, checkAndAwardBadges } from "./users";
 import { updateMissionProgress } from "./gamification";
+import {
+  MONTHLY_LIMITS,
+  MODEL_COST_CENTS_PER_1K,
+  LOG_BLOCKS,
+  PRICING_SUMMARY,
+} from "../config/pricing";
 
 const OPENAI_MODELS = ["gpt-4o-mini", "gpt-4o", "o4-mini"] as const;
 const CLAUDE_MODELS = ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"] as const;
 const ALL_MODELS = [...OPENAI_MODELS, ...CLAUDE_MODELS] as const;
 type ModelId = typeof ALL_MODELS[number];
 
-const MONTHLY_LIMITS: Record<string, number> = {
-  free: 20,
-  premium: 500,
-};
-
-// Cost in cents per 1000 tokens (blended input+output estimate)
-const COST_CENTS_PER_1K: Record<string, number> = {
-  "claude-opus-4-8":   3.0,
-  "claude-sonnet-4-6": 0.6,
-  "claude-haiku-4-5":  0.05,
-  "gpt-4o":            0.5,
-  "gpt-4o-mini":       0.03,
-  "o4-mini":           0.15,
-};
+// Log pricing summary on startup for transparency
+console.info("[pricing] config loaded:", PRICING_SUMMARY);
 
 function isClaudeModel(model: string): boolean {
   return model.startsWith("claude-");
 }
 
 function calcCostCents(model: string, tokens: number): number {
-  const rate = COST_CENTS_PER_1K[model] ?? 0.5;
+  const rate = MODEL_COST_CENTS_PER_1K[model] ?? 0.5;
   return Math.round((tokens / 1000) * rate * 1000) / 1000;
 }
 
