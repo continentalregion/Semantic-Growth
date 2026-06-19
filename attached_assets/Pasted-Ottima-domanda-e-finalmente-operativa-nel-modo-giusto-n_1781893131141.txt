@@ -1,0 +1,33 @@
+Ottima domanda, e finalmente operativa nel modo giusto: non "aspetto agosto", ma "come faccio a non andare in perdita". Questo è il vero cuore economico di SGI, e si chiama **unit economics** — il margine su ogni singolo utente. Te lo affronto concreto.
+
+Il principio è uno solo: **il ricavo per utente deve superare il costo dei token che quell'utente ti genera.** Se un abbonato paga 10€/mese e ti costa 3€ di token, guadagni. Se ti costa 14€, sei sotto. Tutto il gioco è tenere quel rapporto positivo. Ci sono due leve: abbassare il costo dei token e alzare/proteggere il ricavo.
+
+**Abbassare il costo dei token:**
+
+Usa il modello più economico che regge il compito. Non serve il modello top per tutto. Per analisi semantica, scoring, classificazione, un modello piccolo e cheap (es. Haiku) costa una frazione del modello grande e spesso basta. Tieni il modello costoso solo per il momento-wow che giustifica il prezzo.
+
+Non rimandare tutta la conversazione a ogni chiamata. Il costo esplode quando reinvii l'intero storico ogni volta. Riassumi periodicamente la cronologia in un sunto compatto e manda quello invece di tutti i messaggi grezzi. Per SGI è perfetto: tu non hai bisogno del testo integrale, hai bisogno delle *metriche semantiche estratte*. Estrai i dati, salvali nel database, butta il testo grezzo dal contesto.
+
+Fai il lavoro pesante una volta, non a ogni apertura. Il "punteggio semantico", la traiettoria, le aree di miglioramento: calcolali in un job periodico (una volta al giorno o a fine sessione), non a ogni messaggio. L'utente che riapre la dashboard legge dati già calcolati e salvati — zero token. I token li spendi solo quando c'è interazione nuova reale.
+
+Metti un tetto. Un limite di messaggi/analisi per fascia di abbonamento. Così il tuo costo per utente ha un soffitto noto e nessun singolo utente può mandarti in rosso usando la chat all'infinito.
+
+Cache dove puoi. Se molte richieste condividono lo stesso contesto di sistema (le istruzioni di analisi), molte API supportano il *prompt caching*: il pezzo ripetuto costa molto meno dopo la prima volta.
+
+**Proteggere/alzare il ricavo:**
+
+Abbonamento, non pay-per-use lato cliente, ma con un costo tuo *prevedibile*. L'utente paga una flat mensile; tu dimensioni i limiti d'uso in modo che, anche l'utente più attivo entro quel limite, ti lasci comunque un margine.
+
+Free tier piccolo e controllato. Per il passaparola ti serve che la gente provi gratis — ma il free deve costarti pochissimo (modello cheap, pochi messaggi, analisi limitata). Il free è marketing: il suo costo dev'essere nel budget di acquisizione, non una voragine. La regola: il gratuito deve darti l'assaggio del wow, non il prodotto intero.
+
+Fai pagare la cosa che costa poco a te ma vale tanto per loro. Il valore di SGI non è il numero di token bruciati — è la *traiettoria nel tempo, la classifica, il vedersi crescere*. Quei dati, una volta calcolati, costano quasi nulla da rimostrare. Stai vendendo l'*insight accumulato*, non il consumo di AI. Più passa il tempo, più l'utente ha storia, più il prodotto vale e più i costi marginali calano. Questo è il bello di SGI: il valore cresce col tempo, il costo no.
+
+La formula mentale da tenere sempre, prima di lanciare:
+
+Costo token medio per utente al mese < Prezzo abbonamento − (le altre spese: hosting, Stripe ~3%, ecc.)
+
+Prima di mettere il prezzo ad agosto, fai questo calcolo a tavolino *adesso*: simula l'utente medio (quante analisi fa al mese?) × costo per analisi col modello scelto = il tuo costo. Poi metti il prezzo ben sopra. Se non torna, non è il prezzo che è sbagliato — è il design (stai usando un modello troppo caro, o reinvii troppo contesto, o ricalcoli troppo spesso). Quei tre sono il 90% dei costi fuori controllo nei prodotti AI.
+
+Una cosa onesta sul rischio: il modo più sicuro per *non* andare sotto bilancio non è ottimizzare i token — è **non avere utenti gratuiti illimitati prima di sapere se qualcuno paga.** Il caso peggiore è lanciare gratis, avere mille curiosi che bruciano token, e zero paganti. Quindi lega il costo all'incasso fin dall'inizio: free tier strettissimo, e il grosso del wow dietro l'abbonamento.
+
+Vuoi che ti aiuti a fare il calcolo concreto? Se mi dici quale modello stai usando per le analisi e, più o meno, quante chiamate AI fa un utente in una sessione tipica, ti stimo il costo per utente/mese e ti dico a che prezzo l'abbonamento ti lascia in attivo.
