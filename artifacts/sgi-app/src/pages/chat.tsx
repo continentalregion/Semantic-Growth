@@ -10,13 +10,13 @@ import {
   getGetSgiHistoryQueryKey,
   getGetOpenaiConversationQueryKey,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { MessageSquarePlus, Trash2, Send, Bot, User, TrendingUp, TrendingDown, Minus, Zap, ChevronDown } from "lucide-react";
+import { MessageSquarePlus, Trash2, Send, Bot, User, TrendingUp, TrendingDown, Minus, Zap, ChevronDown, Lock } from "lucide-react";
 
 const MODELS = [
   { id: "claude-opus-4-8", label: "Claude Opus 4", provider: "Anthropic", badge: "Most Capable" },
@@ -41,7 +41,23 @@ export default function Chat() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [lastSgiDelta, setLastSgiDelta] = useState<number | null>(null);
   const [lastDomains, setLastDomains] = useState<string[]>([]);
+  const [limitBlocked, setLimitBlocked] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { data: usageData, refetch: refetchUsage } = useQuery<{
+    used: number; limit: number; remaining: number; plan: string; totalCostCents: number;
+  }>({
+    queryKey: ["openai-usage"],
+    queryFn: async () => {
+      const token = await getToken();
+      const r = await fetch(`${API_BASE}/openai/usage`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!r.ok) throw new Error("Failed to fetch usage");
+      return r.json();
+    },
+    staleTime: 30_000,
+  });
 
   const { data: conversations, isLoading: convosLoading } = useListOpenaiConversations();
   const { data: activeConvo, isLoading: convoLoading } = useGetOpenaiConversation(activeConvoId!, {
@@ -101,6 +117,14 @@ export default function Chat() {
         body: JSON.stringify({ content }),
       });
 
+      if (response.status === 429) {
+        const err = await response.json().catch(() => ({}));
+        setLimitBlocked(true);
+        toast.error(`Limite mensile raggiunto (${err.used ?? "?"}/${err.limit ?? "?"} messaggi). Passa a Premium.`);
+        setIsStreaming(false);
+        setStreamingContent("");
+        return;
+      }
       if (!response.ok || !response.body) {
         throw new Error("Failed to send message");
       }
@@ -131,6 +155,10 @@ export default function Chat() {
               setLastDomains(parsed.domains ?? []);
               if (parsed.sgiDelta > 0) {
                 toast.success(`SGI +${parsed.sgiDelta.toFixed(2)} pts`);
+              }
+              if (parsed.usage) {
+                qc.setQueryData(["openai-usage"], parsed.usage);
+                if (parsed.usage.remaining === 0) setLimitBlocked(true);
               }
               if (parsed.title && activeConvoId) {
                 qc.setQueryData(getListOpenaiConversationsQueryKey(), (old: unknown) => {
@@ -177,11 +205,58 @@ export default function Chat() {
           className="w-full gap-2"
           variant="outline"
           data-testid="button-new-conversation"
-          disabled={createConvo.isPending}
+          disabled={createConvo.isPending || limitBlocked}
         >
           <MessageSquarePlus className="w-4 h-4" />
           New Exploration
         </Button>
+
+        {/* Usage counter */}
+        {usageData && (
+          <div className="px-1">
+            <div className="flex items-center justify-between text-xs mb-1" style={{ color: "#9090b8" }}>
+              <span>{usageData.used}/{usageData.limit} msg questo mese</span>
+              <span className="capitalize" style={{ color: usageData.plan === "premium" ? "#a89fff" : "#9090b8" }}>
+                {usageData.plan}
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${Math.min(100, (usageData.used / usageData.limit) * 100)}%`,
+                  background: usageData.remaining <= 5
+                    ? "linear-gradient(90deg, #f72585, #b5179e)"
+                    : "linear-gradient(90deg, #7c6bff, #06d6a0)",
+                }}
+              />
+            </div>
+            {usageData.remaining <= 5 && usageData.remaining > 0 && (
+              <p className="text-xs mt-1" style={{ color: "#f72585" }}>
+                Solo {usageData.remaining} messaggi rimasti
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Upgrade banner when blocked */}
+        {limitBlocked && (
+          <div
+            className="rounded-xl p-3 text-center flex flex-col gap-2"
+            style={{ background: "rgba(247,37,133,0.08)", border: "1px solid rgba(247,37,133,0.25)" }}
+          >
+            <Lock className="w-4 h-4 mx-auto" style={{ color: "#f72585" }} />
+            <p className="text-xs font-medium" style={{ color: "#f72585" }}>Limite mensile raggiunto</p>
+            <p className="text-xs" style={{ color: "#9090b8" }}>Passa a Premium per continuare a esplorare</p>
+            <button
+              className="text-xs py-1.5 px-3 rounded-full font-semibold mt-1 transition-opacity hover:opacity-80"
+              style={{ background: "linear-gradient(135deg, #7c6bff, #f72585)", color: "#fff" }}
+              onClick={() => toast.info("Premium in arrivo presto!")}
+            >
+              Upgrade a Premium
+            </button>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto space-y-1">
           {convosLoading ? (
@@ -412,13 +487,13 @@ export default function Chat() {
                   onKeyDown={handleKeyDown}
                   placeholder="Explore an idea, challenge an assumption, make a connection..."
                   className="resize-none min-h-[56px] max-h-[200px] bg-background border-border focus-visible:ring-primary/50"
-                  disabled={isStreaming}
+                  disabled={isStreaming || limitBlocked}
                   rows={2}
                 />
                 <Button
                   data-testid="button-send-message"
                   onClick={handleSend}
-                  disabled={!input.trim() || isStreaming}
+                  disabled={!input.trim() || isStreaming || limitBlocked}
                   className="h-14 px-4 flex-shrink-0"
                 >
                   <Send className="w-5 h-5" />

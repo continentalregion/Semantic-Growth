@@ -14,8 +14,45 @@ const CLAUDE_MODELS = ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5
 const ALL_MODELS = [...OPENAI_MODELS, ...CLAUDE_MODELS] as const;
 type ModelId = typeof ALL_MODELS[number];
 
+const MONTHLY_LIMITS: Record<string, number> = {
+  free: 20,
+  premium: 500,
+};
+
+// Cost in cents per 1000 tokens (blended input+output estimate)
+const COST_CENTS_PER_1K: Record<string, number> = {
+  "claude-opus-4-8":   3.0,
+  "claude-sonnet-4-6": 0.6,
+  "claude-haiku-4-5":  0.05,
+  "gpt-4o":            0.5,
+  "gpt-4o-mini":       0.03,
+  "o4-mini":           0.15,
+};
+
 function isClaudeModel(model: string): boolean {
   return model.startsWith("claude-");
+}
+
+function calcCostCents(model: string, tokens: number): number {
+  const rate = COST_CENTS_PER_1K[model] ?? 0.5;
+  return Math.round((tokens / 1000) * rate * 1000) / 1000;
+}
+
+// Returns today's YYYY-MM-01 (start of month) as string
+function currentMonthKey(): string {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
+}
+
+async function resetMonthlyIfNeeded(userId: number, user: { monthlyResetDate: string | null; monthlyMessagesUsed: number }) {
+  const thisMonth = currentMonthKey();
+  if (user.monthlyResetDate !== thisMonth) {
+    await db.update(users)
+      .set({ monthlyMessagesUsed: 0, monthlyResetDate: thisMonth })
+      .where(eq(users.id, userId));
+    return 0;
+  }
+  return user.monthlyMessagesUsed;
 }
 
 const router = Router();
@@ -33,6 +70,8 @@ router.get("/openai/conversations", async (req, res) => {
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
+    await resetMonthlyIfNeeded(user.id, user);
+
     const convos = await db.select().from(conversations)
       .where(eq(conversations.userId, user.id))
       .orderBy(desc(conversations.createdAt))
@@ -45,6 +84,37 @@ router.get("/openai/conversations", async (req, res) => {
       sgiDelta: c.sgiDelta ?? 0,
       createdAt: c.createdAt.toISOString(),
     })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+router.get("/openai/usage", async (req, res) => {
+  try {
+    const clerkId = getAuth(req).userId;
+    if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const currentUsed = await resetMonthlyIfNeeded(user.id, user);
+    const limit = MONTHLY_LIMITS[user.plan] ?? MONTHLY_LIMITS.free;
+    const remaining = Math.max(0, limit - currentUsed);
+
+    // Total cost this month from messages
+    const thisMonth = currentMonthKey();
+    const monthStart = new Date(thisMonth);
+    const costRow = await db.select({ total: sql<number>`coalesce(sum(${messages.costCents}), 0)` })
+      .from(messages)
+      .innerJoin(conversations, eq(conversations.id, messages.conversationId))
+      .where(and(
+        eq(conversations.userId, user.id),
+        gte(messages.createdAt, monthStart),
+        eq(messages.role, "assistant"),
+      ));
+    const totalCostCents = Number(costRow[0]?.total ?? 0);
+
+    res.json({ used: currentUsed, limit, remaining, plan: user.plan, totalCostCents });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal error" });
@@ -97,6 +167,8 @@ router.get("/openai/conversations/:id", async (req, res) => {
         role: m.role,
         content: m.content,
         sgiDelta: m.sgiDelta ?? null,
+        tokensUsed: m.tokensUsed ?? null,
+        costCents: m.costCents ?? null,
         createdAt: m.createdAt.toISOString(),
       })),
     });
@@ -141,22 +213,18 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     const userContent: string = req.body?.content ?? "";
     if (!userContent.trim()) { res.status(400).json({ error: "Message content is required" }); return; }
 
-    if (user.plan === "free") {
-      const FREE_TIER_DAILY_LIMIT = 10;
-      const dayStart = new Date();
-      dayStart.setUTCHours(0, 0, 0, 0);
-      const todayMessages = await db.select({ count: sql<number>`count(*)` })
-        .from(messages)
-        .innerJoin(conversations, eq(conversations.id, messages.conversationId))
-        .where(and(
-          eq(conversations.userId, user.id),
-          eq(messages.role, "user"),
-          gte(messages.createdAt, dayStart),
-        ));
-      if (Number(todayMessages[0]?.count ?? 0) >= FREE_TIER_DAILY_LIMIT) {
-        res.status(429).json({ error: "Daily message limit reached", code: "DAILY_LIMIT_REACHED", limit: FREE_TIER_DAILY_LIMIT });
-        return;
-      }
+    // Monthly limit check (replaces old daily limit)
+    const currentUsed = await resetMonthlyIfNeeded(user.id, user);
+    const limit = MONTHLY_LIMITS[user.plan] ?? MONTHLY_LIMITS.free;
+    if (currentUsed >= limit) {
+      res.status(429).json({
+        error: "Monthly message limit reached",
+        code: "MONTHLY_LIMIT_REACHED",
+        used: currentUsed,
+        limit,
+        plan: user.plan,
+      });
+      return;
     }
 
     const [insertedUserMsg] = await db.insert(messages).values({ conversationId: convoId, role: "user", content: userContent }).returning({ id: messages.id });
@@ -179,6 +247,8 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
 
     const chosenModel = (convo.model ?? "claude-opus-4-8") as ModelId;
     let fullContent = "";
+    let tokensUsed = 0;
+
     try {
       if (isClaudeModel(chosenModel)) {
         const claudeMessages = openaiMessages
@@ -199,11 +269,14 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
             res.write(`data: ${JSON.stringify({ content: event.delta.text })}\n\n`);
           }
         }
+        const finalMsg = await stream.finalMessage();
+        tokensUsed = (finalMsg.usage?.input_tokens ?? 0) + (finalMsg.usage?.output_tokens ?? 0);
       } else {
         const stream = await openai.chat.completions.create({
           model: chosenModel,
           messages: openaiMessages,
           stream: true,
+          stream_options: { include_usage: true },
         });
 
         for await (const chunk of stream) {
@@ -212,6 +285,9 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
             fullContent += delta;
             res.write(`data: ${JSON.stringify({ content: delta })}\n\n`);
           }
+          if (chunk.usage) {
+            tokensUsed = (chunk.usage.prompt_tokens ?? 0) + (chunk.usage.completion_tokens ?? 0);
+          }
         }
       }
     } catch (streamErr) {
@@ -219,7 +295,17 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       res.write(`data: ${JSON.stringify({ content: "[Error generating response]" })}\n\n`);
     }
 
-    await db.insert(messages).values({ conversationId: convoId, role: "assistant", content: fullContent });
+    const costCents = calcCostCents(chosenModel, tokensUsed);
+
+    const [insertedAssistantMsg] = await db.insert(messages)
+      .values({ conversationId: convoId, role: "assistant", content: fullContent, tokensUsed, costCents })
+      .returning({ id: messages.id });
+
+    // Increment monthly usage counter
+    const newUsed = currentUsed + 1;
+    await db.update(users)
+      .set({ monthlyMessagesUsed: newUsed, monthlyResetDate: currentMonthKey() })
+      .where(eq(users.id, user.id));
 
     const historyForScoring = history.slice(-4).map(m => ({ role: m.role, content: m.content }));
     const scoreResult = await scoreMessage(userContent, historyForScoring);
@@ -301,7 +387,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
         .where(eq(messages.id, insertedUserMsg.id));
     }
 
-    // Auto-generate a descriptive title after the first message
+    // Auto-generate title on first message
     let newTitle: string | undefined;
     const isFirstMessage = history.filter(m => m.role === "user").length === 1;
     if (isFirstMessage && (convo.title === "Exploration" || convo.title === "New Conversation")) {
@@ -324,7 +410,17 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       }
     }
 
-    res.write(`data: ${JSON.stringify({ done: true, sgiDelta, newSgi: Math.round(newSgi * 10) / 10, ...(newTitle ? { title: newTitle } : {}) })}\n\n`);
+    const remainingAfter = Math.max(0, limit - newUsed);
+
+    res.write(`data: ${JSON.stringify({
+      done: true,
+      sgiDelta,
+      newSgi: Math.round(newSgi * 10) / 10,
+      tokensUsed,
+      costCents,
+      usage: { used: newUsed, limit, remaining: remainingAfter, plan: user.plan },
+      ...(newTitle ? { title: newTitle } : {}),
+    })}\n\n`);
     res.end();
   } catch (err) {
     console.error(err);

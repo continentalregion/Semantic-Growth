@@ -12,6 +12,8 @@ export const messages = pgTable("messages", {
   role: text("role").notNull(),
   content: text("content").notNull(),
   sgiDelta: real("sgi_delta"),
+  tokensUsed: integer("tokens_used"),
+  costCents: real("cost_cents"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
