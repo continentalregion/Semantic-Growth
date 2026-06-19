@@ -16,7 +16,16 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { MessageSquarePlus, Trash2, Send, Bot, User, TrendingUp, TrendingDown, Minus, Zap } from "lucide-react";
+import { MessageSquarePlus, Trash2, Send, Bot, User, TrendingUp, TrendingDown, Minus, Zap, ChevronDown } from "lucide-react";
+
+const MODELS = [
+  { id: "claude-opus-4-8", label: "Claude Opus 4", provider: "Anthropic", badge: "Most Capable" },
+  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4", provider: "Anthropic", badge: "Balanced" },
+  { id: "claude-haiku-4-5", label: "Claude Haiku 4", provider: "Anthropic", badge: "Fast" },
+  { id: "gpt-4o", label: "GPT-4o", provider: "OpenAI", badge: "" },
+  { id: "gpt-4o-mini", label: "GPT-4o Mini", provider: "OpenAI", badge: "" },
+] as const;
+type ModelId = typeof MODELS[number]["id"];
 
 const API_BASE = "/api";
 
@@ -25,6 +34,8 @@ export default function Chat() {
   const qc = useQueryClient();
 
   const [activeConvoId, setActiveConvoId] = useState<number | null>(null);
+  const [selectedModel, setSelectedModel] = useState<ModelId>("claude-opus-4-8");
+  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const [input, setInput] = useState("");
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -43,8 +54,9 @@ export default function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeConvo?.messages, streamingContent]);
 
-  const handleNewConversation = useCallback(async () => {
-    createConvo.mutate({ data: { title: "Exploration" } }, {
+  const handleNewConversation = useCallback(async (model?: ModelId) => {
+    const chosenModel = model ?? selectedModel;
+    createConvo.mutate({ data: { title: "Exploration", model: chosenModel } }, {
       onSuccess: (convo) => {
         qc.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
         setActiveConvoId(convo.id);
@@ -53,7 +65,7 @@ export default function Chat() {
       },
       onError: () => toast.error("Failed to create conversation"),
     });
-  }, [createConvo, qc]);
+  }, [createConvo, qc, selectedModel]);
 
   const handleDeleteConversation = useCallback((id: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -236,19 +248,55 @@ export default function Chat() {
                 </div>
                 <span className="font-medium text-sm">{activeConvo?.title ?? "Exploration"}</span>
               </div>
-              {lastSgiDelta !== null && (
-                <div
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold"
-                  style={{
-                    background: lastSgiDelta > 0 ? "rgba(6,214,160,0.12)" : lastSgiDelta < 0 ? "rgba(247,37,133,0.12)" : "rgba(255,255,255,0.06)",
-                    border: `1px solid ${lastSgiDelta > 0 ? "rgba(6,214,160,0.3)" : lastSgiDelta < 0 ? "rgba(247,37,133,0.3)" : "rgba(255,255,255,0.1)"}`,
-                    color: lastSgiDelta > 0 ? "#06d6a0" : lastSgiDelta < 0 ? "#f72585" : "#9090b8",
-                  }}
-                >
-                  <Zap className="w-3.5 h-3.5" />
-                  SGI {lastSgiDelta > 0 ? "+" : ""}{lastSgiDelta.toFixed(2)}
+              <div className="flex items-center gap-3">
+                {/* Model selector */}
+                <div className="relative">
+                  <button
+                    onClick={() => setModelDropdownOpen(o => !o)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
+                    style={{ background: "rgba(124,107,255,0.12)", border: "1px solid rgba(124,107,255,0.3)", color: "#a89fff" }}
+                  >
+                    {(MODELS.find(m => m.id === ((activeConvo as any)?.model ?? selectedModel)) ?? MODELS[0]).label}
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                  {modelDropdownOpen && (
+                    <div
+                      className="absolute right-0 top-full mt-1 w-56 rounded-xl overflow-hidden z-50 shadow-xl"
+                      style={{ background: "#12142a", border: "1px solid rgba(255,255,255,0.1)" }}
+                    >
+                      {MODELS.map(m => (
+                        <button
+                          key={m.id}
+                          onClick={() => { setSelectedModel(m.id); setModelDropdownOpen(false); }}
+                          className="w-full flex items-center justify-between px-4 py-2.5 text-left text-sm transition-colors hover:bg-white/5"
+                          style={{ color: selectedModel === m.id ? "#a89fff" : "#9090b8" }}
+                        >
+                          <div>
+                            <div className="font-medium text-xs" style={{ color: "inherit" }}>{m.label}</div>
+                            <div className="text-xs opacity-60">{m.provider}</div>
+                          </div>
+                          {m.badge && (
+                            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(124,107,255,0.2)", color: "#a89fff" }}>{m.badge}</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+                {lastSgiDelta !== null && (
+                  <div
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold"
+                    style={{
+                      background: lastSgiDelta > 0 ? "rgba(6,214,160,0.12)" : lastSgiDelta < 0 ? "rgba(247,37,133,0.12)" : "rgba(255,255,255,0.06)",
+                      border: `1px solid ${lastSgiDelta > 0 ? "rgba(6,214,160,0.3)" : lastSgiDelta < 0 ? "rgba(247,37,133,0.3)" : "rgba(255,255,255,0.1)"}`,
+                      color: lastSgiDelta > 0 ? "#06d6a0" : lastSgiDelta < 0 ? "#f72585" : "#9090b8",
+                    }}
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    SGI {lastSgiDelta > 0 ? "+" : ""}{lastSgiDelta.toFixed(2)}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Messages */}

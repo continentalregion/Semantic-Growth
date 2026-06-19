@@ -4,9 +4,19 @@ import { db } from "@workspace/db";
 import { users, conversations, messages, sgiSnapshots, gamification, semanticDomains } from "@workspace/db";
 import { eq, desc, and, sql, gte } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { scoreMessage, computeNewSgiScore } from "../lib/sgiScoring";
 import { updateLeaderboardRank, checkAndAwardBadges } from "./users";
 import { updateMissionProgress } from "./gamification";
+
+const OPENAI_MODELS = ["gpt-4o-mini", "gpt-4o", "o4-mini"] as const;
+const CLAUDE_MODELS = ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"] as const;
+const ALL_MODELS = [...OPENAI_MODELS, ...CLAUDE_MODELS] as const;
+type ModelId = typeof ALL_MODELS[number];
+
+function isClaudeModel(model: string): boolean {
+  return model.startsWith("claude-");
+}
 
 const router = Router();
 
@@ -31,6 +41,7 @@ router.get("/openai/conversations", async (req, res) => {
     res.json(convos.map(c => ({
       id: c.id,
       title: c.title,
+      model: c.model ?? "claude-opus-4-8",
       sgiDelta: c.sgiDelta ?? 0,
       createdAt: c.createdAt.toISOString(),
     })));
@@ -48,10 +59,12 @@ router.post("/openai/conversations", async (req, res) => {
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
     const title = req.body?.title ?? "New Conversation";
-    const [convo] = await db.insert(conversations).values({ userId: user.id, title, sgiDelta: 0 }).returning();
+    const requestedModel = req.body?.model ?? "claude-opus-4-8";
+    const model = ALL_MODELS.includes(requestedModel as ModelId) ? requestedModel as ModelId : "claude-opus-4-8";
+    const [convo] = await db.insert(conversations).values({ userId: user.id, title, model, sgiDelta: 0 }).returning();
     if (!convo) { res.status(500).json({ error: "Failed to create conversation" }); return; }
 
-    res.status(201).json({ id: convo.id, title: convo.title, sgiDelta: 0, createdAt: convo.createdAt.toISOString() });
+    res.status(201).json({ id: convo.id, title: convo.title, model: convo.model, sgiDelta: 0, createdAt: convo.createdAt.toISOString() });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal error" });
@@ -75,6 +88,7 @@ router.get("/openai/conversations/:id", async (req, res) => {
     res.json({
       id: convo.id,
       title: convo.title,
+      model: convo.model ?? "claude-opus-4-8",
       sgiDelta: convo.sgiDelta ?? 0,
       createdAt: convo.createdAt.toISOString(),
       messages: msgs.map(m => ({
@@ -163,19 +177,41 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     res.setHeader("X-Accel-Buffering", "no");
     res.flushHeaders();
 
+    const chosenModel = (convo.model ?? "claude-opus-4-8") as ModelId;
     let fullContent = "";
     try {
-      const stream = await openai.chat.completions.create({
-        model: "gpt-5-nano",
-        messages: openaiMessages,
-        stream: true,
-      });
+      if (isClaudeModel(chosenModel)) {
+        const claudeMessages = openaiMessages
+          .filter(m => m.role !== "system")
+          .map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
+        const systemMsg = openaiMessages.find(m => m.role === "system")?.content ?? SYSTEM_PROMPT;
 
-      for await (const chunk of stream) {
-        const delta = chunk.choices[0]?.delta?.content ?? "";
-        if (delta) {
-          fullContent += delta;
-          res.write(`data: ${JSON.stringify({ content: delta })}\n\n`);
+        const stream = anthropic.messages.stream({
+          model: chosenModel,
+          max_tokens: 8192,
+          system: systemMsg,
+          messages: claudeMessages,
+        });
+
+        for await (const event of stream) {
+          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+            fullContent += event.delta.text;
+            res.write(`data: ${JSON.stringify({ content: event.delta.text })}\n\n`);
+          }
+        }
+      } else {
+        const stream = await openai.chat.completions.create({
+          model: chosenModel,
+          messages: openaiMessages,
+          stream: true,
+        });
+
+        for await (const chunk of stream) {
+          const delta = chunk.choices[0]?.delta?.content ?? "";
+          if (delta) {
+            fullContent += delta;
+            res.write(`data: ${JSON.stringify({ content: delta })}\n\n`);
+          }
         }
       }
     } catch (streamErr) {
