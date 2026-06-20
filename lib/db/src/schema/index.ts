@@ -8,3 +8,4 @@ export * from "./badges";
 export * from "./missions";
 export * from "./recommendations";
 export * from "./semanticDomains";
+export * from "./blockedAttempts";

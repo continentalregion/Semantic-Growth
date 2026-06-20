@@ -1,7 +1,7 @@
 import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { users, conversations, messages, sgiSnapshots, gamification, semanticDomains } from "@workspace/db";
+import { users, conversations, messages, sgiSnapshots, gamification, semanticDomains, blockedAttempts } from "@workspace/db";
 import { eq, desc, and, sql, gte } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
@@ -207,10 +207,22 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     const userContent: string = req.body?.content ?? "";
     if (!userContent.trim()) { res.status(400).json({ error: "Message content is required" }); return; }
 
-    // Monthly limit check (replaces old daily limit)
+    // ── HARD STOP: controllo mensile PRIMA che la chiamata AI parta ─────────
+    // Questo blocco avviene lato server — non è aggirabile dal client.
     const currentUsed = await resetMonthlyIfNeeded(user.id, user);
     const limit = MONTHLY_LIMITS[user.plan] ?? MONTHLY_LIMITS.free;
     if (currentUsed >= limit) {
+      if (LOG_BLOCKS) {
+        await db.insert(blockedAttempts).values({
+          userId: user.id,
+          plan: user.plan,
+          reason: "monthly_limit",
+          model: convo.model ?? "unknown",
+          used: currentUsed,
+          limit,
+        }).catch(e => console.error("[block-log] failed to log block:", e));
+        console.warn(`[block] userId=${user.id} plan=${user.plan} used=${currentUsed}/${limit} reason=monthly_limit`);
+      }
       res.status(429).json({
         error: "Monthly message limit reached",
         code: "MONTHLY_LIMIT_REACHED",
@@ -220,6 +232,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       });
       return;
     }
+    // ── fine hard stop ────────────────────────────────────────────────────────
 
     const [insertedUserMsg] = await db.insert(messages).values({ conversationId: convoId, role: "user", content: userContent }).returning({ id: messages.id });
 
