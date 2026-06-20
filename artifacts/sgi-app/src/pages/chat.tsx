@@ -78,10 +78,16 @@ export default function Chat() {
 
   const handleNewConversation = useCallback(async (model?: ModelId) => {
     if (isCreating) return;
-    const chosenModel = model ?? selectedModel;
+    const chosenModel = typeof model === "string" ? model : selectedModel;
     setIsCreating(true);
     try {
-      const token = await getToken();
+      let token: string | null = null;
+      try {
+        token = await Promise.race([
+          getToken(),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+        ]);
+      } catch { token = null; }
       const r = await fetch(`${API_BASE}/openai/conversations`, {
         method: "POST",
         headers: {
@@ -96,7 +102,8 @@ export default function Chat() {
       setActiveConvoId(convo.id);
       setLastSgiDelta(null);
       setLastDomains([]);
-    } catch {
+    } catch (err) {
+      console.error("[handleNewConversation] error:", err);
       toast.error(t("chat.failedCreate"));
     } finally {
       setIsCreating(false);
