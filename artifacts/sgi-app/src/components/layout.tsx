@@ -241,7 +241,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
 
   const sgi = profile?.sgiScore ?? null;
-  const isPremium = profile?.plan === "premium";
+  const isPremium = profile?.plan === "premium" || profile?.plan === "pro";
 
   const NAV_SECTIONS = [
     {

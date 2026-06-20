@@ -91,7 +91,7 @@ router.get("/users/me/sgi-history", async (req, res) => {
 
     const FREE_TIER_MAX_DAYS = 7;
     const requestedDays = parseInt(String(req.query.days ?? "30"), 10);
-    const days = user.plan === "premium" ? requestedDays : Math.min(requestedDays, FREE_TIER_MAX_DAYS);
+    const days = user.plan !== "free" ? requestedDays : Math.min(requestedDays, FREE_TIER_MAX_DAYS);
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
     const snapshots = await db.select().from(sgiSnapshots)
@@ -114,7 +114,7 @@ router.get("/users/me/semantic-map", async (req, res) => {
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
-    if (user.plan !== "premium") {
+    if (user.plan === "free") {
       res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" });
       return;
     }
@@ -151,7 +151,7 @@ router.get("/users/me/domain-strengths", async (req, res) => {
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
-    if (user.plan !== "premium") {
+    if (user.plan === "free") {
       res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" });
       return;
     }
@@ -184,7 +184,7 @@ router.get("/users/me/predictions", async (req, res) => {
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
-    if (user.plan !== "premium") {
+    if (user.plan === "free") {
       res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" });
       return;
     }
@@ -415,7 +415,7 @@ router.get("/users/:clerkId/sgi-history", async (req, res) => {
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
   const FREE_TIER_MAX_DAYS = 7;
   const requestedDays = parseInt(String(req.query.days ?? "30"), 10);
-  const days = user.plan === "premium" ? requestedDays : Math.min(requestedDays, FREE_TIER_MAX_DAYS);
+  const days = user.plan !== "free" ? requestedDays : Math.min(requestedDays, FREE_TIER_MAX_DAYS);
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
   const snapshots = await db.select().from(sgiSnapshots)
     .where(and(eq(sgiSnapshots.userId, user.id), gte(sgiSnapshots.timestamp, since)))
@@ -429,7 +429,7 @@ router.get("/users/:clerkId/semantic-map", async (req, res) => {
   if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
-  if (user.plan !== "premium") { res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" }); return; }
+  if (user.plan === "free") { res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" }); return; }
   const domains = await db.select().from(semanticDomains).where(eq(semanticDomains.userId, user.id)).orderBy(desc(semanticDomains.explorationScore));
   const nodes = domains.map(d => ({ id: d.domain, domain: d.domain, explorationScore: d.explorationScore, messageCount: d.messageCount }));
   const edges: Array<{ source: string; target: string; strength: number }> = [];
@@ -450,7 +450,7 @@ router.get("/users/:clerkId/domain-strengths", async (req, res) => {
   if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
-  if (user.plan !== "premium") { res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" }); return; }
+  if (user.plan === "free") { res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" }); return; }
   const domains = await db.select().from(semanticDomains).where(eq(semanticDomains.userId, user.id)).orderBy(desc(semanticDomains.explorationScore));
   const ALL_DOMAINS = ["philosophy", "mathematics", "biology", "economics", "psychology", "physics", "linguistics", "technology", "history", "art", "literature", "ethics", "logic", "computer_science"];
   const exploredDomainNames = new Set(domains.map(d => d.domain));
@@ -469,7 +469,7 @@ router.get("/users/:clerkId/predictions", async (req, res) => {
   if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
-  if (user.plan !== "premium") { res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" }); return; }
+  if (user.plan === "free") { res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" }); return; }
   const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const snapshots = await db.select().from(sgiSnapshots)
     .where(and(eq(sgiSnapshots.userId, user.id), gte(sgiSnapshots.timestamp, since30)))
