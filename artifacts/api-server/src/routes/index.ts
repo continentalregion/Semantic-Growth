@@ -5,6 +5,7 @@ import leaderboardRouter from "./leaderboard";
 import gamificationRouter from "./gamification";
 import recommendationsRouter from "./recommendations";
 import chatRouter from "./chat";
+import translateRouter from "./translate";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(leaderboardRouter);
 router.use(gamificationRouter);
 router.use(recommendationsRouter);
 router.use(chatRouter);
+router.use(translateRouter);
 
 export default router;

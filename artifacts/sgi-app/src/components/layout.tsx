@@ -2,53 +2,234 @@ import { Link, useLocation } from "wouter";
 import { useClerk } from "@clerk/react";
 import { useGetMyProfile } from "@workspace/api-client-react";
 import { useTranslation } from "react-i18next";
+import { useState, useRef, useEffect } from "react";
+import { loadLanguage, clearLangCache } from "../i18n";
 import {
-  Activity,
-  MessageSquare,
-  Trophy,
-  Network,
-  User,
-  LineChart,
-  Lightbulb,
-  Settings,
-  LogOut,
-  Zap,
-  Gamepad2,
+  Activity, MessageSquare, Trophy, Network, User,
+  LineChart, Lightbulb, Settings, LogOut, Zap, Gamepad2,
+  Languages, Loader2, RefreshCw, ChevronDown,
 } from "lucide-react";
 
-const LANGS = [
-  { code: "it", flag: "🇮🇹", label: "IT" },
-  { code: "en", flag: "🇬🇧", label: "EN" },
-  { code: "es", flag: "🇪🇸", label: "ES" },
-];
+// Known language flags
+const LANG_META: Record<string, { flag: string; name: string }> = {
+  it: { flag: "🇮🇹", name: "Italiano" },
+  en: { flag: "🇬🇧", name: "English" },
+  es: { flag: "🇪🇸", name: "Español" },
+  fr: { flag: "🇫🇷", name: "Français" },
+  de: { flag: "🇩🇪", name: "Deutsch" },
+  pt: { flag: "🇵🇹", name: "Português" },
+  nl: { flag: "🇳🇱", name: "Nederlands" },
+  ru: { flag: "🇷🇺", name: "Русский" },
+  zh: { flag: "🇨🇳", name: "中文" },
+  ja: { flag: "🇯🇵", name: "日本語" },
+  ko: { flag: "🇰🇷", name: "한국어" },
+  ar: { flag: "🇸🇦", name: "العربية" },
+  hi: { flag: "🇮🇳", name: "हिन्दी" },
+  tr: { flag: "🇹🇷", name: "Türkçe" },
+  pl: { flag: "🇵🇱", name: "Polski" },
+  sv: { flag: "🇸🇪", name: "Svenska" },
+};
+
+const PRESET_LANGS = ["it", "en", "es"];
 
 function LanguageSwitcher() {
-  const { i18n: i18nHook } = useTranslation();
-  const current = i18nHook.language;
+  const { i18n } = useTranslation();
+  const current = i18n.language;
+  const [open, setOpen] = useState(false);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<"idle" | "ok" | "error">("idle");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
-  const handleChange = (code: string) => {
-    i18nHook.changeLanguage(code);
-    localStorage.setItem("sgi-lang", code);
+  // Close popover on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const switchTo = async (code: string) => {
+    const c = code.toLowerCase().trim();
+    if (!c) return;
+    if (c === current) { setOpen(false); return; }
+
+    setLoading(true);
+    setStatus("idle");
+
+    const result = await loadLanguage(c);
+
+    if (result === "error") {
+      setStatus("error");
+      setLoading(false);
+      return;
+    }
+
+    await i18n.changeLanguage(c);
+    localStorage.setItem("sgi-lang", c);
+    setLoading(false);
+    setStatus("ok");
+    setOpen(false);
+    setInput("");
   };
 
+  const handleRefetch = async (code: string) => {
+    clearLangCache(code);
+    await switchTo(code);
+  };
+
+  const currentMeta = LANG_META[current];
+
   return (
-    <div className="flex items-center gap-1 px-1 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
-      {LANGS.map((lang) => (
-        <button
-          key={lang.code}
-          onClick={() => handleChange(lang.code)}
-          className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold transition-all duration-150"
-          style={{
-            background: current === lang.code ? "rgba(124,107,255,0.25)" : "transparent",
-            color: current === lang.code ? "#a89fff" : "rgba(144,144,184,0.6)",
-            border: current === lang.code ? "1px solid rgba(124,107,255,0.4)" : "1px solid transparent",
-          }}
-          title={lang.label}
+    <div className="relative" ref={popoverRef}>
+      {/* Trigger */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 w-full px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-all"
+        style={{
+          background: "rgba(255,255,255,0.04)",
+          border: "1px solid rgba(255,255,255,0.07)",
+          color: "rgba(144,144,184,0.9)",
+        }}
+      >
+        <Languages className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#7c6bff" }} />
+        <span className="flex-1 text-left">
+          {currentMeta
+            ? `${currentMeta.flag} ${currentMeta.name}`
+            : `🌐 ${current.toUpperCase()}`}
+        </span>
+        {loading
+          ? <Loader2 className="w-3 h-3 animate-spin" style={{ color: "#7c6bff" }} />
+          : <ChevronDown className="w-3 h-3 opacity-50" />}
+      </button>
+
+      {/* Popover */}
+      {open && (
+        <div
+          className="absolute bottom-full mb-2 left-0 w-[210px] rounded-xl overflow-hidden z-50 shadow-2xl"
+          style={{ background: "#0d0f1f", border: "1px solid rgba(255,255,255,0.1)" }}
         >
-          <span>{lang.flag}</span>
-          <span>{lang.label}</span>
-        </button>
-      ))}
+          {/* Preset languages */}
+          <div className="p-1.5">
+            {PRESET_LANGS.map(code => {
+              const meta = LANG_META[code]!;
+              const isCurrent = current === code;
+              return (
+                <button
+                  key={code}
+                  onClick={() => switchTo(code)}
+                  className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors hover:bg-white/5"
+                  style={{ color: isCurrent ? "#a89fff" : "rgba(144,144,184,0.8)" }}
+                >
+                  <span className="text-base">{meta.flag}</span>
+                  <span className="flex-1 text-left text-[12px]">{meta.name}</span>
+                  {isCurrent && <span className="text-[10px] text-[#7c6bff]">✓</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }} />
+
+          {/* More languages */}
+          <div className="p-1.5">
+            <div className="text-[9px] uppercase tracking-widest px-3 py-1" style={{ color: "rgba(74,74,106,1)" }}>
+              Altre lingue (auto-traduzione AI)
+            </div>
+            {Object.entries(LANG_META)
+              .filter(([code]) => !PRESET_LANGS.includes(code))
+              .map(([code, meta]) => {
+                const isCurrent = current === code;
+                return (
+                  <div key={code} className="flex items-center gap-1 px-1">
+                    <button
+                      onClick={() => switchTo(code)}
+                      className="flex items-center gap-2 flex-1 px-2 py-1.5 rounded-lg text-sm transition-colors hover:bg-white/5"
+                      style={{ color: isCurrent ? "#a89fff" : "rgba(144,144,184,0.6)" }}
+                      disabled={loading}
+                    >
+                      <span className="text-base">{meta.flag}</span>
+                      <span className="flex-1 text-left text-[11px]">{meta.name}</span>
+                      {isCurrent && <span className="text-[10px] text-[#7c6bff]">✓</span>}
+                    </button>
+                    {isCurrent && (
+                      <button
+                        onClick={() => handleRefetch(code)}
+                        title="Ricarica traduzione"
+                        className="p-1 rounded-md hover:bg-white/5 transition-colors"
+                        style={{ color: "rgba(74,74,106,1)" }}
+                        disabled={loading}
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }} />
+
+          {/* Custom language input */}
+          <div className="p-2">
+            <div className="text-[9px] uppercase tracking-widest px-1 pb-1" style={{ color: "rgba(74,74,106,1)" }}>
+              Qualsiasi lingua (codice ISO)
+            </div>
+            <div className="flex items-center gap-1">
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={e => { setInput(e.target.value); setStatus("idle"); }}
+                onKeyDown={e => {
+                  if (e.key === "Enter") switchTo(input);
+                  if (e.key === "Escape") setOpen(false);
+                }}
+                placeholder="fr, de, ja, ar, hi…"
+                className="flex-1 px-2.5 py-1.5 rounded-lg text-[11px] outline-none"
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  border: status === "error"
+                    ? "1px solid rgba(247,37,133,0.5)"
+                    : "1px solid rgba(255,255,255,0.1)",
+                  color: "#eeeeff",
+                }}
+                maxLength={5}
+              />
+              <button
+                onClick={() => switchTo(input)}
+                disabled={loading || !input.trim()}
+                className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors"
+                style={{
+                  background: "rgba(124,107,255,0.2)",
+                  border: "1px solid rgba(124,107,255,0.3)",
+                  color: "#a89fff",
+                  opacity: (!input.trim() || loading) ? 0.4 : 1,
+                }}
+              >
+                {loading
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <span className="text-[10px] font-bold">→</span>}
+              </button>
+            </div>
+            {status === "error" && (
+              <p className="text-[10px] mt-1 px-1" style={{ color: "#f72585" }}>
+                Traduzione fallita. Controlla il codice.
+              </p>
+            )}
+            {status === "ok" && (
+              <p className="text-[10px] mt-1 px-1" style={{ color: "#06d6a0" }}>
+                ✓ Traduzione completata
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -221,7 +402,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* SGI Score Pill */}
             {sgi !== null && (
               <div
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full"
@@ -256,8 +436,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 )}
               </div>
             )}
-
-            {/* Premium badge */}
             {isPremium && (
               <span
                 className="px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide"
@@ -273,7 +451,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Radial gradient background */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
