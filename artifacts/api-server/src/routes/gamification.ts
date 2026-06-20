@@ -139,7 +139,7 @@ router.get("/gamification/me", async (req, res) => {
     }));
 
     let formattedMissions: object[] = [];
-    if (user.plan === "premium") {
+    if (user.plan !== "free") {
       await regenerateMissionsIfNeeded(user.id);
       const userMissions = await db.select().from(missions).where(eq(missions.userId, user.id));
       formattedMissions = userMissions.map(m => ({
@@ -161,7 +161,7 @@ router.get("/gamification/me", async (req, res) => {
       lastActiveDate: gam?.lastActiveDate ?? null,
       badges: formattedBadges,
       missions: formattedMissions,
-      missionsLocked: user.plan !== "premium",
+      missionsLocked: user.plan === "free",
       xpToNextLevel: xpToNextLevel(xp),
       levelProgress: Math.round(levelProgress(xp) * 1000) / 1000,
     });

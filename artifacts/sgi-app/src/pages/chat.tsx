@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@clerk/react";
 import {
   useListOpenaiConversations,
-  useCreateOpenaiConversation,
   useGetOpenaiConversation,
   useDeleteOpenaiConversation,
   getListOpenaiConversationsQueryKey,
@@ -49,6 +48,7 @@ export default function Chat() {
   const [lastSgiDelta, setLastSgiDelta] = useState<number | null>(null);
   const [lastDomains, setLastDomains] = useState<string[]>([]);
   const [limitBlocked, setLimitBlocked] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: usageData, refetch: refetchUsage } = useQuery<{
@@ -70,7 +70,6 @@ export default function Chat() {
   const { data: activeConvo, isLoading: convoLoading } = useGetOpenaiConversation(activeConvoId!, {
     query: { enabled: !!activeConvoId, queryKey: getGetOpenaiConversationQueryKey(activeConvoId!) }
   });
-  const createConvo = useCreateOpenaiConversation();
   const deleteConvo = useDeleteOpenaiConversation();
 
   useEffect(() => {
@@ -78,17 +77,31 @@ export default function Chat() {
   }, [activeConvo?.messages, streamingContent]);
 
   const handleNewConversation = useCallback(async (model?: ModelId) => {
+    if (isCreating) return;
     const chosenModel = model ?? selectedModel;
-    createConvo.mutate({ data: { title: "Exploration", model: chosenModel } }, {
-      onSuccess: (convo) => {
-        qc.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
-        setActiveConvoId(convo.id);
-        setLastSgiDelta(null);
-        setLastDomains([]);
-      },
-      onError: () => toast.error(t("chat.failedCreate")),
-    });
-  }, [createConvo, qc, selectedModel]);
+    setIsCreating(true);
+    try {
+      const token = await getToken();
+      const r = await fetch(`${API_BASE}/openai/conversations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ title: "Exploration", model: chosenModel }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const convo = await r.json();
+      qc.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
+      setActiveConvoId(convo.id);
+      setLastSgiDelta(null);
+      setLastDomains([]);
+    } catch {
+      toast.error(t("chat.failedCreate"));
+    } finally {
+      setIsCreating(false);
+    }
+  }, [isCreating, selectedModel, getToken, qc, t]);
 
   const handleDeleteConversation = useCallback((id: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -213,7 +226,7 @@ export default function Chat() {
           className="w-full gap-2"
           variant="outline"
           data-testid="button-new-conversation"
-          disabled={createConvo.isPending || limitBlocked}
+          disabled={isCreating || limitBlocked}
         >
           <MessageSquarePlus className="w-4 h-4" />
           {t("chat.newExploration")}

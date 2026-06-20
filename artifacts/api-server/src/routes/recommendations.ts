@@ -14,7 +14,7 @@ router.get("/recommendations/me", async (req, res) => {
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
-    if (user.plan !== "premium") {
+    if (user.plan === "free") {
       res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" });
       return;
     }
