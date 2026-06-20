@@ -75,6 +75,8 @@
     "zod": "catalog:"
   },
   "dependencies": {
-    "@clerk/react": "^6.9.1"
+    "@clerk/react": "^6.9.1",
+    "i18next": "^26.3.1",
+    "react-i18next": "^17.0.8"
   }
 }

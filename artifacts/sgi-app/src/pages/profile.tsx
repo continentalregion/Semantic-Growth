@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Zap, Flame, CheckCircle2, Clock, Shield } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const BADGE_COLORS: Record<string, string> = {
   semantic_explorer: "from-blue-500/20 to-cyan-500/20 border-blue-500/30 text-blue-400",
@@ -14,6 +15,7 @@ const BADGE_COLORS: Record<string, string> = {
 };
 
 export default function Profile() {
+  const { t } = useTranslation();
   const { data: gam, isLoading: gamLoading } = useGetMyGamification();
   const { data: profile, isLoading: profileLoading } = useGetMyProfile();
 
@@ -37,8 +39,8 @@ export default function Profile() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Growth Profile</h2>
-        <p className="text-muted-foreground mt-1">Milestones, streaks, and mission progress</p>
+        <h2 className="text-3xl font-bold tracking-tight">{t("profile.title")}</h2>
+        <p className="text-muted-foreground mt-1">{t("profile.subtitle")}</p>
       </div>
 
       {/* XP / Level Card */}
@@ -46,7 +48,7 @@ export default function Profile() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Semantic Level</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t("profile.semanticLevel")}</p>
               <div className="flex items-baseline gap-2">
                 <span className="text-5xl font-bold font-mono text-primary" data-testid="text-level">{gam?.level ?? 1}</span>
                 <span className="text-muted-foreground text-sm font-mono">{gam?.xp?.toLocaleString() ?? 0} XP</span>
@@ -56,10 +58,12 @@ export default function Profile() {
               <div className="flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/20 rounded-full">
                 <Flame className="w-5 h-5 text-orange-400" />
                 <span className="text-xl font-bold font-mono text-orange-400" data-testid="text-streak">{gam?.streak ?? 0}</span>
-                <span className="text-xs text-orange-400">day streak</span>
+                <span className="text-xs text-orange-400">{t("profile.dayStreak")}</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                {gam?.lastActiveDate ? `Last active: ${gam.lastActiveDate}` : "No activity yet"}
+                {gam?.lastActiveDate
+                  ? t("profile.lastActive", { date: gam.lastActiveDate })
+                  : t("profile.noActivity")}
               </p>
             </div>
           </div>
@@ -67,7 +71,7 @@ export default function Profile() {
           <div className="space-y-1">
             <div className="flex justify-between text-xs text-muted-foreground font-mono">
               <span>Level {gam?.level ?? 1}</span>
-              <span>{gam?.xpToNextLevel?.toLocaleString() ?? "--"} XP to Level {(gam?.level ?? 1) + 1}</span>
+              <span>{t("profile.xpToLevel", { n: gam?.xpToNextLevel?.toLocaleString() ?? "--", next: (gam?.level ?? 1) + 1 })}</span>
             </div>
             <Progress value={xpProgressPct} className="h-2" data-testid="progress-level" />
           </div>
@@ -78,25 +82,27 @@ export default function Profile() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-card/50 backdrop-blur">
           <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">SGI Score</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t("profile.sgiScore")}</p>
             <p className="text-3xl font-bold font-mono" data-testid="text-sgi-score">{profile?.sgiScore?.toFixed(1) ?? "--"}</p>
           </CardContent>
         </Card>
         <Card className="bg-card/50 backdrop-blur">
           <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Global Rank</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t("profile.globalRank")}</p>
             <p className="text-3xl font-bold font-mono" data-testid="text-global-rank">#{profile?.globalRank?.toLocaleString() ?? "--"}</p>
           </CardContent>
         </Card>
         <Card className="bg-card/50 backdrop-blur">
           <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Percentile</p>
-            <p className="text-3xl font-bold font-mono" data-testid="text-percentile">Top {profile?.percentile?.toFixed(1) ?? "--"}%</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t("profile.percentile")}</p>
+            <p className="text-3xl font-bold font-mono" data-testid="text-percentile">
+              {t("profile.topPct", { n: profile?.percentile?.toFixed(1) ?? "--" })}
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-card/50 backdrop-blur">
           <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Badges Earned</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t("profile.badgesEarned")}</p>
             <p className="text-3xl font-bold font-mono" data-testid="text-badge-count">{gam?.badges?.length ?? 0}</p>
           </CardContent>
         </Card>
@@ -105,11 +111,11 @@ export default function Profile() {
       {/* Badges */}
       <Card className="bg-card/30 backdrop-blur border-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Shield className="w-5 h-5 text-primary" /> Earned Badges</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Shield className="w-5 h-5 text-primary" /> {t("profile.earnedBadges")}</CardTitle>
         </CardHeader>
         <CardContent>
           {!gam?.badges || gam.badges.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">No badges earned yet. Keep exploring to unlock milestones.</p>
+            <p className="text-sm text-muted-foreground py-4 text-center">{t("profile.noBadges")}</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {gam.badges.map(badge => (
@@ -136,11 +142,11 @@ export default function Profile() {
       {/* Missions */}
       <Card className="bg-card/30 backdrop-blur border-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5 text-primary" /> Active Missions</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5 text-primary" /> {t("profile.activeMissions")}</CardTitle>
         </CardHeader>
         <CardContent>
           {!gam?.missions || gam.missions.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">No active missions. Stay engaged to receive new missions.</p>
+            <p className="text-sm text-muted-foreground py-4 text-center">{t("profile.noMissions")}</p>
           ) : (
             <div className="space-y-4">
               {gam.missions.map(mission => (
@@ -155,18 +161,14 @@ export default function Profile() {
                       <span className={`text-sm font-medium ${mission.completed ? "line-through text-muted-foreground" : ""}`}>
                         {mission.title}
                       </span>
-                      <Badge variant="outline" className="text-xs">
-                        {mission.type}
-                      </Badge>
+                      <Badge variant="outline" className="text-xs">{mission.type}</Badge>
                     </div>
-                    <span className="text-xs text-muted-foreground font-mono">
-                      {mission.progress}/{mission.target}
-                    </span>
+                    <span className="text-xs text-muted-foreground font-mono">{mission.progress}/{mission.target}</span>
                   </div>
                   <p className="text-xs text-muted-foreground pl-6">{mission.description}</p>
                   <Progress value={Math.min(100, (mission.progress / mission.target) * 100)} className="h-1.5 ml-6" />
                   <p className="text-xs text-muted-foreground pl-6 font-mono">
-                    Expires: {new Date(mission.expiresAt).toLocaleDateString()}
+                    {t("profile.expires", { date: new Date(mission.expiresAt).toLocaleDateString() })}
                   </p>
                 </div>
               ))}

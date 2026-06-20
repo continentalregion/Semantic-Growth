@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { MessageSquarePlus, Trash2, Send, Bot, User, TrendingUp, TrendingDown, Minus, Zap, ChevronDown, Lock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const MODELS = [
   { id: "claude-haiku-4-5",  label: "Claude Haiku 4",  provider: "Anthropic", badge: "Fast",         minPlan: "free"    },
@@ -35,6 +36,7 @@ function modelAllowed(modelMinPlan: string, userPlan: string): boolean {
 const API_BASE = "/api";
 
 export default function Chat() {
+  const { t } = useTranslation();
   const { getToken } = useAuth();
   const qc = useQueryClient();
 
@@ -84,7 +86,7 @@ export default function Chat() {
         setLastSgiDelta(null);
         setLastDomains([]);
       },
-      onError: () => toast.error("Failed to create conversation"),
+      onError: () => toast.error(t("chat.failedCreate")),
     });
   }, [createConvo, qc, selectedModel]);
 
@@ -99,7 +101,7 @@ export default function Chat() {
           setLastDomains([]);
         }
       },
-      onError: () => toast.error("Failed to delete conversation"),
+      onError: () => toast.error(t("chat.failedDelete")),
     });
   }, [deleteConvo, qc, activeConvoId]);
 
@@ -126,7 +128,7 @@ export default function Chat() {
         const err = await response.json().catch(() => ({}));
         setLimitBlocked(true);
         const nextPlan = (err.plan === "premium") ? "Pro (€19.99)" : "Premium (€9.99)";
-        toast.error(`Limite mensile raggiunto (${err.used ?? "?"}/${err.limit ?? "?"} msg). Passa a ${nextPlan}.`);
+        toast.error(`${t("chat.limitReached")} (${err.used ?? "?"}/${err.limit ?? "?"} msg). → ${nextPlan}.`);
         setIsStreaming(false);
         setStreamingContent("");
         return;
@@ -214,14 +216,14 @@ export default function Chat() {
           disabled={createConvo.isPending || limitBlocked}
         >
           <MessageSquarePlus className="w-4 h-4" />
-          New Exploration
+          {t("chat.newExploration")}
         </Button>
 
         {/* Usage counter */}
         {usageData && (
           <div className="px-1">
             <div className="flex items-center justify-between text-xs mb-1" style={{ color: "#9090b8" }}>
-              <span>{usageData.used}/{usageData.limit} msg questo mese</span>
+              <span>{t("chat.usageCounter", { used: usageData.used, limit: usageData.limit })}</span>
               <span className="capitalize" style={{ color: usageData.plan === "premium" ? "#a89fff" : "#9090b8" }}>
                 {usageData.plan}
               </span>
@@ -239,7 +241,7 @@ export default function Chat() {
             </div>
             {usageData.remaining <= 5 && usageData.remaining > 0 && (
               <p className="text-xs mt-1" style={{ color: "#f72585" }}>
-                Solo {usageData.remaining} messaggi rimasti
+                {t("chat.fewLeft", { n: usageData.remaining })}
               </p>
             )}
           </div>
@@ -253,36 +255,36 @@ export default function Chat() {
           >
             <div className="flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#f72585" }} />
-              <p className="text-xs font-semibold" style={{ color: "#f72585" }}>Limite raggiunto</p>
+              <p className="text-xs font-semibold" style={{ color: "#f72585" }}>{t("chat.limitReached")}</p>
             </div>
             {usageData?.plan === "premium" ? (
               <>
-                <p className="text-xs" style={{ color: "#9090b8" }}>Passa a Pro per 2.000 msg/mese e Opus</p>
+                <p className="text-xs" style={{ color: "#9090b8" }}>{t("chat.upgradePro")}</p>
                 <button
                   className="text-xs py-1.5 px-3 rounded-full font-semibold transition-opacity hover:opacity-80"
                   style={{ background: "linear-gradient(135deg, #f0c040, #e08020)", color: "#fff" }}
                   onClick={() => toast.info("Vai su Impostazioni per attivare Pro!")}
                 >
-                  Upgrade a Pro — €19.99
+                  {t("chat.upgradeProBtn")}
                 </button>
               </>
             ) : (
               <>
-                <p className="text-xs" style={{ color: "#9090b8" }}>Passa a Premium per 600 msg/mese</p>
+                <p className="text-xs" style={{ color: "#9090b8" }}>{t("chat.upgradePro")}</p>
                 <div className="flex flex-col gap-1.5">
                   <button
                     className="text-xs py-1.5 px-3 rounded-full font-semibold transition-opacity hover:opacity-80"
                     style={{ background: "linear-gradient(135deg, #7c6bff, #5b4de0)", color: "#fff" }}
                     onClick={() => toast.info("Vai su Impostazioni per attivare Premium!")}
                   >
-                    Premium — €9.99
+                    {t("chat.upgradePremiumBtn")}
                   </button>
                   <button
                     className="text-xs py-1.5 px-3 rounded-full font-semibold transition-opacity hover:opacity-80"
                     style={{ background: "linear-gradient(135deg, #f0c040, #e08020)", color: "#fff" }}
                     onClick={() => toast.info("Vai su Impostazioni per attivare Pro!")}
                   >
-                    Pro — €19.99
+                    {t("chat.upgradeProBtn")}
                   </button>
                 </div>
               </>
@@ -380,7 +382,7 @@ export default function Chat() {
                             key={m.id}
                             onClick={() => {
                               if (!allowed) {
-                                toast.info(`${m.label} richiede il piano ${planLabel}. Vai su Impostazioni.`);
+                                toast.info(t("chat.modelLockedToast", { model: m.label, plan: planLabel }));
                                 setModelDropdownOpen(false);
                                 return;
                               }
@@ -433,7 +435,7 @@ export default function Chat() {
                 </div>
               ) : messages.length === 0 && !streamingContent ? (
                 <div className="flex flex-col items-center justify-center h-full text-center gap-3">
-                  <p className="text-sm text-muted-foreground">Begin the exploration. The depth of your inquiry shapes your semantic trajectory.</p>
+                  <p className="text-sm text-muted-foreground">{t("chat.placeholder")}</p>
                 </div>
               ) : (
                 <>
@@ -465,7 +467,7 @@ export default function Chat() {
                             {isLastAI && lastSgiDelta !== null && (
                               <div className="sgi-update">
                                 <Zap className="w-3 h-3 flex-shrink-0" />
-                                <span>SGI {lastSgiDelta > 0 ? "+" : ""}{lastSgiDelta.toFixed(2)}</span>
+                                <span>{t("chat.sgiUpdate")} {lastSgiDelta > 0 ? "+" : ""}{lastSgiDelta.toFixed(2)}</span>
                                 {lastDomains.slice(0, 3).map((d) => (
                                   <span key={d} className="sgi-tag">{d.replace(/_/g, " ")}</span>
                                 ))}
@@ -535,7 +537,7 @@ export default function Chat() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Explore an idea, challenge an assumption, make a connection..."
+                  placeholder={t("chat.placeholder")}
                   className="resize-none min-h-[56px] max-h-[200px] bg-background border-border focus-visible:ring-primary/50"
                   disabled={isStreaming || limitBlocked}
                   rows={2}

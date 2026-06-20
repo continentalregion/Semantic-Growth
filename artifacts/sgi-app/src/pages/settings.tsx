@@ -8,50 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Crown, User, Shield, CheckCircle2, Zap, Star } from "lucide-react";
 import { toast } from "sonner";
-
-const PLANS = [
-  {
-    id: "premium",
-    name: "Premium",
-    price: "€9.99",
-    period: "/mese",
-    icon: Star,
-    color: "#a89fff",
-    borderColor: "rgba(168,159,255,0.3)",
-    bgColor: "rgba(124,107,255,0.06)",
-    gradient: "linear-gradient(135deg, #7c6bff, #5b4de0)",
-    features: [
-      "600 messaggi al mese",
-      "Claude Haiku + Sonnet",
-      "Predizioni di crescita (30/90/180 giorni)",
-      "Mappa domini semantici avanzata",
-      "Storico SGI 90 giorni",
-      "Report mensile dettagliato",
-    ],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "€19.99",
-    period: "/mese",
-    icon: Crown,
-    color: "#f0c040",
-    borderColor: "rgba(240,192,64,0.4)",
-    bgColor: "rgba(240,192,64,0.06)",
-    gradient: "linear-gradient(135deg, #f0c040, #e08020)",
-    badge: "Più potente",
-    features: [
-      "2.000 messaggi al mese",
-      "Tutti i modelli: Haiku, Sonnet, Opus, GPT-4o",
-      "Accesso prioritario all'AI",
-      "Predizioni avanzate illimitate",
-      "Storico SGI completo",
-      "Export dati e analisi personalizzata",
-    ],
-  },
-];
+import { useTranslation } from "react-i18next";
 
 export default function Settings() {
+  const { t } = useTranslation();
   const { user } = useUser();
   const { data: profile, isLoading } = useGetMyProfile();
   const [showUpgradeModal, setShowUpgradeModal] = useState<"premium" | "pro" | null>(null);
@@ -59,7 +19,34 @@ export default function Settings() {
   const plan = profile?.plan ?? "free";
   const isPremium = plan === "premium";
   const isPro     = plan === "pro";
-  const isPaid    = isPremium || isPro;
+
+  const PLANS = [
+    {
+      id: "premium",
+      name: t("common.premium"),
+      price: "€9.99",
+      period: `/${t("settings.perMonth")}`,
+      icon: Star,
+      color: "#a89fff",
+      borderColor: "rgba(168,159,255,0.3)",
+      bgColor: "rgba(124,107,255,0.06)",
+      gradient: "linear-gradient(135deg, #7c6bff, #5b4de0)",
+      features: t("settings.planFeatures.premium", { returnObjects: true }) as string[],
+    },
+    {
+      id: "pro",
+      name: t("common.pro"),
+      price: "€19.99",
+      period: `/${t("settings.perMonth")}`,
+      icon: Crown,
+      color: "#f0c040",
+      borderColor: "rgba(240,192,64,0.4)",
+      bgColor: "rgba(240,192,64,0.06)",
+      gradient: "linear-gradient(135deg, #f0c040, #e08020)",
+      badge: t("settings.planBadge"),
+      features: t("settings.planFeatures.pro", { returnObjects: true }) as string[],
+    },
+  ];
 
   if (isLoading) {
     return (
@@ -74,21 +61,21 @@ export default function Settings() {
   return (
     <div className="space-y-8 max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
-        <p className="text-muted-foreground mt-1">Account configuration and subscription management</p>
+        <h2 className="text-3xl font-bold tracking-tight">{t("settings.title")}</h2>
+        <p className="text-muted-foreground mt-1">{t("settings.subtitle")}</p>
       </div>
 
       {/* Account Card */}
       <Card className="bg-card/40 backdrop-blur border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <User className="w-5 h-5 text-primary" /> Account
+            <User className="w-5 h-5 text-primary" /> {t("settings.account")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between py-2">
             <div>
-              <p className="text-sm font-medium">Email</p>
+              <p className="text-sm font-medium">{t("settings.email")}</p>
               <p className="text-sm text-muted-foreground" data-testid="text-account-email">
                 {user?.primaryEmailAddress?.emailAddress ?? profile?.email ?? "—"}
               </p>
@@ -97,8 +84,8 @@ export default function Settings() {
           <Separator />
           <div className="flex items-center justify-between py-2">
             <div>
-              <p className="text-sm font-medium">Piano attuale</p>
-              <p className="text-sm text-muted-foreground">Il tuo tier di abbonamento</p>
+              <p className="text-sm font-medium">{t("settings.currentPlan")}</p>
+              <p className="text-sm text-muted-foreground">{t("settings.planDesc")}</p>
             </div>
             <Badge
               variant="outline"
@@ -112,26 +99,26 @@ export default function Settings() {
               }
             >
               {isPro ? (
-                <><Crown className="w-3 h-3 mr-1" /> Pro</>
+                <><Crown className="w-3 h-3 mr-1" /> {t("common.pro")}</>
               ) : isPremium ? (
-                <><Star className="w-3 h-3 mr-1" /> Premium</>
-              ) : "Free"}
+                <><Star className="w-3 h-3 mr-1" /> {t("common.premium")}</>
+              ) : t("common.free")}
             </Badge>
           </div>
           <Separator />
           <div className="flex items-center justify-between py-2">
             <div>
-              <p className="text-sm font-medium">Membro dal</p>
+              <p className="text-sm font-medium">{t("settings.memberSince")}</p>
               <p className="text-sm text-muted-foreground font-mono">
-                {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString("it-IT") : "—"}
+                {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "—"}
               </p>
             </div>
           </div>
           <Separator />
           <div className="flex items-center justify-between py-2">
             <div>
-              <p className="text-sm font-medium">SGI Score</p>
-              <p className="text-sm text-muted-foreground font-mono">Indice di crescita semantica</p>
+              <p className="text-sm font-medium">{t("settings.sgiScore")}</p>
+              <p className="text-sm text-muted-foreground font-mono">{t("settings.sgiScoreDesc")}</p>
             </div>
             <span className="text-2xl font-bold font-mono text-primary" data-testid="text-settings-sgi">
               {profile?.sgiScore?.toFixed(1) ?? "—"}
@@ -140,10 +127,10 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      {/* Plan Cards — mostrate solo se non è pro */}
+      {/* Plan Cards */}
       {!isPro && (
         <div>
-          <p className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">Upgrade</p>
+          <p className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">{t("settings.upgrade")}</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {PLANS.filter(p => !(isPremium && p.id === "premium")).map(p => {
               const Icon = p.icon;
@@ -152,16 +139,10 @@ export default function Settings() {
                 <div
                   key={p.id}
                   className="rounded-2xl p-5 flex flex-col gap-4 relative"
-                  style={{
-                    background: p.bgColor,
-                    border: `1px solid ${p.borderColor}`,
-                  }}
+                  style={{ background: p.bgColor, border: `1px solid ${p.borderColor}` }}
                 >
                   {p.badge && (
-                    <div
-                      className="absolute top-3 right-3 text-xs px-2 py-0.5 rounded-full font-semibold"
-                      style={{ background: p.gradient, color: "#fff" }}
-                    >
+                    <div className="absolute top-3 right-3 text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: p.gradient, color: "#fff" }}>
                       {p.badge}
                     </div>
                   )}
@@ -189,7 +170,7 @@ export default function Settings() {
                     onClick={() => setShowUpgradeModal(p.id as "premium" | "pro")}
                   >
                     <Icon className="w-4 h-4" />
-                    {isCurrent ? "Piano attuale" : `Attiva ${p.name}`}
+                    {isCurrent ? t("settings.currentPlanBtn") : t("settings.activateBtn", { name: p.name })}
                   </Button>
                 </div>
               );
@@ -203,29 +184,25 @@ export default function Settings() {
         <Card className="bg-card/40 backdrop-blur" style={{ border: "1px solid rgba(240,192,64,0.3)" }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base" style={{ color: "#f0c040" }}>
-              <Crown className="w-5 h-5" /> Pro Attivo
+              <Crown className="w-5 h-5" /> {t("settings.proActive")}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Hai accesso completo a tutti i modelli AI, 2.000 messaggi al mese, predizioni avanzate e analisi personalizzata.
-            </p>
+            <p className="text-sm text-muted-foreground">{t("settings.proActiveDesc")}</p>
           </CardContent>
         </Card>
       )}
 
-      {/* Premium attivo (mostra comunque l'opzione di upgrade a Pro) */}
+      {/* Premium attivo */}
       {isPremium && (
         <Card className="bg-card/40 backdrop-blur" style={{ border: "1px solid rgba(168,159,255,0.3)" }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base" style={{ color: "#a89fff" }}>
-              <Star className="w-5 h-5" /> Premium Attivo
+              <Star className="w-5 h-5" /> {t("settings.premiumActive")}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Hai 600 messaggi al mese con accesso a Haiku e Sonnet. Passa a Pro per Opus, GPT-4o e 2.000 messaggi.
-            </p>
+            <p className="text-sm text-muted-foreground">{t("settings.premiumActiveDesc")}</p>
           </CardContent>
         </Card>
       )}
@@ -234,21 +211,19 @@ export default function Settings() {
       <Card className="bg-card/40 backdrop-blur border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Shield className="w-5 h-5 text-primary" /> Privacy
+            <Shield className="w-5 h-5 text-primary" /> {t("settings.privacy")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between py-2">
             <div>
-              <p className="text-sm font-medium">Classifica pubblica</p>
-              <p className="text-xs text-muted-foreground">Il tuo nome è anonimizzato sulla leaderboard</p>
+              <p className="text-sm font-medium">{t("settings.publicRank")}</p>
+              <p className="text-xs text-muted-foreground">{t("settings.publicRankDesc")}</p>
             </div>
-            <Badge variant="outline" className="text-muted-foreground">Anonimo</Badge>
+            <Badge variant="outline" className="text-muted-foreground">{t("settings.anonymous")}</Badge>
           </div>
           <Separator />
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            SGI traccia i pattern semantici e linguistici delle tue conversazioni. Nessun contenuto personalmente identificabile viene conservato. Il testo viene processato esclusivamente per generare il tuo indice di crescita.
-          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">{t("settings.privacyNotice")}</p>
         </CardContent>
       </Card>
 
@@ -259,30 +234,26 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
                 {showUpgradeModal === "pro" ? <Crown className="w-5 h-5" /> : <Star className="w-5 h-5" />}
-                Attiva {showUpgradeModal === "pro" ? "Pro" : "Premium"}
+                {t("settings.modalTitle", { name: showUpgradeModal === "pro" ? t("common.pro") : t("common.premium") })}
               </CardTitle>
-              <CardDescription>
-                Il pagamento è in sviluppo. I piani saranno disponibili appena il checkout Stripe sarà attivo.
-              </CardDescription>
+              <CardDescription>{t("settings.modalDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-xl p-4 text-center" style={{ background: "rgba(124,107,255,0.06)", border: "1px solid rgba(124,107,255,0.2)" }}>
                 <p className="text-2xl font-bold">{showUpgradeModal === "pro" ? "€19.99" : "€9.99"}</p>
-                <p className="text-sm text-muted-foreground">al mese</p>
+                <p className="text-sm text-muted-foreground">{t("settings.perMonth")}</p>
               </div>
-              <p className="text-sm text-muted-foreground">
-                L'integrazione Stripe è in fase di sviluppo. Sarai notificato non appena il checkout sarà disponibile.
-              </p>
+              <p className="text-sm text-muted-foreground">{t("settings.stripeNotice")}</p>
               <Button
                 variant="outline"
                 className="w-full"
                 onClick={() => {
                   setShowUpgradeModal(null);
-                  toast.info("Ti notificheremo quando il pagamento sarà disponibile!");
+                  toast.info(t("settings.notifyToast"));
                 }}
                 data-testid="button-close-upgrade-modal"
               >
-                Chiudi
+                {t("settings.closeBtn")}
               </Button>
             </CardContent>
           </Card>

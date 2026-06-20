@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 import { ArrowUpRight, ArrowDownRight, Activity, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const { data: profile, isLoading: profileLoading } = useGetMyProfile();
   const { data: history, isLoading: historyLoading } = useGetSgiHistory({ days: 30 });
 
@@ -45,19 +47,19 @@ export default function Dashboard() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Telemetry Hub</h2>
-          <p className="text-muted-foreground mt-1">Real-time cognitive growth tracking</p>
+          <h2 className="text-3xl font-bold tracking-tight">{t("dashboard.title")}</h2>
+          <p className="text-muted-foreground mt-1">{t("dashboard.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-md text-primary font-mono text-sm">
           <Activity className="w-4 h-4 animate-pulse" />
-          SYSTEM NOMINAL
+          {t("dashboard.systemNominal")}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <Card className="lg:col-span-1 border-primary/30 bg-card/50 backdrop-blur">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Current SGI Score</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">{t("dashboard.currentSgi")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col items-center justify-center py-4">
@@ -87,15 +89,17 @@ export default function Dashboard() {
         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="bg-card/50 backdrop-blur">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Global Rank</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">{t("dashboard.globalRank")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold font-mono text-white mb-1">#{profile?.globalRank?.toLocaleString() ?? '--'}</div>
-              <div className="text-xs text-muted-foreground mb-2">of {profile?.totalUsers?.toLocaleString()} tracked</div>
+              <div className="text-xs text-muted-foreground mb-2">{t("dashboard.of")} {profile?.totalUsers?.toLocaleString()} {t("dashboard.tracked")}</div>
               {rankChange !== 0 && (
                 <div className={`flex items-center gap-1 text-xs font-mono ${rankChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
                   {rankChange < 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                  {rankChange < 0 ? `↑ ${Math.abs(rankChange)} places (30d)` : `↓ ${rankChange} places (30d)`}
+                  {rankChange < 0
+                    ? t("dashboard.places30d", { dir: "↑", n: Math.abs(rankChange) })
+                    : t("dashboard.places30d", { dir: "↓", n: rankChange })}
                 </div>
               )}
             </CardContent>
@@ -103,31 +107,31 @@ export default function Dashboard() {
 
           <Card className="bg-card/50 backdrop-blur">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Weekly Growth</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">{t("dashboard.weeklyGrowth")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className={`text-4xl font-bold font-mono mb-1 ${isPositiveWeekly ? 'text-green-400' : 'text-red-400'}`}>
                 {weeklyDelta >= 0 ? '+' : ''}{weeklyDelta.toFixed(1)}
               </div>
-              <div className="text-xs text-muted-foreground mb-2">SGI points (7 days)</div>
+              <div className="text-xs text-muted-foreground mb-2">{t("dashboard.sgiPoints7")}</div>
               <div className={`flex items-center gap-1 text-xs font-mono ${isPositiveWeekly ? 'text-green-500' : 'text-red-500'}`}>
                 {isPositiveWeekly ? <TrendingUp className="w-3 h-3" /> : weeklyDelta === 0 ? <Minus className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                {isPositiveWeekly ? 'Growing' : 'Needs attention'}
+                {isPositiveWeekly ? t("dashboard.growing") : t("dashboard.needsAttention")}
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-card/50 backdrop-blur">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Monthly Growth</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">{t("dashboard.monthlyGrowth")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold font-mono text-white mb-1">
                 {monthlyDelta >= 0 ? '+' : ''}{monthlyDelta.toFixed(1)}
               </div>
-              <div className="text-xs text-muted-foreground mb-2">SGI points (30 days)</div>
+              <div className="text-xs text-muted-foreground mb-2">{t("dashboard.sgiPoints30")}</div>
               <div className="text-xs text-muted-foreground">
-                Top {profile?.percentile?.toFixed(1) ?? '--'}% globally
+                {t("dashboard.topGlobally", { val: profile?.percentile?.toFixed(1) ?? '--' })}
               </div>
             </CardContent>
           </Card>
@@ -138,17 +142,17 @@ export default function Dashboard() {
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle>SGI Trajectory (30 Days)</CardTitle>
+              <CardTitle>{t("dashboard.trajectory")}</CardTitle>
               <p className="text-xs text-muted-foreground mt-1">
                 {chartData.length > 0
-                  ? `${chartData.length} data points · Started at ${startScore?.toFixed(1) ?? '--'}`
-                  : 'No history yet — start a conversation to begin tracking'}
+                  ? t("dashboard.dataPoints", { n: chartData.length, start: startScore?.toFixed(1) ?? '--' })
+                  : t("dashboard.noHistory")}
               </p>
             </div>
             {weeklyDelta !== 0 && (
               <div className={`flex items-center gap-1 text-sm font-mono px-2 py-1 rounded ${isPositiveWeekly ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
                 {isPositiveWeekly ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                {weeklyDelta >= 0 ? '+' : ''}{weeklyDelta.toFixed(1)} this week
+                {weeklyDelta >= 0 ? '+' : ''}{weeklyDelta.toFixed(1)} {t("dashboard.thisWeek")}
               </div>
             )}
           </div>
@@ -157,7 +161,7 @@ export default function Dashboard() {
           <div className="h-[380px] w-full">
             {chartData.length < 2 ? (
               <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                Chat more to populate your trajectory chart
+                {t("dashboard.chatMore")}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -166,7 +170,7 @@ export default function Dashboard() {
                   <XAxis dataKey="date" stroke="rgba(255,255,255,0.3)" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} tickLine={false} axisLine={false} />
                   <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
                   {startScore !== undefined && (
-                    <ReferenceLine y={startScore} stroke="rgba(255,255,255,0.15)" strokeDasharray="4 4" label={{ value: 'Start', fill: 'rgba(255,255,255,0.3)', fontSize: 10, position: 'right' }} />
+                    <ReferenceLine y={startScore} stroke="rgba(255,255,255,0.15)" strokeDasharray="4 4" label={{ value: t("dashboard.start"), fill: 'rgba(255,255,255,0.3)', fontSize: 10, position: 'right' }} />
                   )}
                   <Tooltip
                     contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255,255,255,0.1)', borderRadius: 8 }}

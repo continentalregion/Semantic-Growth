@@ -4,38 +4,40 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { useTranslation } from "react-i18next";
 
 type ScenarioKey = "conservative" | "realistic" | "optimistic";
 
-const SCENARIO_STYLES: Record<ScenarioKey, { label: string; color: string; bg: string; border: string; desc: string }> = {
-  conservative: {
-    label: "Conservative",
-    color: "#6366f1",
-    bg: "from-indigo-500/10 to-transparent",
-    border: "border-indigo-500/20",
-    desc: "50% of current growth rate maintained",
-  },
-  realistic: {
-    label: "Realistic",
-    color: "hsl(var(--primary))",
-    bg: "from-primary/10 to-transparent",
-    border: "border-primary/20",
-    desc: "Current trajectory maintained",
-  },
-  optimistic: {
-    label: "Optimistic",
-    color: "#22c55e",
-    bg: "from-green-500/10 to-transparent",
-    border: "border-green-500/20",
-    desc: "2× current growth rate",
-  },
-};
-
 export default function Predictions() {
+  const { t } = useTranslation();
   const { data: predictions, isLoading } = useGetPredictions();
   const { data: profile } = useGetMyProfile();
 
   const isPremium = profile?.plan === "premium";
+
+  const SCENARIO_STYLES: Record<ScenarioKey, { label: string; color: string; bg: string; border: string; desc: string }> = {
+    conservative: {
+      label: t("predictions.conservative"),
+      color: "#6366f1",
+      bg: "from-indigo-500/10 to-transparent",
+      border: "border-indigo-500/20",
+      desc: t("predictions.conservativeDesc"),
+    },
+    realistic: {
+      label: t("predictions.realistic"),
+      color: "hsl(var(--primary))",
+      bg: "from-primary/10 to-transparent",
+      border: "border-primary/20",
+      desc: t("predictions.realisticDesc"),
+    },
+    optimistic: {
+      label: t("predictions.optimistic"),
+      color: "#22c55e",
+      bg: "from-green-500/10 to-transparent",
+      border: "border-green-500/20",
+      desc: t("predictions.optimisticDesc"),
+    },
+  };
 
   if (!isPremium) {
     return (
@@ -44,16 +46,14 @@ export default function Predictions() {
           <Lock className="w-8 h-8 text-primary" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold mb-2">Predictive Simulation</h2>
-          <p className="text-muted-foreground max-w-md">
-            Project your semantic growth trajectory up to 180 days with conservative, realistic, and optimistic scenarios. Available on the Premium plan.
-          </p>
+          <h2 className="text-2xl font-bold mb-2">{t("predictions.lockedTitle")}</h2>
+          <p className="text-muted-foreground max-w-md">{t("predictions.lockedDesc")}</p>
         </div>
         <Button size="lg" className="gap-2" data-testid="button-upgrade-premium">
           <TrendingUp className="w-5 h-5" />
-          Upgrade to Premium
+          {t("predictions.upgradePremium")}
         </Button>
-        <p className="text-xs text-muted-foreground">Unlock predictions, advanced maps, and priority scoring</p>
+        <p className="text-xs text-muted-foreground">{t("predictions.unlockDesc")}</p>
       </div>
     );
   }
@@ -80,11 +80,10 @@ export default function Predictions() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Growth Simulation</h2>
-        <p className="text-muted-foreground mt-1">Projected SGI trajectory based on your current engagement patterns</p>
+        <h2 className="text-3xl font-bold tracking-tight">{t("predictions.title")}</h2>
+        <p className="text-muted-foreground mt-1">{t("predictions.subtitle")}</p>
       </div>
 
-      {/* Scenario Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {(["conservative", "realistic", "optimistic"] as ScenarioKey[]).map(key => {
           const s = SCENARIO_STYLES[key];
@@ -115,10 +114,9 @@ export default function Predictions() {
         })}
       </div>
 
-      {/* Chart */}
       <Card className="bg-card/30 backdrop-blur border-border">
         <CardHeader>
-          <CardTitle>Trajectory Projection</CardTitle>
+          <CardTitle>{t("predictions.trajectoryChart")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-[360px]">
@@ -129,18 +127,16 @@ export default function Predictions() {
                 <YAxis stroke="rgba(255,255,255,0.4)" tick={{ fill: "rgba(255,255,255,0.5)" }} tickLine={false} axisLine={false} domain={["auto", "auto"]} />
                 <Tooltip contentStyle={{ backgroundColor: "rgba(15,23,42,0.95)", borderColor: "rgba(255,255,255,0.1)" }} itemStyle={{ color: "#fff" }} />
                 <Legend />
-                <Line type="monotone" dataKey="conservative" name="Conservative" stroke={SCENARIO_STYLES.conservative.color} strokeWidth={2} strokeDasharray="4 2" dot={{ r: 5 }} />
-                <Line type="monotone" dataKey="realistic" name="Realistic" stroke={SCENARIO_STYLES.realistic.color} strokeWidth={3} dot={{ r: 5 }} />
-                <Line type="monotone" dataKey="optimistic" name="Optimistic" stroke={SCENARIO_STYLES.optimistic.color} strokeWidth={2} strokeDasharray="4 2" dot={{ r: 5 }} />
+                <Line type="monotone" dataKey="conservative" name={t("predictions.conservative")} stroke={SCENARIO_STYLES.conservative.color} strokeWidth={2} strokeDasharray="4 2" dot={{ r: 5 }} />
+                <Line type="monotone" dataKey="realistic" name={t("predictions.realistic")} stroke={SCENARIO_STYLES.realistic.color} strokeWidth={3} dot={{ r: 5 }} />
+                <Line type="monotone" dataKey="optimistic" name={t("predictions.optimistic")} stroke={SCENARIO_STYLES.optimistic.color} strokeWidth={2} strokeDasharray="4 2" dot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
 
-      <p className="text-xs text-muted-foreground text-center">
-        Projections are based on exponential smoothing of your recent activity. Consistent engagement accelerates growth.
-      </p>
+      <p className="text-xs text-muted-foreground text-center">{t("predictions.disclaimer")}</p>
     </div>
   );
 }
