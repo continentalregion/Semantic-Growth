@@ -44,7 +44,8 @@ export async function scoreMessage(
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      max_tokens: 300,          // JSON compatto: ~200 token bastano
+      max_tokens: 300,
+      temperature: 0,           // deterministico: stessa frase → stesso score sempre
       response_format: { type: "json_object" },
       messages: [{ role: "user", content: prompt }],
     });
