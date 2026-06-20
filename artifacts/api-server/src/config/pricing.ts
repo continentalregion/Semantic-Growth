@@ -1,80 +1,84 @@
 /**
  * SGI — Configurazione prezzi e tetti di utilizzo
  *
- * REGOLA DI FONDO: nessun utente deve generare un costo AI superiore al
- * suo tetto di fascia. Il tetto premium è calcolato automaticamente dal
- * margine target, non scelto arbitrariamente.
+ * Due tier a pagamento:
+ *   Premium  €9.99  → 600 msg/mese  · Haiku + Sonnet
+ *   Pro      €19.99 → 2000 msg/mese · tutti i modelli
  *
- * CALCOLO TETTO PREMIUM
- * ─────────────────────
- * Budget AI per utente premium = prezzo * (1 - fee_stripe) * (1 - margine_target)
- * Limite messaggi = budget_AI / costo_medio_per_messaggio
- *
- * Con i valori attuali:
- *   9.99 * 0.97 * 0.60 = €5.81 di budget AI per utente/mese
- *   costo medio msg su Haiku ≈ €0.002 (2000 token a 0.001€/1K)
- *   → 5.81 / 0.002 ≈ 2905 → capped a MAX_PREMIUM_MESSAGES per sicurezza
- *
- * Aggiusta PREMIUM_PRICE_CENTS, STRIPE_FEE_RATE o TARGET_MARGIN_RATE
- * e i limiti si ricalcolano automaticamente.
+ * I limiti sono calcolati automaticamente dal margine target.
+ * Aggiusta i valori di base e i limiti si ricalcolano senza toccare altro.
  */
 
 // ─── Prezzi abbonamento ───────────────────────────────────────────────────────
-export const PREMIUM_PRICE_CENTS = 999;     // €9.99 / mese
-export const STRIPE_FEE_RATE     = 0.03;    // 3% Stripe
-export const TARGET_MARGIN_RATE  = 0.40;    // 40% margine minimo target
+export const PREMIUM_PRICE_CENTS = 999;    // €9.99 / mese
+export const PRO_PRICE_CENTS     = 1999;   // €19.99 / mese
+export const STRIPE_FEE_RATE     = 0.03;   // 3% Stripe (+ €0.25 fisso, non considerato qui)
+export const TARGET_MARGIN_RATE  = 0.40;   // 40% margine minimo target
 
 // ─── Costi modelli (centesimi per 1 000 token, blended input+output) ──────────
 export const MODEL_COST_CENTS_PER_1K: Record<string, number> = {
-  "claude-haiku-4-5":  0.05,   // ~€0.0005/1K  ← modello "economico" di default
-  "claude-sonnet-4-6": 0.60,   // ~€0.006/1K
-  "claude-opus-4-8":   3.00,   // ~€0.03/1K    ← solo per momenti "wow"
-  "gpt-4o-mini":       0.03,   // ~€0.0003/1K
-  "gpt-4o":            0.50,   // ~€0.005/1K
+  "claude-haiku-4-5":  0.05,
+  "claude-sonnet-4-6": 0.60,
+  "claude-opus-4-8":   3.00,
+  "gpt-4o-mini":       0.03,
+  "gpt-4o":            0.50,
   "o4-mini":           0.15,
+};
+
+// ─── Modelli permessi per piano (server-side, non aggirabile) ─────────────────
+export const ALLOWED_MODELS: Record<string, string[]> = {
+  free:    ["claude-haiku-4-5"],
+  premium: ["claude-haiku-4-5", "claude-sonnet-4-6", "gpt-4o-mini"],
+  pro:     ["claude-haiku-4-5", "claude-sonnet-4-6", "claude-opus-4-8", "gpt-4o-mini", "gpt-4o", "o4-mini"],
+};
+
+// ─── Modello di default per fascia (se l'utente non sceglie) ─────────────────
+export const DEFAULT_MODEL: Record<string, string> = {
+  free:    "claude-haiku-4-5",
+  premium: "claude-haiku-4-5",
+  pro:     "claude-haiku-4-5",
 };
 
 // ─── Token medi per messaggio (stima conservativa) ───────────────────────────
 const AVG_TOKENS_PER_MSG = 2_000;
 
-// ─── Calcolo automatico del budget AI per utente premium ─────────────────────
-const netRevenueCents   = PREMIUM_PRICE_CENTS * (1 - STRIPE_FEE_RATE);  // 969.03 ¢
-const aibudgetCents     = netRevenueCents * (1 - TARGET_MARGIN_RATE);   // 581.42 ¢
+// ─── Calcolo automatico budget AI per piano ───────────────────────────────────
+const netPremium  = PREMIUM_PRICE_CENTS * (1 - STRIPE_FEE_RATE);   // ~969¢
+const netPro      = PRO_PRICE_CENTS     * (1 - STRIPE_FEE_RATE);   // ~1939¢
+const aiBudgetPremium = netPremium * (1 - TARGET_MARGIN_RATE);      // ~581¢
+const aiBudgetPro     = netPro     * (1 - TARGET_MARGIN_RATE);      // ~1163¢
 
-// Costo di un messaggio medio sul modello di routing standard (Haiku)
-const costPerMsgHaiku   = (MODEL_COST_CENTS_PER_1K["claude-haiku-4-5"]! * AVG_TOKENS_PER_MSG) / 1_000;
-const calculatedPremium = Math.floor(aibudgetCents / costPerMsgHaiku);
+const costPerMsgHaiku = (MODEL_COST_CENTS_PER_1K["claude-haiku-4-5"]! * AVG_TOKENS_PER_MSG) / 1_000;
 
-// Limite massimo assoluto di sicurezza (cap per imprevedibili burst di token)
-const MAX_PREMIUM_MESSAGES = 600;
-const MAX_FREE_MESSAGES    = 20;
+const calcPremium = Math.floor(aiBudgetPremium / costPerMsgHaiku);
+const calcPro     = Math.floor(aiBudgetPro     / costPerMsgHaiku);
 
-// ─── Limiti mensili per piano ─────────────────────────────────────────────────
+// Cap di sicurezza (burst di token imprevedibili)
+const CAP_FREE    = 20;
+const CAP_PREMIUM = 600;
+const CAP_PRO     = 2_000;
+
+// ─── Limiti mensili effettivi per piano ──────────────────────────────────────
 export const MONTHLY_LIMITS: Record<string, number> = {
-  free:    MAX_FREE_MESSAGES,
-  premium: Math.min(calculatedPremium, MAX_PREMIUM_MESSAGES),
-};
-
-// ─── Modello di default per fascia ───────────────────────────────────────────
-export const DEFAULT_MODEL: Record<string, string> = {
-  free:    "claude-haiku-4-5",   // costo prossimo a zero
-  premium: "claude-haiku-4-5",   // di default Haiku; Opus solo su scelta esplicita
+  free:    CAP_FREE,
+  premium: Math.min(calcPremium, CAP_PREMIUM),
+  pro:     Math.min(calcPro,     CAP_PRO),
 };
 
 // ─── Valvola globale di spesa mensile (Fase 5) ───────────────────────────────
-export const GLOBAL_MONTHLY_BUDGET_CENTS = 5_000;  // €50 di tetto AI globale
-export const GLOBAL_BUDGET_DEGRADATION_THRESHOLD = 0.85; // degrada a 85% del budget
+export const GLOBAL_MONTHLY_BUDGET_CENTS          = 8_000;  // €80 tetto AI globale (aggiornato per 2 tier)
+export const GLOBAL_BUDGET_DEGRADATION_THRESHOLD  = 0.85;
 
 // ─── Log blocchi ─────────────────────────────────────────────────────────────
-export const LOG_BLOCKS = true;  // logga ogni blocco per analisi pricing
+export const LOG_BLOCKS = true;
 
-// ─── Riepilogo per debug ──────────────────────────────────────────────────────
+// ─── Riepilogo per debug al boot ─────────────────────────────────────────────
 export const PRICING_SUMMARY = {
-  premiumPriceCents: PREMIUM_PRICE_CENTS,
-  netRevenueCents:   Math.round(netRevenueCents),
-  aibudgetCents:     Math.round(aibudgetCents),
-  costPerMsgHaikuCents: parseFloat(costPerMsgHaiku.toFixed(4)),
-  calculatedPremiumLimit: calculatedPremium,
-  effectivePremiumLimit: MONTHLY_LIMITS.premium,
-  freeLimit: MONTHLY_LIMITS.free,
+  premiumPriceCents:  PREMIUM_PRICE_CENTS,
+  proPriceCents:      PRO_PRICE_CENTS,
+  netPremiumCents:    Math.round(netPremium),
+  netProCents:        Math.round(netPro),
+  aiBudgetPremium:    Math.round(aiBudgetPremium),
+  aiBudgetPro:        Math.round(aiBudgetPro),
+  limits:             MONTHLY_LIMITS,
 };

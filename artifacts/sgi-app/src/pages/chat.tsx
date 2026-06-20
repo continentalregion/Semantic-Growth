@@ -19,13 +19,18 @@ import { toast } from "sonner";
 import { MessageSquarePlus, Trash2, Send, Bot, User, TrendingUp, TrendingDown, Minus, Zap, ChevronDown, Lock } from "lucide-react";
 
 const MODELS = [
-  { id: "claude-opus-4-8", label: "Claude Opus 4", provider: "Anthropic", badge: "Most Capable" },
-  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4", provider: "Anthropic", badge: "Balanced" },
-  { id: "claude-haiku-4-5", label: "Claude Haiku 4", provider: "Anthropic", badge: "Fast" },
-  { id: "gpt-4o", label: "GPT-4o", provider: "OpenAI", badge: "" },
-  { id: "gpt-4o-mini", label: "GPT-4o Mini", provider: "OpenAI", badge: "" },
+  { id: "claude-haiku-4-5",  label: "Claude Haiku 4",  provider: "Anthropic", badge: "Fast",         minPlan: "free"    },
+  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4", provider: "Anthropic", badge: "Balanced",     minPlan: "premium" },
+  { id: "claude-opus-4-8",   label: "Claude Opus 4",   provider: "Anthropic", badge: "Most Capable", minPlan: "pro"     },
+  { id: "gpt-4o-mini",       label: "GPT-4o Mini",     provider: "OpenAI",    badge: "Fast",         minPlan: "premium" },
+  { id: "gpt-4o",            label: "GPT-4o",          provider: "OpenAI",    badge: "Capable",      minPlan: "pro"     },
 ] as const;
 type ModelId = typeof MODELS[number]["id"];
+
+const PLAN_ORDER: Record<string, number> = { free: 0, premium: 1, pro: 2 };
+function modelAllowed(modelMinPlan: string, userPlan: string): boolean {
+  return (PLAN_ORDER[userPlan] ?? 0) >= (PLAN_ORDER[modelMinPlan] ?? 99);
+}
 
 const API_BASE = "/api";
 
@@ -120,7 +125,8 @@ export default function Chat() {
       if (response.status === 429) {
         const err = await response.json().catch(() => ({}));
         setLimitBlocked(true);
-        toast.error(`Limite mensile raggiunto (${err.used ?? "?"}/${err.limit ?? "?"} messaggi). Passa a Premium.`);
+        const nextPlan = (err.plan === "premium") ? "Pro (€19.99)" : "Premium (€9.99)";
+        toast.error(`Limite mensile raggiunto (${err.used ?? "?"}/${err.limit ?? "?"} msg). Passa a ${nextPlan}.`);
         setIsStreaming(false);
         setStreamingContent("");
         return;
@@ -242,19 +248,45 @@ export default function Chat() {
         {/* Upgrade banner when blocked */}
         {limitBlocked && (
           <div
-            className="rounded-xl p-3 text-center flex flex-col gap-2"
+            className="rounded-xl p-3 flex flex-col gap-2"
             style={{ background: "rgba(247,37,133,0.08)", border: "1px solid rgba(247,37,133,0.25)" }}
           >
-            <Lock className="w-4 h-4 mx-auto" style={{ color: "#f72585" }} />
-            <p className="text-xs font-medium" style={{ color: "#f72585" }}>Limite mensile raggiunto</p>
-            <p className="text-xs" style={{ color: "#9090b8" }}>Passa a Premium per continuare a esplorare</p>
-            <button
-              className="text-xs py-1.5 px-3 rounded-full font-semibold mt-1 transition-opacity hover:opacity-80"
-              style={{ background: "linear-gradient(135deg, #7c6bff, #f72585)", color: "#fff" }}
-              onClick={() => toast.info("Premium in arrivo presto!")}
-            >
-              Upgrade a Premium
-            </button>
+            <div className="flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#f72585" }} />
+              <p className="text-xs font-semibold" style={{ color: "#f72585" }}>Limite raggiunto</p>
+            </div>
+            {usageData?.plan === "premium" ? (
+              <>
+                <p className="text-xs" style={{ color: "#9090b8" }}>Passa a Pro per 2.000 msg/mese e Opus</p>
+                <button
+                  className="text-xs py-1.5 px-3 rounded-full font-semibold transition-opacity hover:opacity-80"
+                  style={{ background: "linear-gradient(135deg, #f0c040, #e08020)", color: "#fff" }}
+                  onClick={() => toast.info("Vai su Impostazioni per attivare Pro!")}
+                >
+                  Upgrade a Pro — €19.99
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-xs" style={{ color: "#9090b8" }}>Passa a Premium per 600 msg/mese</p>
+                <div className="flex flex-col gap-1.5">
+                  <button
+                    className="text-xs py-1.5 px-3 rounded-full font-semibold transition-opacity hover:opacity-80"
+                    style={{ background: "linear-gradient(135deg, #7c6bff, #5b4de0)", color: "#fff" }}
+                    onClick={() => toast.info("Vai su Impostazioni per attivare Premium!")}
+                  >
+                    Premium — €9.99
+                  </button>
+                  <button
+                    className="text-xs py-1.5 px-3 rounded-full font-semibold transition-opacity hover:opacity-80"
+                    style={{ background: "linear-gradient(135deg, #f0c040, #e08020)", color: "#fff" }}
+                    onClick={() => toast.info("Vai su Impostazioni per attivare Pro!")}
+                  >
+                    Pro — €19.99
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -336,25 +368,43 @@ export default function Chat() {
                   </button>
                   {modelDropdownOpen && (
                     <div
-                      className="absolute right-0 top-full mt-1 w-56 rounded-xl overflow-hidden z-50 shadow-xl"
+                      className="absolute right-0 top-full mt-1 w-60 rounded-xl overflow-hidden z-50 shadow-xl"
                       style={{ background: "#12142a", border: "1px solid rgba(255,255,255,0.1)" }}
                     >
-                      {MODELS.map(m => (
-                        <button
-                          key={m.id}
-                          onClick={() => { setSelectedModel(m.id); setModelDropdownOpen(false); }}
-                          className="w-full flex items-center justify-between px-4 py-2.5 text-left text-sm transition-colors hover:bg-white/5"
-                          style={{ color: selectedModel === m.id ? "#a89fff" : "#9090b8" }}
-                        >
-                          <div>
-                            <div className="font-medium text-xs" style={{ color: "inherit" }}>{m.label}</div>
-                            <div className="text-xs opacity-60">{m.provider}</div>
-                          </div>
-                          {m.badge && (
-                            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(124,107,255,0.2)", color: "#a89fff" }}>{m.badge}</span>
-                          )}
-                        </button>
-                      ))}
+                      {MODELS.map(m => {
+                        const userPlan = usageData?.plan ?? "free";
+                        const allowed = modelAllowed(m.minPlan, userPlan);
+                        const planLabel = m.minPlan === "pro" ? "Pro" : m.minPlan === "premium" ? "Premium" : null;
+                        return (
+                          <button
+                            key={m.id}
+                            onClick={() => {
+                              if (!allowed) {
+                                toast.info(`${m.label} richiede il piano ${planLabel}. Vai su Impostazioni.`);
+                                setModelDropdownOpen(false);
+                                return;
+                              }
+                              setSelectedModel(m.id);
+                              setModelDropdownOpen(false);
+                            }}
+                            className="w-full flex items-center justify-between px-4 py-2.5 text-left text-sm transition-colors hover:bg-white/5"
+                            style={{ color: !allowed ? "rgba(144,144,184,0.4)" : selectedModel === m.id ? "#a89fff" : "#9090b8" }}
+                          >
+                            <div className="flex items-center gap-2">
+                              {!allowed && <Lock className="w-3 h-3 flex-shrink-0" style={{ color: "rgba(144,144,184,0.4)" }} />}
+                              <div>
+                                <div className="font-medium text-xs" style={{ color: "inherit" }}>{m.label}</div>
+                                <div className="text-xs opacity-60">{m.provider}</div>
+                              </div>
+                            </div>
+                            {!allowed && planLabel ? (
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(240,192,64,0.1)", color: "rgba(240,192,64,0.6)", border: "1px solid rgba(240,192,64,0.2)" }}>{planLabel}</span>
+                            ) : m.badge ? (
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(124,107,255,0.2)", color: "#a89fff" }}>{m.badge}</span>
+                            ) : null}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

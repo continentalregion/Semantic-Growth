@@ -14,6 +14,7 @@ import {
   LOG_BLOCKS,
   PRICING_SUMMARY,
   DEFAULT_MODEL,
+  ALLOWED_MODELS,
   GLOBAL_MONTHLY_BUDGET_CENTS,
   GLOBAL_BUDGET_DEGRADATION_THRESHOLD,
 } from "../config/pricing";
@@ -246,12 +247,12 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       .limit(10);
 
     // ── FASE 3: model enforcement per piano ──────────────────────────────────
-    // Free: sempre Haiku indipendentemente da cosa è salvato nella conversazione
+    // Ogni piano ha una lista di modelli permessi (ALLOWED_MODELS in pricing.ts).
+    // Se il modello richiesto non è nella lista del piano, si usa il default.
     const planDefaultModel = DEFAULT_MODEL[user.plan] ?? "claude-haiku-4-5";
-    let requestedModel = (convo.model ?? planDefaultModel) as ModelId;
-    if (user.plan === "free") {
-      requestedModel = planDefaultModel as ModelId; // override — non aggirabile
-    }
+    const allowedForPlan   = ALLOWED_MODELS[user.plan] ?? ["claude-haiku-4-5"];
+    const requestedRaw     = convo.model ?? planDefaultModel;
+    let requestedModel = (allowedForPlan.includes(requestedRaw) ? requestedRaw : planDefaultModel) as ModelId;
 
     // ── FASE 5: valvola globale — controlla budget mensile totale ─────────────
     // Se l'app si avvicina al tetto globale, declassa automaticamente a Haiku
