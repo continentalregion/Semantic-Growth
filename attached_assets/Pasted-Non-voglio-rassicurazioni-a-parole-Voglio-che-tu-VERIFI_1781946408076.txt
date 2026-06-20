@@ -1,0 +1,55 @@
+Non voglio rassicurazioni a parole. Voglio che tu VERIFICHI con prove
+concrete due cose, eseguendo test reali e mostrandomi gli output. Se
+qualcosa non funziona o non puoi dimostrarlo, dimmelo chiaramente invece
+di rassicurarmi.
+
+═══════════════════════════════════════════
+PARTE A — IL TRACCIAMENTO SEMANTICO FUNZIONA DAVVERO?
+═══════════════════════════════════════════
+
+1. Simula un utente che invia 5 messaggi in sequenza con un livello
+   linguistico/concettuale crescente (dal semplice al complesso). Mostrami:
+   - il punteggio SGI calcolato dopo ogni messaggio
+   - come cambia la traiettoria nel tempo
+   - le "aree di miglioramento" generate
+
+2. Dimostrami che i dati PERSISTONO: dopo i 5 messaggi, leggi dal DB lo
+   storico di quell'utente e mostramelo. Voglio vedere che la traiettoria
+   è salvata, non ricalcolata al volo e persa.
+
+3. Verifica la coerenza: se invio due messaggi quasi identici, il punteggio
+   è stabile? Se ne invio uno molto più ricco, il punteggio sale in modo
+   sensato? Mostrami i numeri reali, non un esempio inventato.
+
+4. Dimmi ONESTAMENTE: il punteggio SGI misura qualcosa di reale e
+   ripetibile, o è un numero che varia troppo per essere significativo?
+   Qual è il punto più debole di questo calcolo?
+
+═══════════════════════════════════════════
+PARTE B — IL SISTEMA COSTI/RICAVI È SOSTENIBILE?
+═══════════════════════════════════════════
+
+5. Mostrami il calcolo REALE, coi prezzi attuali (Haiku 4.5 = $1/$5 per
+   Mtok, Opus 4.8 = $5/$25), basato sulla lunghezza EFFETTIVA media di un
+   messaggio nella mia app (misurala dai dati o dai log, non stimarla):
+   - costo reale di un utente free a 20 messaggi
+   - costo reale di un utente premium a 600 messaggi
+   - confronto col budget di 5,81€ → il premium è in attivo? di quanto?
+
+6. Simula 3 scenari e dimmi il margine totale in ciascuno:
+   - 100 utenti free, 0 premium (margine? quanto perdo?)
+   - 100 free, 10 premium
+   - 1000 free, 50 premium
+   Voglio sapere a che punto il sito si ripaga e quando invece sono in
+   perdita.
+
+7. Verifica che i blocchi funzionino DAVVERO: simula un utente free al 21°
+   messaggio e mostrami che la chiamata AI viene bloccata PRIMA di partire
+   (nessun token speso). Stessa cosa per la valvola globale oltre soglia.
+
+8. Dimmi ONESTAMENTE qual è lo scenario in cui questo sistema mi fa
+   PERDERE soldi nonostante tutte le protezioni. Esiste un buco? Dove?
+
+Per entrambe le parti: mostrami output reali, numeri reali, query reali sul
+DB. Non scrivere "funziona correttamente" senza una prova accanto. Se una
+delle due cose non è verificabile adesso, dimmi esattamente cosa manca.
