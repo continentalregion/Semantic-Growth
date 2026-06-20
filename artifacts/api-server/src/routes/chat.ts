@@ -13,6 +13,9 @@ import {
   MODEL_COST_CENTS_PER_1K,
   LOG_BLOCKS,
   PRICING_SUMMARY,
+  DEFAULT_MODEL,
+  GLOBAL_MONTHLY_BUDGET_CENTS,
+  GLOBAL_BUDGET_DEGRADATION_THRESHOLD,
 } from "../config/pricing";
 
 const OPENAI_MODELS = ["gpt-4o-mini", "gpt-4o", "o4-mini"] as const;
@@ -236,10 +239,45 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
 
     const [insertedUserMsg] = await db.insert(messages).values({ conversationId: convoId, role: "user", content: userContent }).returning({ id: messages.id });
 
+    // Ridotto a 10 messaggi di storia (meno token, stessa qualità conversazionale)
     const history = await db.select().from(messages)
       .where(eq(messages.conversationId, convoId))
       .orderBy(messages.createdAt)
-      .limit(20);
+      .limit(10);
+
+    // ── FASE 3: model enforcement per piano ──────────────────────────────────
+    // Free: sempre Haiku indipendentemente da cosa è salvato nella conversazione
+    const planDefaultModel = DEFAULT_MODEL[user.plan] ?? "claude-haiku-4-5";
+    let requestedModel = (convo.model ?? planDefaultModel) as ModelId;
+    if (user.plan === "free") {
+      requestedModel = planDefaultModel as ModelId; // override — non aggirabile
+    }
+
+    // ── FASE 5: valvola globale — controlla budget mensile totale ─────────────
+    // Se l'app si avvicina al tetto globale, declassa automaticamente a Haiku
+    const globalBudgetThreshold = GLOBAL_MONTHLY_BUDGET_CENTS * GLOBAL_BUDGET_DEGRADATION_THRESHOLD;
+    const monthStart = new Date(currentMonthKey());
+    const globalCostRow = await db.select({ total: sql<number>`coalesce(sum(${messages.costCents}), 0)` })
+      .from(messages)
+      .where(gte(messages.createdAt, monthStart));
+    const globalCostCents = Number(globalCostRow[0]?.total ?? 0);
+
+    let chosenModel = requestedModel;
+    if (globalCostCents >= globalBudgetThreshold) {
+      const safeModel = "claude-haiku-4-5" as ModelId;
+      if (chosenModel !== safeModel) {
+        console.warn(`[global-valve] budget ${globalCostCents.toFixed(1)}/${GLOBAL_MONTHLY_BUDGET_CENTS}¢ — degrading ${chosenModel} → ${safeModel}`);
+        if (LOG_BLOCKS) {
+          await db.insert(blockedAttempts).values({
+            userId: user.id, plan: user.plan,
+            reason: "global_budget_degradation",
+            model: chosenModel, used: currentUsed, limit,
+          }).catch(() => {});
+        }
+        chosenModel = safeModel;
+      }
+    }
+    // ── fine valvola ──────────────────────────────────────────────────────────
 
     const openaiMessages: Array<{ role: "user" | "assistant" | "system"; content: string }> = [
       { role: "system", content: SYSTEM_PROMPT },
@@ -252,7 +290,6 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     res.setHeader("X-Accel-Buffering", "no");
     res.flushHeaders();
 
-    const chosenModel = (convo.model ?? "claude-opus-4-8") as ModelId;
     let fullContent = "";
     let tokensUsed = 0;
 
@@ -261,12 +298,12 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
         const claudeMessages = openaiMessages
           .filter(m => m.role !== "system")
           .map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
-        const systemMsg = openaiMessages.find(m => m.role === "system")?.content ?? SYSTEM_PROMPT;
 
+        // ── FASE 3: prompt caching sul system prompt (fisso, -90% input token) ──
         const stream = anthropic.messages.stream({
           model: chosenModel,
           max_tokens: 8192,
-          system: systemMsg,
+          system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
           messages: claudeMessages,
         });
 
