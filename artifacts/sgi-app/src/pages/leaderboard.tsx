@@ -1,7 +1,9 @@
 import { useGetLeaderboardSummary, useGetMyProfile } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Trophy, Users, Activity, TrendingUp, Lock, Star, Zap } from "lucide-react";
+import { Trophy, Users, Activity, TrendingUp, Lock, Star, Zap, RefreshCw, Home } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 
 function RankOrb({ rank, total, t }: { rank: number | null | undefined; total: number; t: (k: string, opts?: object) => string }) {
   const percentile = rank && total > 0 ? ((total - rank) / total) * 100 : null;
@@ -111,14 +113,49 @@ function ThresholdBar({
 
 export default function Leaderboard() {
   const { t } = useTranslation();
-  const { data: profile, isLoading: profileLoading } = useGetMyProfile();
-  const { data: summary, isLoading: summaryLoading } = useGetLeaderboardSummary();
+  const [, setLocation] = useLocation();
+  const qc = useQueryClient();
+  const { data: profile, isLoading: profileLoading, isError: profileError } = useGetMyProfile();
+  const { data: summary, isLoading: summaryLoading, isError: summaryError } = useGetLeaderboardSummary();
 
   const isLoading = profileLoading || summaryLoading;
+  const isError = profileError || summaryError;
 
   const userSgi    = profile?.sgiScore ?? 0;
   const userRank   = profile?.globalRank ?? null;
   const totalUsers = summary?.totalUsers ?? 0;
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-6 max-w-sm mx-auto text-center px-4">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "rgba(247,37,133,0.1)", border: "1px solid rgba(247,37,133,0.2)" }}>
+          <Trophy className="w-8 h-8" style={{ color: "#f72585" }} />
+        </div>
+        <div>
+          <p className="text-base font-bold mb-1" style={{ color: "#eeeeff" }}>{t("common.errorTitle")}</p>
+          <p className="text-sm" style={{ color: "#9090b8" }}>{t("common.errorDesc")}</p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => { qc.invalidateQueries(); }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
+            style={{ background: "rgba(124,107,255,0.15)", color: "#a89fff", border: "1px solid rgba(124,107,255,0.25)" }}
+          >
+            <RefreshCw className="w-4 h-4" />
+            {t("common.retryBtn")}
+          </button>
+          <button
+            onClick={() => setLocation("/dashboard")}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
+            style={{ background: "rgba(255,255,255,0.06)", color: "#9090b8", border: "1px solid rgba(255,255,255,0.1)" }}
+          >
+            <Home className="w-4 h-4" />
+            {t("common.homeBtn")}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl mx-auto">

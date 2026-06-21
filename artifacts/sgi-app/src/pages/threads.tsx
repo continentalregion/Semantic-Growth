@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@clerk/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Plus, Flame, Brain, Network, BookOpen, Atom, Scale, Cpu, Globe, ChevronRight, Lock } from "lucide-react";
 
@@ -51,6 +52,7 @@ async function createThread(token: string, data: { question: string; description
 }
 
 export default function ThreadsPage() {
+  const { t } = useTranslation();
   const { getToken } = useAuth();
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
@@ -78,12 +80,12 @@ export default function ThreadsPage() {
       qc.invalidateQueries({ queryKey: ["threads"] });
       setShowCreate(false);
       setNewQ(""); setNewDesc(""); setNewCat("philosophy");
-      toast.success("Thread creato!");
+      toast.success(t("threads.successCreate"));
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const filtered = filter ? threads.filter(t => t.category === filter) : threads;
+  const filtered = filter ? threads.filter(th => th.category === filter) : threads;
 
   return (
     <div className="flex-1 overflow-y-auto" style={{ background: "#08090f" }}>
@@ -100,11 +102,11 @@ export default function ThreadsPage() {
                 <Flame className="w-4 h-4" style={{ color: "#f72585" }} />
               </div>
               <h1 className="text-xl font-bold font-display" style={{ color: "#eeeeff" }}>
-                Thread Aperti
+                {t("threads.title")}
               </h1>
             </div>
             <p className="text-sm" style={{ color: "#9090b8" }}>
-              Domande intellettuali irrisolte. Sfida un altro utente in 4 minuti di ragionamento con l'AI.
+              {t("threads.subtitle")}
             </p>
           </div>
           <button
@@ -117,7 +119,7 @@ export default function ThreadsPage() {
             }}
           >
             <Plus className="w-4 h-4" />
-            Nuovo Thread
+            {t("threads.createBtn")}
           </button>
         </div>
 
@@ -132,7 +134,7 @@ export default function ThreadsPage() {
               color: !filter ? "#a89fff" : "#9090b8",
             }}
           >
-            Tutti
+            {t("threads.filterAll")}
           </button>
           {Object.entries(CATEGORY_META).map(([key, meta]) => (
             <button
@@ -161,8 +163,7 @@ export default function ThreadsPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-3xl mb-3">💭</div>
-            <p className="font-semibold mb-1" style={{ color: "#eeeeff" }}>Nessun thread ancora</p>
-            <p className="text-sm" style={{ color: "#9090b8" }}>Crea il primo thread aperto per iniziare una battaglia intellettuale.</p>
+            <p className="text-sm" style={{ color: "#9090b8" }}>{t("threads.noThreads")}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -192,12 +193,12 @@ export default function ThreadsPage() {
                         </span>
                         {thread.createdByUsername?.startsWith("🤖") && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "rgba(247,37,133,0.1)", color: "#f72585", border: "1px solid rgba(247,37,133,0.2)" }}>
-                            🤖 estratto da chat
+                            🤖 {t("threads.aiGenerated")}
                           </span>
                         )}
                         {thread.knowledgeBaseSize > 0 && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(6,214,160,0.1)", color: "#06d6a0" }}>
-                            {thread.knowledgeBaseSize} connessioni
+                            {thread.knowledgeBaseSize} {t("threads.connections")}
                           </span>
                         )}
                       </div>
@@ -211,7 +212,7 @@ export default function ThreadsPage() {
                     <div className="flex items-center gap-4 flex-shrink-0">
                       <div className="text-right">
                         <div className="text-xs font-bold" style={{ color: "#eeeeff" }}>{thread.totalSessions}</div>
-                        <div className="text-[10px]" style={{ color: "#9090b8" }}>sessioni</div>
+                        <div className="text-[10px]" style={{ color: "#9090b8" }}>{t("threads.sessions")}</div>
                       </div>
                       <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "#7c6bff" }} />
                     </div>
@@ -235,21 +236,18 @@ export default function ThreadsPage() {
             style={{ background: "#10111e", border: "1px solid rgba(124,107,255,0.25)" }}
           >
             <h2 className="text-lg font-bold mb-1 font-display" style={{ color: "#eeeeff" }}>
-              Crea un Thread Aperto
+              {t("threads.createTitle")}
             </h2>
-            <p className="text-xs mb-5" style={{ color: "#9090b8" }}>
-              Una domanda senza risposta definitiva che accumula contributi nel tempo.
-            </p>
 
-            <div className="space-y-4">
+            <div className="space-y-4 mt-4">
               <div>
-                <label className="text-xs font-semibold mb-1.5 block" style={{ color: "#a89fff" }}>
-                  DOMANDA *
+                <label className="text-xs font-semibold mb-1.5 block uppercase tracking-wider" style={{ color: "#a89fff" }}>
+                  {t("threads.questionLabel")} *
                 </label>
                 <textarea
                   value={newQ}
                   onChange={e => setNewQ(e.target.value)}
-                  placeholder="Es: Esiste una forma di libertà che non dipenda dall'ignoranza?"
+                  placeholder={t("threads.questionPlaceholder")}
                   className="w-full px-3 py-2.5 rounded-lg text-sm resize-none outline-none"
                   style={{
                     background: "rgba(255,255,255,0.05)",
@@ -263,13 +261,13 @@ export default function ThreadsPage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold mb-1.5 block" style={{ color: "#a89fff" }}>
-                  DESCRIZIONE (opzionale)
+                <label className="text-xs font-semibold mb-1.5 block uppercase tracking-wider" style={{ color: "#a89fff" }}>
+                  {t("threads.descLabel")}
                 </label>
                 <input
                   value={newDesc}
                   onChange={e => setNewDesc(e.target.value)}
-                  placeholder="Contesto o angolazione di partenza..."
+                  placeholder={t("threads.descPlaceholder")}
                   className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
                   style={{
                     background: "rgba(255,255,255,0.05)",
@@ -280,7 +278,7 @@ export default function ThreadsPage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold mb-1.5 block" style={{ color: "#a89fff" }}>CATEGORIA</label>
+                <label className="text-xs font-semibold mb-1.5 block uppercase tracking-wider" style={{ color: "#a89fff" }}>{t("threads.categoryLabel")}</label>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(CATEGORY_META).map(([key, meta]) => (
                     <button
@@ -306,7 +304,7 @@ export default function ThreadsPage() {
                 className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors"
                 style={{ background: "rgba(255,255,255,0.06)", color: "#9090b8", border: "1px solid rgba(255,255,255,0.08)" }}
               >
-                Annulla
+                {t("threads.cancelBtn")}
               </button>
               <button
                 onClick={() => createMutation.mutate({ question: newQ, description: newDesc, category: newCat })}
@@ -318,7 +316,7 @@ export default function ThreadsPage() {
                   opacity: createMutation.isPending ? 0.7 : 1,
                 }}
               >
-                {createMutation.isPending ? "Creazione…" : "Crea Thread"}
+                {createMutation.isPending ? "…" : t("threads.createSubmit")}
               </button>
             </div>
           </div>
