@@ -11,30 +11,50 @@ export interface SgiDimensions {
   abstractionLevel: number;
   lexicalRichness: number;
   informationDensity: number;
+  revisionSignal: number;
+}
+
+export interface MacroDimensions {
+  profondita: number;
+  connettivita: number;
+  precisione: number;
+  revisione: number;
 }
 
 export interface SgiScoreResult {
   dimensions: SgiDimensions;
+  macroDimensions: MacroDimensions;
   domains: string[];
   rawScore: number;
 }
 
-// Prompt fisso — non cambia mai tra chiamate, ideale per il caching
-const SCORING_PROMPT = `You are a semantic analysis engine. Analyze the user message and score it on these 10 dimensions (each 0.0–10.0):
-1. conceptualComplexity 2. semanticVariety 3. interdisciplinaryScore 4. reasoningDepth 5. originality 6. stability 7. continuity 8. abstractionLevel 9. lexicalRichness 10. informationDensity
-Domains (up to 3): philosophy,mathematics,biology,economics,psychology,physics,linguistics,technology,history,art,literature,politics,sociology,neuroscience,ethics,logic,computer_science,chemistry,astronomy,medicine
-Return ONLY compact JSON: {"conceptualComplexity":5.2,"semanticVariety":4.8,"interdisciplinaryScore":3.1,"reasoningDepth":6.0,"originality":4.5,"stability":7.0,"continuity":5.5,"abstractionLevel":5.0,"lexicalRichness":4.2,"informationDensity":5.8,"domains":["philosophy"]}`;
+const SCORING_PROMPT = `You are a semantic analysis engine. Analyze the USER message (and conversation context) and score it on these 11 dimensions (each 0.0–10.0):
+
+1. conceptualComplexity — how many distinct, non-trivial concepts are present
+2. semanticVariety — breadth of semantic fields touched
+3. interdisciplinaryScore — cross-domain bridges (e.g. physics ↔ philosophy)
+4. reasoningDepth — how deep the logical chain goes (surface claim vs. full argument)
+5. originality — departure from obvious/common framings
+6. stability — internal consistency, no contradictions
+7. continuity — builds coherently on prior context
+8. abstractionLevel — degree of abstraction from concrete to meta
+9. lexicalRichness — precision and technical accuracy of vocabulary (NOT mere word count or rareness — using the RIGHT word scores high; padding with jargon scores low)
+10. informationDensity — signal-to-noise ratio; how much semantic content per word
+11. revisionSignal — CRITICAL: does this message show the user revising, nuancing, or updating a position they held earlier in the conversation? Score 0 if no revision; 1–4 if minor nuance; 5–7 if explicit refinement; 8–10 if meaningful position change with stated reason. Score 0 if this is the first message or no prior position exists.
+
+Domains (up to 3 from): philosophy,mathematics,biology,economics,psychology,physics,linguistics,technology,history,art,literature,politics,sociology,neuroscience,ethics,logic,computer_science,chemistry,astronomy,medicine
+
+Return ONLY compact JSON:
+{"conceptualComplexity":5.2,"semanticVariety":4.8,"interdisciplinaryScore":3.1,"reasoningDepth":6.0,"originality":4.5,"stability":7.0,"continuity":5.5,"abstractionLevel":5.0,"lexicalRichness":4.2,"informationDensity":5.8,"revisionSignal":0.0,"domains":["philosophy"]}`;
 
 export async function scoreMessage(
   userMessage: string,
-  // Solo gli ultimi 2 scambi (non 4) — meno token, stesso segnale utile
   conversationHistory: Array<{ role: string; content: string }>,
 ): Promise<SgiScoreResult> {
   try {
-    // Tronca il messaggio a 600 caratteri per ridurre l'input al minimo
     const msgTruncated = userMessage.slice(0, 600);
     const context = conversationHistory
-      .slice(-2)  // solo ultimi 2 messaggi di contesto
+      .slice(-4)
       .map(m => `${m.role}: ${m.content.slice(0, 200)}`)
       .join("\n");
 
@@ -44,8 +64,8 @@ export async function scoreMessage(
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      max_tokens: 300,
-      temperature: 0,           // deterministico: stessa frase → stesso score sempre
+      max_tokens: 320,
+      temperature: 0,
       response_format: { type: "json_object" },
       messages: [{ role: "user", content: prompt }],
     });
@@ -54,25 +74,28 @@ export async function scoreMessage(
     const parsed = JSON.parse(content.replace(/```json|```/g, "").trim());
 
     const dimensions: SgiDimensions = {
-      conceptualComplexity:  clamp(parsed.conceptualComplexity  ?? 5, 0, 10),
-      semanticVariety:       clamp(parsed.semanticVariety       ?? 5, 0, 10),
-      interdisciplinaryScore:clamp(parsed.interdisciplinaryScore?? 5, 0, 10),
-      reasoningDepth:        clamp(parsed.reasoningDepth        ?? 5, 0, 10),
-      originality:           clamp(parsed.originality           ?? 5, 0, 10),
-      stability:             clamp(parsed.stability             ?? 5, 0, 10),
-      continuity:            clamp(parsed.continuity            ?? 5, 0, 10),
-      abstractionLevel:      clamp(parsed.abstractionLevel      ?? 5, 0, 10),
-      lexicalRichness:       clamp(parsed.lexicalRichness       ?? 5, 0, 10),
-      informationDensity:    clamp(parsed.informationDensity    ?? 5, 0, 10),
+      conceptualComplexity:   clamp(parsed.conceptualComplexity   ?? 5, 0, 10),
+      semanticVariety:        clamp(parsed.semanticVariety        ?? 5, 0, 10),
+      interdisciplinaryScore: clamp(parsed.interdisciplinaryScore ?? 5, 0, 10),
+      reasoningDepth:         clamp(parsed.reasoningDepth         ?? 5, 0, 10),
+      originality:            clamp(parsed.originality            ?? 5, 0, 10),
+      stability:              clamp(parsed.stability              ?? 5, 0, 10),
+      continuity:             clamp(parsed.continuity             ?? 5, 0, 10),
+      abstractionLevel:       clamp(parsed.abstractionLevel       ?? 5, 0, 10),
+      lexicalRichness:        clamp(parsed.lexicalRichness        ?? 5, 0, 10),
+      informationDensity:     clamp(parsed.informationDensity     ?? 5, 0, 10),
+      revisionSignal:         clamp(parsed.revisionSignal         ?? 0, 0, 10),
     };
 
     const domains: string[] = Array.isArray(parsed.domains) ? parsed.domains.slice(0, 3) : [];
+    const macroDimensions = computeMacroDimensions(dimensions);
     const rawScore = computeRawScore(dimensions);
-    return { dimensions, domains, rawScore };
+    return { dimensions, macroDimensions, domains, rawScore };
   } catch (err) {
     console.error("[sgiScoring] failed, using fallback:", err);
     const fallback = defaultDimensions();
-    return { dimensions: fallback, domains: [], rawScore: computeRawScore(fallback) };
+    const macroDimensions = computeMacroDimensions(fallback);
+    return { dimensions: fallback, macroDimensions, domains: [], rawScore: computeRawScore(fallback) };
   }
 }
 
@@ -81,6 +104,7 @@ function defaultDimensions(): SgiDimensions {
     conceptualComplexity: 3, semanticVariety: 3, interdisciplinaryScore: 2,
     reasoningDepth: 3, originality: 3, stability: 5, continuity: 5,
     abstractionLevel: 3, lexicalRichness: 3, informationDensity: 3,
+    revisionSignal: 0,
   };
 }
 
@@ -88,11 +112,41 @@ function clamp(val: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, val));
 }
 
+/**
+ * 4 macro-dimensions visible to the user — transparent, not opaque.
+ *
+ * profondita  = depth of reasoning (conceptualComplexity + reasoningDepth + abstractionLevel)
+ * connettivita = cross-domain bridges (interdisciplinaryScore + semanticVariety)
+ * precisione  = quality of expression (informationDensity + lexicalRichness) — low weight since gameable
+ * revisione   = honest growth signal: does the user update their thinking? (revisionSignal)
+ */
+export function computeMacroDimensions(d: SgiDimensions): MacroDimensions {
+  const profondita   = (d.conceptualComplexity + d.reasoningDepth + d.abstractionLevel) / 3;
+  const connettivita = (d.interdisciplinaryScore + d.semanticVariety) / 2;
+  const precisione   = (d.informationDensity + d.lexicalRichness) / 2;
+  const revisione    = d.revisionSignal;
+  return {
+    profondita:   Math.round(profondita   * 10) / 10,
+    connettivita: Math.round(connettivita * 10) / 10,
+    precisione:   Math.round(precisione   * 10) / 10,
+    revisione:    Math.round(revisione    * 10) / 10,
+  };
+}
+
 export function computeRawScore(dims: SgiDimensions): number {
+  // Revised weights — revision gets 20% (honest growth signal), lexical low (gameable)
   const weights = {
-    conceptualComplexity: 0.15, semanticVariety: 0.12, interdisciplinaryScore: 0.13,
-    reasoningDepth: 0.15, originality: 0.12, stability: 0.08, continuity: 0.08,
-    abstractionLevel: 0.09, lexicalRichness: 0.04, informationDensity: 0.04,
+    reasoningDepth:         0.15,
+    conceptualComplexity:   0.12,
+    abstractionLevel:       0.08,
+    interdisciplinaryScore: 0.17,
+    semanticVariety:        0.13,
+    revisionSignal:         0.20,
+    informationDensity:     0.07,
+    lexicalRichness:        0.03,
+    originality:            0.03,
+    stability:              0.01,
+    continuity:             0.01,
   };
   let sum = 0;
   for (const [key, weight] of Object.entries(weights)) {
@@ -112,6 +166,7 @@ export const BADGE_DEFINITIONS: Record<string, { name: string; description: stri
   cross_domain_architect:  { name: "Cross-Domain Architect",  description: "Connected 5 distinct domains in one conversation" },
   abstract_reasoner:       { name: "Abstract Reasoner",       description: "Achieved abstraction level above 8.0" },
   high_growth_user:        { name: "High Growth User",        description: "Gained 10+ SGI points in 7 days" },
+  mind_changer:            { name: "Mind Changer",            description: "Revised your position with a revisionSignal above 7.0" },
 };
 
 export function computeLevel(xp: number): number { return Math.floor(Math.sqrt(xp / 100)) + 1; }

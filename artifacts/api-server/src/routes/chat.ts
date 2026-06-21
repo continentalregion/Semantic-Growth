@@ -5,7 +5,7 @@ import { users, conversations, messages, sgiSnapshots, gamification, semanticDom
 import { eq, desc, and, sql, gte, ilike } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
-import { scoreMessage, computeNewSgiScore } from "../lib/sgiScoring";
+import { scoreMessage, computeNewSgiScore, computeMacroDimensions } from "../lib/sgiScoring";
 import { updateLeaderboardRank, checkAndAwardBadges } from "./users";
 import { updateMissionProgress } from "./gamification";
 import {
@@ -370,6 +370,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       originality: scoreResult.dimensions.originality,
       stability: scoreResult.dimensions.stability,
       continuity: scoreResult.dimensions.continuity,
+      revisionSignal: scoreResult.dimensions.revisionSignal,
     });
 
     const totalConvos = await db.select({ count: sql<number>`count(*)` }).from(conversations).where(eq(conversations.userId, user.id));
@@ -461,6 +462,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       done: true,
       sgiDelta,
       newSgi: Math.round(newSgi * 10) / 10,
+      macroDimensions: scoreResult.macroDimensions,
       tokensUsed,
       costCents,
       usage: { used: newUsed, limit, remaining: remainingAfter, plan: user.plan },

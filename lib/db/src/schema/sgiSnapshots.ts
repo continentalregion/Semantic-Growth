@@ -14,6 +14,7 @@ export const sgiSnapshots = pgTable("sgi_snapshots", {
   originality: real("originality").notNull().default(0),
   stability: real("stability").notNull().default(0),
   continuity: real("continuity").notNull().default(0),
+  revisionSignal: real("revision_signal").notNull().default(0),
   timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -5,6 +5,21 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { ArrowUpRight, ArrowDownRight, Activity, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+interface MacroDim {
+  key: "profondita" | "connettivita" | "precisione" | "revisione";
+  labelKey: string;
+  descKey: string;
+  color: string;
+  icon: string;
+}
+
+const MACRO_DIMS: MacroDim[] = [
+  { key: "profondita",   labelKey: "dashboard.dimProfondita",   descKey: "dashboard.dimProfonditaDesc",   color: "#7c6bff", icon: "🧠" },
+  { key: "connettivita", labelKey: "dashboard.dimConnettivita", descKey: "dashboard.dimConnettivitaDesc", color: "#06b6d4", icon: "🔗" },
+  { key: "precisione",   labelKey: "dashboard.dimPrecisione",   descKey: "dashboard.dimPrecizioneDesc",   color: "#a855f7", icon: "🎯" },
+  { key: "revisione",    labelKey: "dashboard.dimRevisione",    descKey: "dashboard.dimRevisioneDesc",    color: "#10b981", icon: "🔄" },
+];
+
 export default function Dashboard() {
   const { t } = useTranslation();
   const { data: profile, isLoading: profileLoading } = useGetMyProfile();
@@ -24,6 +39,7 @@ export default function Dashboard() {
   }
 
   const sgi = profile?.sgiScore ?? 0;
+  const macro = (profile as any)?.macroDimensions as { profondita: number; connettivita: number; precisione: number; revisione: number } | undefined;
   const dailyDelta = profile?.sgiDailyDelta ?? 0;
   const weeklyDelta = profile?.sgiWeeklyDelta ?? 0;
   const monthlyDelta = profile?.sgiMonthlyDelta ?? 0;
@@ -138,6 +154,46 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ── Breakdown SGI ─────────────────────────────────────────── */}
+      <Card className="border-border bg-card/50 backdrop-blur">
+        <CardHeader>
+          <CardTitle>{t("dashboard.breakdown")}</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">{t("dashboard.breakdownSub")}</p>
+        </CardHeader>
+        <CardContent>
+          {!macro || (macro.profondita === 0 && macro.connettivita === 0 && macro.precisione === 0 && macro.revisione === 0) ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">{t("dashboard.noBreakdown")}</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {MACRO_DIMS.map(dim => {
+                const val: number = macro?.[dim.key] ?? 0;
+                const pct = Math.round((val / 10) * 100);
+                return (
+                  <div key={dim.key}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg leading-none">{dim.icon}</span>
+                        <span className="text-sm font-semibold" style={{ color: "#eeeeff" }}>{t(dim.labelKey)}</span>
+                      </div>
+                      <span className="font-mono text-sm font-bold" style={{ color: dim.color }}>{val.toFixed(1)}<span className="text-[10px] text-muted-foreground">/10</span></span>
+                    </div>
+                    {/* bar */}
+                    <div className="h-2 w-full rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${pct}%`, background: dim.color, opacity: 0.85 }}
+                      />
+                    </div>
+                    <p className="text-[11px] mt-1.5 leading-snug" style={{ color: "#7070a0" }}>{t(dim.descKey)}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Trajectory ────────────────────────────────────────────── */}
       <Card className="border-border bg-card/50 backdrop-blur">
         <CardHeader>
           <div className="flex justify-between items-start">

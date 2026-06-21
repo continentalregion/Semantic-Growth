@@ -4,7 +4,7 @@ import { db } from "@workspace/db";
 import { users, sgiSnapshots, leaderboardEntries, gamification, badges, missions, recommendations, semanticDomains } from "@workspace/db";
 import { eq, desc, gte, and, asc, sql } from "drizzle-orm";
 import { SyncUserBody } from "@workspace/api-zod";
-import { computeLevel, xpToNextLevel as xpToNext, levelProgress as lvlProgress, BADGE_DEFINITIONS } from "../lib/sgiScoring";
+import { computeLevel, xpToNextLevel as xpToNext, levelProgress as lvlProgress, BADGE_DEFINITIONS, computeMacroDimensions } from "../lib/sgiScoring";
 
 const router = Router();
 
@@ -287,6 +287,24 @@ async function buildUserProfile(userId: number) {
     rankChange30d = oldRank - rank;
   }
 
+  // Latest snapshot → macro-dimensions breakdown for dashboard
+  const latestSnap = snapshots[0];
+  const macroDimensions = latestSnap
+    ? computeMacroDimensions({
+        conceptualComplexity:   latestSnap.conceptualComplexity,
+        semanticVariety:        latestSnap.semanticVariety,
+        interdisciplinaryScore: latestSnap.interdisciplinaryScore,
+        reasoningDepth:         latestSnap.reasoningDepth,
+        originality:            latestSnap.originality,
+        stability:              latestSnap.stability,
+        continuity:             latestSnap.continuity,
+        abstractionLevel:       0,
+        lexicalRichness:        0,
+        informationDensity:     0,
+        revisionSignal:         (latestSnap as any).revisionSignal ?? 0,
+      })
+    : { profondita: 0, connettivita: 0, precisione: 0, revisione: 0 };
+
   return {
     id: user.id,
     clerkId: user.clerkId,
@@ -300,6 +318,7 @@ async function buildUserProfile(userId: number) {
     totalUsers,
     percentile,
     rankChange30d,
+    macroDimensions,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };
