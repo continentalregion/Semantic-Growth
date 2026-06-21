@@ -69,6 +69,14 @@ export default function Chat() {
     staleTime: 30_000,
   });
 
+  // Auto-reset limitBlocked when server confirms the user still has messages remaining
+  // (e.g. after plan upgrade or monthly reset)
+  useEffect(() => {
+    if (usageData && usageData.remaining > 0 && limitBlocked) {
+      setLimitBlocked(false);
+    }
+  }, [usageData, limitBlocked]);
+
   const { data: conversations, isLoading: convosLoading } = useListOpenaiConversations();
   const { data: activeConvo, isLoading: convoLoading } = useGetOpenaiConversation(activeConvoId!, {
     query: { enabled: !!activeConvoId, queryKey: getGetOpenaiConversationQueryKey(activeConvoId!) }
