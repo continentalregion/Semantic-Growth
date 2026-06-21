@@ -296,9 +296,27 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
 
     try {
       if (isClaudeModel(chosenModel)) {
-        const claudeMessages = openaiMessages
-          .filter(m => m.role !== "system")
+        // Sanitize for Anthropic: no empty content, must alternate roles, must end with user
+        const rawClaude = openaiMessages
+          .filter(m => m.role !== "system" && m.content.trim().length > 0)
           .map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
+
+        // Merge consecutive same-role messages (keep last wins for assistant, concat for user)
+        const deduped: Array<{ role: "user" | "assistant"; content: string }> = [];
+        for (const msg of rawClaude) {
+          if (deduped.length > 0 && deduped[deduped.length - 1]!.role === msg.role) {
+            deduped[deduped.length - 1]!.content += "\n\n" + msg.content;
+          } else {
+            deduped.push({ ...msg });
+          }
+        }
+
+        // Must end with a user message — drop trailing assistant messages
+        while (deduped.length > 0 && deduped[deduped.length - 1]!.role === "assistant") {
+          deduped.pop();
+        }
+
+        const claudeMessages = deduped.length > 0 ? deduped : [{ role: "user" as const, content: userContent }];
 
         // ── FASE 3: prompt caching sul system prompt (fisso, -90% input token) ──
         const stream = anthropic.messages.stream({
