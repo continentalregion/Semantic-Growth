@@ -190,6 +190,11 @@ export default function ThreadsPage() {
                           {cat.icon}
                           {cat.label}
                         </span>
+                        {thread.createdByUsername?.startsWith("🤖") && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "rgba(247,37,133,0.1)", color: "#f72585", border: "1px solid rgba(247,37,133,0.2)" }}>
+                            🤖 estratto da chat
+                          </span>
+                        )}
                         {thread.knowledgeBaseSize > 0 && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(6,214,160,0.1)", color: "#06d6a0" }}>
                             {thread.knowledgeBaseSize} connessioni

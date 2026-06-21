@@ -1,8 +1,8 @@
 import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { users, conversations, messages, sgiSnapshots, gamification, semanticDomains, blockedAttempts } from "@workspace/db";
-import { eq, desc, and, sql, gte } from "drizzle-orm";
+import { users, conversations, messages, sgiSnapshots, gamification, semanticDomains, blockedAttempts, threads } from "@workspace/db";
+import { eq, desc, and, sql, gte, ilike } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { scoreMessage, computeNewSgiScore } from "../lib/sgiScoring";
@@ -467,6 +467,14 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       ...(newTitle ? { title: newTitle } : {}),
     })}\n\n`);
     res.end();
+
+    // Fire-and-forget: auto-generate thread from conversation (every 4 messages, min 6)
+    const userMsgCount = history.filter(m => m.role === "user").length;
+    if (userMsgCount >= 3 && userMsgCount % 4 === 3) {
+      maybeCreateThreadFromConversation(history, user.clerkId, user.email ?? "system").catch(e =>
+        console.error("[auto-thread] background error:", e)
+      );
+    }
   } catch (err) {
     console.error(err);
     if (!res.headersSent) {
@@ -477,5 +485,80 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     }
   }
 });
+
+// ── Auto-thread generation ────────────────────────────────────────────────────
+// Runs fire-and-forget after every 4th user message (min 3 exchanges).
+// Asks the AI if the conversation contains a specific unresolved question
+// worthy of becoming a public Open Thread. Creates it only if unique.
+
+const THREAD_EXTRACT_PROMPT = (msgs: Array<{ role: string; content: string }>) => `
+Analyze this conversation and decide if it contains a specific, deep, unresolved intellectual question
+worthy of becoming a public "Open Thread" — a question that two expert users could debate productively
+for 4 minutes and build real knowledge about.
+
+STRICT CRITERIA (all must be met):
+1. The question must be SPECIFIC (not "what is consciousness?" but "does quantum decoherence eliminate the hard problem of consciousness?")
+2. It must be genuinely UNRESOLVED — not something with a known textbook answer
+3. It must be INTELLECTUALLY MEATY — from science, philosophy, ethics, technology, medicine, or mathematics
+4. It should emerge NATURALLY from the conversation, not be forced
+
+CONVERSATION:
+${msgs.map(m => `[${m.role.toUpperCase()}]: ${m.content.slice(0, 400)}`).join("\n\n")}
+
+If worthy, respond with JSON (no markdown):
+{"worthy": true, "question": "<specific question, max 160 chars>", "description": "<1-2 sentence context>", "category": "<philosophy|science|ethics|technology|society|knowledge|consciousness>"}
+
+If NOT worthy (vague, already answered, off-topic), respond with:
+{"worthy": false}
+`.trim();
+
+async function maybeCreateThreadFromConversation(
+  history: Array<{ role: string; content: string }>,
+  clerkId: string,
+  email: string,
+) {
+  try {
+    const resp = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: THREAD_EXTRACT_PROMPT(history) }],
+      response_format: { type: "json_object" },
+      max_tokens: 200,
+    });
+
+    const raw = resp.choices[0]?.message?.content ?? "{}";
+    const parsed = JSON.parse(raw);
+
+    if (!parsed.worthy || !parsed.question) return;
+
+    const question: string = parsed.question.trim().slice(0, 160);
+    const description: string = (parsed.description ?? "").trim().slice(0, 300);
+    const category: string = parsed.category ?? "science";
+
+    // Deduplication: skip if a very similar thread exists (first 40 chars match)
+    const snippet = question.slice(0, 40);
+    const existing = await db.select({ id: threads.id })
+      .from(threads)
+      .where(ilike(threads.question, `%${snippet}%`))
+      .limit(1);
+
+    if (existing.length > 0) {
+      console.info("[auto-thread] skipped duplicate:", snippet);
+      return;
+    }
+
+    const username = email.split("@")[0] ?? "user";
+    await db.insert(threads).values({
+      question,
+      description: description || null,
+      category,
+      createdBy: clerkId,
+      createdByUsername: `🤖 auto (${username})`,
+    });
+
+    console.info("[auto-thread] created:", question.slice(0, 80));
+  } catch (err) {
+    console.error("[auto-thread] error:", err);
+  }
+}
 
 export default router;
