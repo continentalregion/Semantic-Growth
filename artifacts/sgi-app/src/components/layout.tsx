@@ -7,7 +7,7 @@ import { loadLanguage, clearLangCache } from "../i18n";
 import {
   Activity, MessageSquare, Trophy, Network, User,
   LineChart, Lightbulb, Settings, LogOut, Zap, Gamepad2,
-  Languages, Loader2, RefreshCw, ChevronDown, Swords,
+  Languages, Loader2, RefreshCw, ChevronDown, Swords, Flame,
 } from "lucide-react";
 
 // Known language flags
@@ -250,6 +250,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         { href: "/dashboard", label: t("nav.dashboard"), icon: Activity },
         { href: "/chat", label: t("nav.chat"), icon: MessageSquare },
         { href: "/threads", label: "Thread Aperti", icon: Swords, badge: "NEW" },
+        { href: "/battles", label: "Feed Battaglie", icon: Flame, badge: "LIVE" },
       ],
     },
     {

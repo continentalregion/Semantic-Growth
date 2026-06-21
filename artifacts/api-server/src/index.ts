@@ -3,6 +3,7 @@ import { logger } from "./lib/logger";
 import { db } from "@workspace/db";
 import { users } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { seedDemoData } from "./lib/demoSeed";
 
 const rawPort = process.env["PORT"];
 
@@ -46,4 +47,5 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
   seedAdminPlans();
+  seedDemoData();
 });

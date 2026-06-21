@@ -55,6 +55,58 @@ Respond ONLY with valid JSON array (no markdown):
 [{"concept1": "...", "concept2": "...", "description": "one sentence explaining the link", "strength": <1-5>}]
 `.trim();
 
+// ─── GET /battles/public — public feed of completed battle cards ─────────────
+router.get("/battles/public", async (_req, res) => {
+  try {
+    const cards = await db.select().from(battleCards)
+      .orderBy(desc(battleCards.createdAt))
+      .limit(30);
+
+    if (cards.length === 0) { res.json([]); return; }
+
+    const results = await Promise.all(cards.map(async card => {
+      const [thread] = await db.select().from(threads).where(eq(threads.id, card.threadId)).limit(1);
+      const [s1] = await db.select().from(threadSessions).where(eq(threadSessions.id, card.session1Id)).limit(1);
+      const [s2] = await db.select().from(threadSessions).where(eq(threadSessions.id, card.session2Id)).limit(1);
+      if (!thread || !s1 || !s2) return null;
+      return {
+        id: card.id,
+        createdAt: card.createdAt,
+        thread: {
+          id: thread.id,
+          question: thread.question,
+          category: thread.category,
+        },
+        player1: {
+          username: s1.username ?? "Anonimo",
+          scoreTotal: s1.scoreTotal ?? 0,
+          scoreDensity: s1.scoreDensity ?? 0,
+          scoreConnections: s1.scoreConnections ?? 0,
+          scoreDepth: s1.scoreDepth ?? 0,
+          connections: (s1.connections as ThreadConnection[]) ?? [],
+          durationSeconds: s1.durationSeconds ?? 0,
+          isWinner: card.winnerSessionId === s1.id,
+        },
+        player2: {
+          username: s2.username ?? "Anonimo",
+          scoreTotal: s2.scoreTotal ?? 0,
+          scoreDensity: s2.scoreDensity ?? 0,
+          scoreConnections: s2.scoreConnections ?? 0,
+          scoreDepth: s2.scoreDepth ?? 0,
+          connections: (s2.connections as ThreadConnection[]) ?? [],
+          durationSeconds: s2.durationSeconds ?? 0,
+          isWinner: card.winnerSessionId === s2.id,
+        },
+      };
+    }));
+
+    res.json(results.filter(Boolean));
+  } catch (err) {
+    console.error("[battles/public] error", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ─── GET /threads — list all threads ────────────────────────────────────────
 router.get("/threads", async (req, res) => {
   try {
