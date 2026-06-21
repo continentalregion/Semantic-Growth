@@ -27,6 +27,7 @@ import ThreadDetailPage from "@/pages/thread-detail";
 import BattleSessionPage from "@/pages/battle-session";
 import BattleCardPage from "@/pages/battle-card";
 import BattlesPage from "@/pages/battles";
+import AdminPage from "@/pages/admin";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -391,6 +392,7 @@ function ClerkProviderWithRoutes() {
           <Route path="/threads/:id/battle/:sessionId" component={() => <ProtectedRoute component={BattleSessionPage} />} />
           <Route path="/threads/:id" component={() => <ProtectedRoute component={ThreadDetailPage} />} />
           <Route path="/battle-cards/:id" component={() => <ProtectedRoute component={BattleCardPage} />} />
+          <Route path="/admin" component={() => <ProtectedRoute component={AdminPage} />} />
           <Route component={NotFound} />
         </Switch>
       </QueryClientProvider>

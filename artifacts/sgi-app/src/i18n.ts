@@ -64,6 +64,9 @@ const IT = {
     modelLockedToast: "{{model}} richiede il piano {{plan}}. Vai su Impostazioni.",
     failedCreate: "Impossibile creare la conversazione",
     failedDelete: "Impossibile eliminare la conversazione",
+    streamError: "Risposta interrotta — il messaggio non è stato conteggiato. Riprova.",
+    usedFallback: "Il modello selezionato non era disponibile. Risposta generata con GPT-4o Mini.",
+    retryLastMsg: "Riprova",
   },
   leaderboard: {
     title: "Il tuo Rank",
@@ -281,6 +284,9 @@ const EN = {
     modelLockedToast: "{{model}} requires the {{plan}} plan. Go to Settings.",
     failedCreate: "Failed to create conversation",
     failedDelete: "Failed to delete conversation",
+    streamError: "Response interrupted — the message was not counted. Please retry.",
+    usedFallback: "Selected model was unavailable. Response generated with GPT-4o Mini.",
+    retryLastMsg: "Retry",
   },
   leaderboard: {
     title: "Your Rank",
@@ -497,6 +503,9 @@ const ES = {
     modelLockedToast: "{{model}} requiere el plan {{plan}}. Ve a Ajustes.",
     failedCreate: "No se pudo crear la conversación",
     failedDelete: "No se pudo eliminar la conversación",
+    streamError: "Respuesta interrumpida — el mensaje no fue contabilizado. Por favor, reintenta.",
+    usedFallback: "El modelo seleccionado no estaba disponible. Respuesta generada con GPT-4o Mini.",
+    retryLastMsg: "Reintentar",
   },
   leaderboard: {
     title: "Tu Ranking",

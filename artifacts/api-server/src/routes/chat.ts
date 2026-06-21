@@ -293,39 +293,35 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
 
     let fullContent = "";
     let tokensUsed = 0;
+    let streamError = false;
+    let usedFallback = false;
 
-    try {
-      if (isClaudeModel(chosenModel)) {
-        // Sanitize for Anthropic: no empty content, must alternate roles, must end with user
-        const rawClaude = openaiMessages
-          .filter(m => m.role !== "system" && m.content.trim().length > 0)
-          .map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
+    if (isClaudeModel(chosenModel)) {
+      // Sanitize for Anthropic: no empty content, must alternate roles, must end with user
+      const rawClaude = openaiMessages
+        .filter(m => m.role !== "system" && m.content.trim().length > 0)
+        .map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
 
-        // Merge consecutive same-role messages (keep last wins for assistant, concat for user)
-        const deduped: Array<{ role: "user" | "assistant"; content: string }> = [];
-        for (const msg of rawClaude) {
-          if (deduped.length > 0 && deduped[deduped.length - 1]!.role === msg.role) {
-            deduped[deduped.length - 1]!.content += "\n\n" + msg.content;
-          } else {
-            deduped.push({ ...msg });
-          }
+      const deduped: Array<{ role: "user" | "assistant"; content: string }> = [];
+      for (const msg of rawClaude) {
+        if (deduped.length > 0 && deduped[deduped.length - 1]!.role === msg.role) {
+          deduped[deduped.length - 1]!.content += "\n\n" + msg.content;
+        } else {
+          deduped.push({ ...msg });
         }
+      }
+      while (deduped.length > 0 && deduped[deduped.length - 1]!.role === "assistant") {
+        deduped.pop();
+      }
+      const claudeMessages = deduped.length > 0 ? deduped : [{ role: "user" as const, content: userContent }];
 
-        // Must end with a user message — drop trailing assistant messages
-        while (deduped.length > 0 && deduped[deduped.length - 1]!.role === "assistant") {
-          deduped.pop();
-        }
-
-        const claudeMessages = deduped.length > 0 ? deduped : [{ role: "user" as const, content: userContent }];
-
-        // ── FASE 3: prompt caching sul system prompt (fisso, -90% input token) ──
+      try {
         const stream = anthropic.messages.stream({
           model: chosenModel,
           max_tokens: 8192,
           system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
           messages: claudeMessages,
         });
-
         for await (const event of stream) {
           if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
             fullContent += event.delta.text;
@@ -334,14 +330,45 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
         }
         const finalMsg = await stream.finalMessage();
         tokensUsed = (finalMsg.usage?.input_tokens ?? 0) + (finalMsg.usage?.output_tokens ?? 0);
-      } else {
+      } catch (claudeErr) {
+        console.error("[claude] stream error:", claudeErr);
+        if (fullContent === "") {
+          // Zero content generated — silently fallback to gpt-4o-mini
+          try {
+            const fallbackStream = await openai.chat.completions.create({
+              model: "gpt-4o-mini",
+              messages: openaiMessages,
+              stream: true,
+              stream_options: { include_usage: true },
+            });
+            for await (const chunk of fallbackStream) {
+              const delta = chunk.choices[0]?.delta?.content ?? "";
+              if (delta) {
+                fullContent += delta;
+                res.write(`data: ${JSON.stringify({ content: delta })}\n\n`);
+              }
+              if (chunk.usage) {
+                tokensUsed = (chunk.usage.prompt_tokens ?? 0) + (chunk.usage.completion_tokens ?? 0);
+              }
+            }
+            usedFallback = true;
+          } catch (fallbackErr) {
+            console.error("[fallback] gpt-4o-mini also failed:", fallbackErr);
+            streamError = true;
+          }
+        } else {
+          // Partial content already streamed — can't retry
+          streamError = true;
+        }
+      }
+    } else {
+      try {
         const stream = await openai.chat.completions.create({
           model: chosenModel,
           messages: openaiMessages,
           stream: true,
           stream_options: { include_usage: true },
         });
-
         for await (const chunk of stream) {
           const delta = chunk.choices[0]?.delta?.content ?? "";
           if (delta) {
@@ -352,10 +379,17 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
             tokensUsed = (chunk.usage.prompt_tokens ?? 0) + (chunk.usage.completion_tokens ?? 0);
           }
         }
+      } catch (openaiErr) {
+        console.error("[openai] stream error:", openaiErr);
+        streamError = true;
       }
-    } catch (streamErr) {
-      console.error("Stream error:", streamErr);
-      res.write(`data: ${JSON.stringify({ content: "[Error generating response]" })}\n\n`);
+    }
+
+    // Complete failure — bail early, don't touch DB, don't count against monthly limit
+    if (streamError && fullContent === "") {
+      res.write(`data: ${JSON.stringify({ done: true, streamError: true })}\n\n`);
+      res.end();
+      return;
     }
 
     const costCents = calcCostCents(chosenModel, tokensUsed);
@@ -484,6 +518,8 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       tokensUsed,
       costCents,
       usage: { used: newUsed, limit, remaining: remainingAfter, plan: user.plan },
+      ...(streamError ? { streamError: true } : {}),
+      ...(usedFallback ? { usedFallback: true } : {}),
       ...(newTitle ? { title: newTitle } : {}),
     })}\n\n`);
     res.end();

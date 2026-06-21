@@ -50,6 +50,8 @@ export default function Chat() {
   const [lastDomains, setLastDomains] = useState<string[]>([]);
   const [limitBlocked, setLimitBlocked] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [streamErrored, setStreamErrored] = useState(false);
+  const lastInputRef = useRef<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: usageData, refetch: refetchUsage } = useQuery<{
@@ -126,12 +128,21 @@ export default function Chat() {
     });
   }, [deleteConvo, qc, activeConvoId]);
 
+  const handleRetry = useCallback(() => {
+    if (!lastInputRef.current) return;
+    setStreamErrored(false);
+    setInput(lastInputRef.current);
+    lastInputRef.current = "";
+  }, []);
+
   const handleSend = useCallback(async () => {
     if (!activeConvoId || !input.trim() || isStreaming) return;
     const content = input.trim();
+    lastInputRef.current = content;
     setInput("");
     setStreamingContent("");
     setIsStreaming(true);
+    setStreamErrored(false);
     setLastSgiDelta(null);
 
     try {
@@ -180,6 +191,12 @@ export default function Chat() {
               setStreamingContent(accumulated);
             }
             if (parsed.done) {
+              if (parsed.streamError) {
+                setStreamErrored(true);
+              }
+              if (parsed.usedFallback) {
+                toast.info(t("chat.usedFallback"));
+              }
               setLastSgiDelta(parsed.sgiDelta ?? null);
               setLastDomains(parsed.domains ?? []);
               if (parsed.sgiDelta > 0) {
@@ -206,7 +223,8 @@ export default function Chat() {
         }
       }
     } catch (err) {
-      toast.error("Failed to send message");
+      setStreamErrored(true);
+      toast.error(t("chat.streamError"));
     } finally {
       setIsStreaming(false);
       setStreamingContent("");
@@ -546,6 +564,32 @@ export default function Chat() {
                       </div>
                     </div>
                   )}
+                  {/* Stream error banner + retry */}
+                  {streamErrored && (
+                    <div
+                      className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl mx-1"
+                      style={{ background: "rgba(247,37,133,0.08)", border: "1px solid rgba(247,37,133,0.25)" }}
+                    >
+                      <div className="flex items-center gap-2 text-sm" style={{ color: "#f72585" }}>
+                        <span className="text-base">⚠</span>
+                        <span>{t("chat.streamError")}</span>
+                      </div>
+                      {lastInputRef.current && (
+                        <button
+                          onClick={handleRetry}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all hover:opacity-80"
+                          style={{
+                            background: "rgba(247,37,133,0.2)",
+                            border: "1px solid rgba(247,37,133,0.4)",
+                            color: "#f72585",
+                          }}
+                        >
+                          {t("chat.retryLastMsg")}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   <div ref={messagesEndRef} />
                 </>
               )}

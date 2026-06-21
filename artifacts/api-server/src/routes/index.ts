@@ -7,6 +7,7 @@ import recommendationsRouter from "./recommendations";
 import chatRouter from "./chat";
 import translateRouter from "./translate";
 import threadsRouter from "./threads";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(recommendationsRouter);
 router.use(chatRouter);
 router.use(translateRouter);
 router.use(threadsRouter);
+router.use(adminRouter);
 
 export default router;

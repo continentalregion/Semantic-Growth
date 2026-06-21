@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { useClerk } from "@clerk/react";
+import { useClerk, useUser } from "@clerk/react";
 import { useGetMyProfile } from "@workspace/api-client-react";
 import { useTranslation } from "react-i18next";
 import { useState, useRef, useEffect } from "react";
@@ -7,8 +7,10 @@ import { loadLanguage, clearLangCache } from "../i18n";
 import {
   Activity, MessageSquare, Trophy, Network, User,
   LineChart, Lightbulb, Settings, LogOut, Zap, Gamepad2,
-  Languages, Loader2, RefreshCw, ChevronDown, Swords, Flame,
+  Languages, Loader2, RefreshCw, ChevronDown, Swords, Flame, ShieldCheck,
 } from "lucide-react";
+
+const ADMIN_EMAILS = ["francescoullo1@gmail.com"];
 
 // Known language flags
 const LANG_META: Record<string, { flag: string; name: string }> = {
@@ -237,11 +239,14 @@ function LanguageSwitcher() {
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { signOut } = useClerk();
+  const { user } = useUser();
   const { data: profile } = useGetMyProfile();
   const { t } = useTranslation();
 
   const sgi = profile?.sgiScore ?? null;
   const isPremium = profile?.plan === "premium" || profile?.plan === "pro";
+  const userEmail = user?.primaryEmailAddress?.emailAddress ?? "";
+  const isAdmin = ADMIN_EMAILS.includes(userEmail.toLowerCase());
 
   const NAV_SECTIONS = [
     {
@@ -270,6 +275,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         { href: "/settings", label: t("nav.settings"), icon: Settings },
       ],
     },
+    ...(isAdmin ? [{
+      label: "Admin",
+      items: [
+        { href: "/admin", label: "Monitor", icon: ShieldCheck },
+      ],
+    }] : []),
   ];
 
   return (
