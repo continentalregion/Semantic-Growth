@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { MessageSquarePlus, Trash2, Send, Bot, User, TrendingUp, TrendingDown, Minus, Zap, ChevronDown, Lock } from "lucide-react";
+import MarkdownMessage from "@/components/MarkdownMessage";
 import { useTranslation } from "react-i18next";
 
 const MODELS = [
@@ -474,14 +475,14 @@ export default function Chat() {
                           )}
                           <div className="max-w-[76%]">
                             <div
-                              className="px-4 py-3 rounded-[14px] text-sm leading-[1.7] whitespace-pre-wrap"
+                              className="px-4 py-3 rounded-[14px] text-sm"
                               style={
                                 msg.role === "user"
-                                  ? { background: "linear-gradient(135deg, #7c6bff, #5b4de0)", color: "#fff" }
+                                  ? { background: "linear-gradient(135deg, #7c6bff, #5b4de0)", color: "#fff", lineHeight: "1.7" }
                                   : { background: "rgba(21,23,40,1)", border: "1px solid rgba(255,255,255,0.07)", color: "#eeeeff" }
                               }
                             >
-                              {msg.content}
+                              <MarkdownMessage content={msg.content} isUser={msg.role === "user"} />
                             </div>
                             {/* SGI update bubble on last AI message */}
                             {isLastAI && lastSgiDelta !== null && (
@@ -517,10 +518,11 @@ export default function Chat() {
                         <Bot className="w-4 h-4 text-white animate-pulse" />
                       </div>
                       <div
-                        className="max-w-[76%] px-4 py-3 rounded-[14px] text-sm leading-[1.7]"
+                        className="max-w-[76%] px-4 py-3 rounded-[14px] text-sm"
                         style={{ background: "rgba(21,23,40,1)", border: "1px solid rgba(255,255,255,0.07)", color: "#eeeeff" }}
                       >
-                        <p className="whitespace-pre-wrap">{streamingContent}<span className="animate-pulse ml-0.5">▍</span></p>
+                        <MarkdownMessage content={streamingContent} />
+                        <span className="animate-pulse ml-0.5" style={{ color: "#7c6bff" }}>▍</span>
                       </div>
                     </div>
                   )}

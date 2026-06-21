@@ -278,24 +278,78 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         style={{ background: "hsl(var(--sidebar))", borderColor: "rgba(255,255,255,0.07)" }}
       >
         {/* Logo */}
-        <div className="px-[18px] pt-[18px] pb-[22px]">
-          <div
-            className="font-display text-[15px] font-bold"
-            style={{
-              background: "linear-gradient(135deg, #7c6bff, #06d6a0)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
-            SGI
+        <div className="px-[18px] pt-[18px] pb-[20px]">
+          <div className="flex items-center gap-2.5">
+            {/* Icon mark */}
+            <div style={{ position: "relative", width: 32, height: 32, flexShrink: 0 }}>
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="sgi-grad-a" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#7c6bff"/>
+                    <stop offset="100%" stopColor="#06d6a0"/>
+                  </linearGradient>
+                  <linearGradient id="sgi-grad-b" x1="32" y1="0" x2="0" y2="32" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#f72585" stopOpacity="0.7"/>
+                    <stop offset="100%" stopColor="#7c6bff" stopOpacity="0.4"/>
+                  </linearGradient>
+                  <filter id="sgi-glow">
+                    <feGaussianBlur stdDeviation="1.2" result="blur"/>
+                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                </defs>
+                {/* Outer hex ring */}
+                <path
+                  d="M16 2L28 9V23L16 30L4 23V9Z"
+                  fill="none"
+                  stroke="url(#sgi-grad-a)"
+                  strokeWidth="1.2"
+                  strokeOpacity="0.55"
+                />
+                {/* Inner nodes — neural net style */}
+                <circle cx="16" cy="16" r="3" fill="url(#sgi-grad-a)" filter="url(#sgi-glow)"/>
+                <circle cx="10" cy="11" r="1.8" fill="#7c6bff" fillOpacity="0.8"/>
+                <circle cx="22" cy="11" r="1.8" fill="#06d6a0" fillOpacity="0.8"/>
+                <circle cx="10" cy="21" r="1.8" fill="#a89fff" fillOpacity="0.7"/>
+                <circle cx="22" cy="21" r="1.8" fill="#06d6a0" fillOpacity="0.6"/>
+                {/* Connections */}
+                <line x1="10" y1="11" x2="16" y2="16" stroke="url(#sgi-grad-a)" strokeWidth="0.9" strokeOpacity="0.5"/>
+                <line x1="22" y1="11" x2="16" y2="16" stroke="url(#sgi-grad-a)" strokeWidth="0.9" strokeOpacity="0.5"/>
+                <line x1="10" y1="21" x2="16" y2="16" stroke="url(#sgi-grad-a)" strokeWidth="0.9" strokeOpacity="0.5"/>
+                <line x1="22" y1="21" x2="16" y2="16" stroke="url(#sgi-grad-a)" strokeWidth="0.9" strokeOpacity="0.5"/>
+                <line x1="10" y1="11" x2="22" y2="11" stroke="#7c6bff" strokeWidth="0.7" strokeOpacity="0.3"/>
+                <line x1="10" y1="21" x2="22" y2="21" stroke="#06d6a0" strokeWidth="0.7" strokeOpacity="0.3"/>
+                {/* Rising arc — growth indicator */}
+                <path
+                  d="M9 22 Q13 14 22 10"
+                  fill="none"
+                  stroke="url(#sgi-grad-b)"
+                  strokeWidth="1.1"
+                  strokeOpacity="0.55"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+            {/* Text */}
+            <div>
+              <div
+                className="font-display text-[15px] font-bold leading-none"
+                style={{
+                  background: "linear-gradient(135deg, #a89fff, #06d6a0)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
+                SGI
+              </div>
+              <span
+                className="text-[8.5px] font-normal tracking-[0.7px] uppercase block mt-[3px]"
+                style={{ color: "rgba(144,144,184,0.5)" }}
+              >
+                Semantic Growth
+              </span>
+            </div>
           </div>
-          <span
-            className="text-[9px] font-normal tracking-[0.6px] uppercase block mt-0.5"
-            style={{ color: "rgba(144,144,184,0.6)" }}
-          >
-            Semantic Growth Index
-          </span>
         </div>
 
         {/* Nav */}
