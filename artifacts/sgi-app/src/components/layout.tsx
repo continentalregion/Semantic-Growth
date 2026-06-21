@@ -7,7 +7,7 @@ import { loadLanguage, clearLangCache } from "../i18n";
 import {
   Activity, MessageSquare, Trophy, Network, User,
   LineChart, Lightbulb, Settings, LogOut, Zap, Gamepad2,
-  Languages, Loader2, RefreshCw, ChevronDown,
+  Languages, Loader2, RefreshCw, ChevronDown, Swords,
 } from "lucide-react";
 
 // Known language flags
@@ -249,6 +249,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       items: [
         { href: "/dashboard", label: t("nav.dashboard"), icon: Activity },
         { href: "/chat", label: t("nav.chat"), icon: MessageSquare },
+        { href: "/threads", label: "Thread Aperti", icon: Swords, badge: "NEW" },
       ],
     },
     {
@@ -394,7 +395,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       className="flex-shrink-0"
                       style={{ width: 15, height: 15, opacity: active ? 1 : 0.7 }}
                     />
-                    {item.label}
+                    <span className="flex-1">{item.label}</span>
+                    {"badge" in item && item.badge && (
+                      <span
+                        className="text-[8px] font-bold px-1.5 py-0.5 rounded-full"
+                        style={{ background: "rgba(247,37,133,0.2)", color: "#f72585", border: "1px solid rgba(247,37,133,0.3)" }}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

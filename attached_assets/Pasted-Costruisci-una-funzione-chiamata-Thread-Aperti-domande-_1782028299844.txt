@@ -1,0 +1,13 @@
+Costruisci una funzione chiamata "Thread Aperti": domande intellettuali irrisolte, condivise globalmente, dove due utenti si sfidano in modo asincrono attraverso una conversazione con un'AI.
+
+Natura della conversazione: La chat è una conversazione standard e fluida tra utente e AI: non un interrogatorio, ma un'elucubrazione condivisa a due voci. Entrambe le parti ragionano ad alta voce e costruiscono il pensiero insieme. L'obiettivo della sessione è attraversare il maggior numero possibile di concetti e dinamiche legate all'argomento, collegandoli tra loro in modo logicamente coerente entro il tempo limite. L'AI partecipa attivamente al ragionamento: propone collegamenti, apre direzioni, rilancia, ma lascia spazio all'utente per guidare e contribuire.
+
+Meccaniche:
+
+Ogni Thread Aperto contiene una domanda senza risposta definitiva (filosofica, scientifica, etica, ecc.) che non si chiude mai, ma accumula contributi nel tempo.
+Un utente apre uno "Slot Battaglia": ottiene una sessione di 4 minuti cronometrati di conversazione con l'AI su quel thread.
+Durante la sessione l'AI assegna un punteggio in tempo reale chiamato SGI, basato su tre criteri: densità concettuale (quanti concetti pertinenti vengono toccati), qualità delle connessioni logiche (quanto i concetti sono collegati tra loro in modo coerente e non superficiale), e profondità del ragionamento (originalità e rigore dei collegamenti). Il criterio di punteggio deve essere esplicito e mostrato all'utente alla fine.
+Al termine, le connessioni concettuali più valide emerse durante lo scambio vengono estratte e aggiunte alla knowledge base del thread, così l'AI diventa più competente su quell'argomento per i giocatori futuri.
+Quando un secondo utente completa il suo slot di 4 minuti sullo stesso thread, il sistema crea una Card Battaglia: punteggi SGI affiancati, una sintesi delle connessioni chiave di ciascun giocatore, e il vincitore dichiarato.
+La Card Battaglia è condivisibile sui social tramite un'immagine generata automaticamente (domanda del thread, i due username, i punteggi SGI, il badge del vincitore, le connessioni chiave di entrambi).
+Requisiti tecnici: autenticazione utenti; stato persistente dei thread (ogni thread salva le connessioni accumulate); timer di sessione per utente (4 minuti); funzione di scoring dell'AI con criterio salvato e mostrabile; generazione dell'immagine Card Battaglia; endpoint per la condivisione social (meta tag Open Graph).

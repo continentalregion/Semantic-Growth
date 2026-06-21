@@ -9,3 +9,4 @@ export * from "./missions";
 export * from "./recommendations";
 export * from "./semanticDomains";
 export * from "./blockedAttempts";
+export * from "./threads";

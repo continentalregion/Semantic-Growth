@@ -22,6 +22,10 @@ import Recommendations from "@/pages/recommendations";
 import Gamification from "@/pages/gamification";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
+import ThreadsPage from "@/pages/threads";
+import ThreadDetailPage from "@/pages/thread-detail";
+import BattleSessionPage from "@/pages/battle-session";
+import BattleCardPage from "@/pages/battle-card";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -381,6 +385,10 @@ function ClerkProviderWithRoutes() {
           <Route path="/recommendations" component={() => <ProtectedRoute component={Recommendations} />} />
           <Route path="/gamification" component={() => <ProtectedRoute component={Gamification} />} />
           <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
+          <Route path="/threads" component={() => <ProtectedRoute component={ThreadsPage} />} />
+          <Route path="/threads/:id/battle/:sessionId" component={() => <ProtectedRoute component={BattleSessionPage} />} />
+          <Route path="/threads/:id" component={() => <ProtectedRoute component={ThreadDetailPage} />} />
+          <Route path="/battle-cards/:id" component={() => <ProtectedRoute component={BattleCardPage} />} />
           <Route component={NotFound} />
         </Switch>
       </QueryClientProvider>

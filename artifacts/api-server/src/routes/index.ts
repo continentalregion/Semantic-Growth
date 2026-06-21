@@ -6,6 +6,7 @@ import gamificationRouter from "./gamification";
 import recommendationsRouter from "./recommendations";
 import chatRouter from "./chat";
 import translateRouter from "./translate";
+import threadsRouter from "./threads";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(gamificationRouter);
 router.use(recommendationsRouter);
 router.use(chatRouter);
 router.use(translateRouter);
+router.use(threadsRouter);
 
 export default router;
