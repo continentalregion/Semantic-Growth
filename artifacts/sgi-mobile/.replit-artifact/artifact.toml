@@ -1,0 +1,26 @@
+kind = "mobile"
+previewPath = "/sgi-mobile/"
+title = "SGI Mobile"
+version = "1.0.0"
+id = "artifacts/sgi-mobile"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+name = "expo"
+paths = [ "/sgi-mobile/" ]
+localPort = 18175
+
+[services.development]
+run = "pnpm --filter @workspace/sgi-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/sgi-mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/sgi-mobile", "run", "serve" ]
+
+[services.env]
+PORT = "18175"
+BASE_PATH = "/sgi-mobile/"
