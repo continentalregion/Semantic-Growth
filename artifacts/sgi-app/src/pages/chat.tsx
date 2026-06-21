@@ -48,7 +48,6 @@ export default function Chat() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [lastSgiDelta, setLastSgiDelta] = useState<number | null>(null);
   const [lastDomains, setLastDomains] = useState<string[]>([]);
-  const [limitBlocked, setLimitBlocked] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [streamErrored, setStreamErrored] = useState(false);
   const lastInputRef = useRef<string>("");
@@ -66,16 +65,13 @@ export default function Chat() {
       if (!r.ok) throw new Error("Failed to fetch usage");
       return r.json();
     },
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchInterval: 60_000,
   });
 
-  // Auto-reset limitBlocked when server confirms the user still has messages remaining
-  // (e.g. after plan upgrade or monthly reset)
-  useEffect(() => {
-    if (usageData && usageData.remaining > 0 && limitBlocked) {
-      setLimitBlocked(false);
-    }
-  }, [usageData, limitBlocked]);
+  // limitBlocked is DERIVED from server data — never stale local state.
+  // If the server says remaining > 0, the chat is always unlocked.
+  const limitBlocked = usageData != null && usageData.remaining <= 0;
 
   const { data: conversations, isLoading: convosLoading } = useListOpenaiConversations();
   const { data: activeConvo, isLoading: convoLoading } = useGetOpenaiConversation(activeConvoId!, {
@@ -166,7 +162,14 @@ export default function Chat() {
 
       if (response.status === 429) {
         const err = await response.json().catch(() => ({}));
-        setLimitBlocked(true);
+        // Update cache so limitBlocked (derived) becomes true immediately
+        qc.setQueryData(["openai-usage"], (old: { used: number; limit: number; remaining: number; plan: string; totalCostCents: number } | undefined) => ({
+          used: err.used ?? old?.used ?? 0,
+          limit: err.limit ?? old?.limit ?? 0,
+          remaining: 0,
+          plan: err.plan ?? old?.plan ?? "free",
+          totalCostCents: old?.totalCostCents ?? 0,
+        }));
         const nextPlan = (err.plan === "premium") ? "Pro (€19.99)" : "Premium (€9.99)";
         toast.error(`${t("chat.limitReached")} (${err.used ?? "?"}/${err.limit ?? "?"} msg). → ${nextPlan}.`);
         setIsStreaming(false);
@@ -212,7 +215,6 @@ export default function Chat() {
               }
               if (parsed.usage) {
                 qc.setQueryData(["openai-usage"], parsed.usage);
-                if (parsed.usage.remaining === 0) setLimitBlocked(true);
               }
               if (parsed.title && activeConvoId) {
                 qc.setQueryData(getListOpenaiConversationsQueryKey(), (old: unknown) => {
