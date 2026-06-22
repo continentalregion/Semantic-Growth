@@ -227,31 +227,6 @@ async function downloadFile(url, outputPath) {
   }
 }
 
-async function downloadBundle(platform, timestamp) {
-  const entryPath = path.resolve(projectRoot, "node_modules", "expo-router", "entry");
-  const bundlePath = path.relative(projectRoot, entryPath);
-  const url = new URL(`http://localhost:8081/${bundlePath}.bundle`);
-  url.searchParams.set("platform", platform);
-  url.searchParams.set("dev", "false");
-  url.searchParams.set("hot", "false");
-  url.searchParams.set("lazy", "false");
-  url.searchParams.set("minify", "true");
-
-  const output = path.join(
-    "static-build",
-    timestamp,
-    "_expo",
-    "static",
-    "js",
-    platform,
-    "bundle.js",
-  );
-
-  console.log(`Fetching ${platform} bundle...`);
-  await downloadFile(url.toString(), output);
-  console.log(`${platform} bundle ready`);
-}
-
 async function downloadManifest(platform) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 300_000);
@@ -280,6 +255,39 @@ async function downloadManifest(platform) {
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+async function downloadBundle(platform, timestamp) {
+  // In this pnpm monorepo, expo-router is symlinked from the project's node_modules
+  // to the pnpm virtual store at workspaceRoot/node_modules/.pnpm/.
+  // Metro's effective root is the workspace root (Expo CLI walks up to detect monorepos).
+  // The bundle URL must therefore be relative to the workspace root — which is what
+  // path.relative(workspaceRoot, entryPath) produces:
+  //   "artifacts/sgi-mobile/node_modules/expo-router/entry"
+  // Metro resolves this to the symlink target in the pnpm store, which is now accessible
+  // because metro.config.js adds workspaceRoot to watchFolders.
+  const entryPath = path.resolve(projectRoot, "node_modules", "expo-router", "entry");
+  const bundlePath = path.relative(workspaceRoot, entryPath);
+  const url = new URL(`http://localhost:8081/${bundlePath}.bundle`);
+  url.searchParams.set("platform", platform);
+  url.searchParams.set("dev", "false");
+  url.searchParams.set("hot", "false");
+  url.searchParams.set("lazy", "false");
+  url.searchParams.set("minify", "true");
+
+  const output = path.join(
+    "static-build",
+    timestamp,
+    "_expo",
+    "static",
+    "js",
+    platform,
+    "bundle.js",
+  );
+
+  console.log(`Fetching ${platform} bundle...`);
+  await downloadFile(url.toString(), output);
+  console.log(`${platform} bundle ready`);
 }
 
 async function downloadBundlesAndManifests(timestamp) {

@@ -6,3 +6,4 @@
 - [req.auth is a function in @clerk/express v2](clerk-req-auth-function.md) — req.auth?.userId is ALWAYS undefined; use getAuth(req).userId from @clerk/express
 - [SGI scoring model](sgi-scoring-model.md) — gpt-5-nano truncates scoring JSON at 512 tokens; use gpt-4o-mini + json_object mode
 - [Expo workflow port fix](expo-replit-port-fix.md) — Expo DIDNT_OPEN_A_PORT despite Metro running; fix is adding localPort to .replit [[ports]] via verifyAndReplaceDotReplit
+- [Expo 54 + pnpm Metro bundle fix](expo-pnpm-metro-bundle.md) — deployment bundle 404: watchFolders must include workspaceRoot; bundle URL must be workspaceRoot-relative
