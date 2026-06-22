@@ -310,7 +310,7 @@ export default function Chat() {
               <>
                 <p className="text-xs" style={{ color: "#9090b8" }}>{t("chat.upgradePro")}</p>
                 <button
-                  className="text-xs py-1.5 px-3 rounded-full font-semibold transition-opacity hover:opacity-80"
+                  className="text-xs py-1.5 px-3 rounded-full font-semibold transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94]"
                   style={{ background: "linear-gradient(135deg, #f0c040, #e08020)", color: "#fff" }}
                   onClick={() => toast.info("Vai su Impostazioni per attivare Pro!")}
                 >
@@ -322,14 +322,14 @@ export default function Chat() {
                 <p className="text-xs" style={{ color: "#9090b8" }}>{t("chat.upgradePro")}</p>
                 <div className="flex flex-col gap-1.5">
                   <button
-                    className="text-xs py-1.5 px-3 rounded-full font-semibold transition-opacity hover:opacity-80"
+                    className="text-xs py-1.5 px-3 rounded-full font-semibold transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94]"
                     style={{ background: "linear-gradient(135deg, #7c6bff, #5b4de0)", color: "#fff" }}
                     onClick={() => toast.info("Vai su Impostazioni per attivare Premium!")}
                   >
                     {t("chat.upgradePremiumBtn")}
                   </button>
                   <button
-                    className="text-xs py-1.5 px-3 rounded-full font-semibold transition-opacity hover:opacity-80"
+                    className="text-xs py-1.5 px-3 rounded-full font-semibold transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94]"
                     style={{ background: "linear-gradient(135deg, #f0c040, #e08020)", color: "#fff" }}
                     onClick={() => toast.info("Vai su Impostazioni per attivare Pro!")}
                   >
@@ -352,7 +352,7 @@ export default function Chat() {
                 key={c.id}
                 data-testid={`button-conversation-${c.id}`}
                 onClick={() => { setActiveConvoId(c.id); setLastSgiDelta(null); }}
-                className={`group flex items-center justify-between px-3 py-2 rounded-md cursor-pointer text-sm transition-colors ${
+                className={`group flex items-center justify-between px-3 py-2 rounded-md cursor-pointer text-sm transition-[colors,transform] duration-100 active:scale-[0.98] ${
                   activeConvoId === c.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                 }`}
               >
@@ -411,7 +411,7 @@ export default function Chat() {
                 <div className="relative">
                   <button
                     onClick={() => setModelDropdownOpen(o => !o)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-[colors,transform] duration-100 active:scale-[0.94] hover:opacity-90"
                     style={{ background: "rgba(124,107,255,0.12)", border: "1px solid rgba(124,107,255,0.3)", color: "#a89fff" }}
                   >
                     {(MODELS.find(m => m.id === ((activeConvo as any)?.model ?? selectedModel)) ?? MODELS[0]).label}
@@ -587,7 +587,7 @@ export default function Chat() {
                       {lastInputRef.current && (
                         <button
                           onClick={handleRetry}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all hover:opacity-80"
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94]"
                           style={{
                             background: "rgba(247,37,133,0.2)",
                             border: "1px solid rgba(247,37,133,0.4)",

@@ -3,13 +3,13 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
+  Animated,
   FlatList,
   StyleSheet,
   ActivityIndicator,
   Platform,
   Modal,
-  Pressable,
 } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -40,26 +40,79 @@ type ModelId = (typeof MODELS)[number]["id"];
 type LocalMessage = { id: string; role: "user" | "assistant"; content: string; streaming?: boolean };
 
 function TypingDot({ delay }: { delay: number }) {
-  const [opacity, setOpacity] = useState(0.3);
+  const opacity = useRef(new Animated.Value(0.3)).current;
   useEffect(() => {
+    let anim: Animated.CompositeAnimation;
     const t = setTimeout(() => {
-      const interval = setInterval(() => {
-        setOpacity(prev => (prev < 0.8 ? prev + 0.5 : 0.3));
-      }, 400);
-      return () => clearInterval(interval);
+      anim = Animated.loop(
+        Animated.sequence([
+          Animated.timing(opacity, { toValue: 0.9, duration: 380, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 0.3, duration: 380, useNativeDriver: true }),
+        ])
+      );
+      anim.start();
     }, delay);
-    return () => clearTimeout(t);
-  }, [delay]);
-  return <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#7c6bff", opacity, marginHorizontal: 2 }} />;
+    return () => { clearTimeout(t); anim?.stop(); };
+  }, [delay, opacity]);
+  return (
+    <Animated.View
+      style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: "#7c6bff", opacity, marginHorizontal: 2.5 }}
+    />
+  );
 }
 
 function TypingIndicator() {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", padding: 12, alignSelf: "flex-start", marginBottom: 4 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", padding: 14, alignSelf: "flex-start", marginBottom: 4 }}>
       <TypingDot delay={0} />
-      <TypingDot delay={150} />
-      <TypingDot delay={300} />
+      <TypingDot delay={160} />
+      <TypingDot delay={320} />
     </View>
+  );
+}
+
+function PressableScale({
+  onPress,
+  style,
+  children,
+  disabled = false,
+  haptic = true,
+  hitSlop,
+}: {
+  onPress: () => void;
+  style?: object | object[];
+  children: React.ReactNode;
+  disabled?: boolean;
+  haptic?: boolean;
+  hitSlop?: { top: number; bottom: number; left: number; right: number };
+}) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = useCallback(() => {
+    Animated.spring(scale, { toValue: 0.88, useNativeDriver: true, speed: 60, bounciness: 2 }).start();
+  }, [scale]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 10 }).start();
+  }, [scale]);
+
+  const handlePress = useCallback(() => {
+    if (haptic && !disabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onPress();
+  }, [haptic, disabled, onPress]);
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      onPressIn={!disabled ? handlePressIn : undefined}
+      onPressOut={!disabled ? handlePressOut : undefined}
+      disabled={disabled}
+      hitSlop={hitSlop}
+    >
+      <Animated.View style={[style, { transform: [{ scale }] }]}>
+        {children}
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -129,7 +182,7 @@ export default function ChatScreen() {
     if (!content || isStreaming) return;
     setInput("");
     setErrorMsg(null);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     const userMsg: LocalMessage = {
       id: Date.now().toString() + Math.random().toString(36).slice(2),
@@ -259,12 +312,14 @@ export default function ChatScreen() {
     setConvoModal(false);
     setSgiDelta(null);
     setErrorMsg(null);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
   const selectConvo = useCallback((id: number) => {
     setActiveConvoId(id);
     setMessages([]);
     setConvoModal(false);
+    Haptics.selectionAsync();
   }, []);
 
   const currentModel = MODELS.find(m => m.id === selectedModel) ?? MODELS[0];
@@ -274,14 +329,22 @@ export default function ChatScreen() {
       <LinearGradient colors={["#08090f", "#08090f"]} style={StyleSheet.absoluteFill} />
 
       <View style={[s.header, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>
-        <TouchableOpacity onPress={() => setConvoModal(true)} style={s.headerBtn}>
+        <PressableScale
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setConvoModal(true); }}
+          style={s.headerBtn}
+          haptic={false}
+        >
           <Ionicons name="list" size={22} color={colors.foreground} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text style={s.headerTitle}>SGI Chat</Text>
-        <TouchableOpacity onPress={() => setModelModal(true)} style={s.modelBadge}>
+        <PressableScale
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setModelModal(true); }}
+          style={s.modelBadge}
+          haptic={false}
+        >
           <Ionicons name="flash" size={12} color={colors.teal} />
           <Text style={s.modelBadgeText}>{currentModel.label}</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {sgiDelta !== null && (
@@ -311,6 +374,10 @@ export default function ChatScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           scrollEnabled={messages.length > 0}
+          removeClippedSubviews
+          maxToRenderPerBatch={6}
+          initialNumToRender={10}
+          windowSize={8}
           ListHeaderComponent={showTyping ? <TypingIndicator /> : null}
           ListEmptyComponent={
             <View style={s.empty}>
@@ -326,9 +393,13 @@ export default function ChatScreen() {
           <View style={s.errorBar}>
             <Ionicons name="alert-circle" size={14} color={colors.destructive} />
             <Text style={s.errorText} numberOfLines={2}>{errorMsg}</Text>
-            <TouchableOpacity onPress={() => setErrorMsg(null)}>
+            <PressableScale
+              onPress={() => setErrorMsg(null)}
+              haptic={false}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Ionicons name="close" size={16} color={colors.mutedForeground} />
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         )}
 
@@ -345,18 +416,13 @@ export default function ChatScreen() {
             blurOnSubmit={false}
             returnKeyType="default"
           />
-          <TouchableOpacity
-            style={[s.sendBtn, (!input.trim() || isStreaming) && s.sendBtnDisabled]}
+          <SendButton
             onPress={sendMessage}
             disabled={!input.trim() || isStreaming}
-            activeOpacity={0.7}
-          >
-            {isStreaming ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="arrow-up" size={20} color="#fff" />
-            )}
-          </TouchableOpacity>
+            streaming={isStreaming}
+            colors={colors}
+            style={s.sendBtn}
+          />
         </View>
       </KeyboardAvoidingView>
 
@@ -368,6 +434,7 @@ export default function ChatScreen() {
           onSelect={selectConvo}
           onNew={newChat}
           onDelete={async (id) => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             await deleteConvo.mutateAsync({ id });
             if (id === activeConvoId) newChat();
           }}
@@ -381,7 +448,7 @@ export default function ChatScreen() {
           <View style={[s.modelSheet, { paddingBottom: insets.bottom + 16 }]}>
             <Text style={s.modelSheetTitle}>Modello AI</Text>
             {MODELS.map(m => (
-              <TouchableOpacity
+              <PressableScale
                 key={m.id}
                 style={[s.modelRow, m.id === selectedModel && s.modelRowActive]}
                 onPress={() => { setSelectedModel(m.id); setModelModal(false); }}
@@ -393,12 +460,64 @@ export default function ChatScreen() {
                 {m.id === selectedModel && (
                   <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
                 )}
-              </TouchableOpacity>
+              </PressableScale>
             ))}
           </View>
         </Pressable>
       </Modal>
     </View>
+  );
+}
+
+function SendButton({
+  onPress,
+  disabled,
+  streaming,
+  colors,
+  style,
+}: {
+  onPress: () => void;
+  disabled: boolean;
+  streaming: boolean;
+  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
+  style: object;
+}) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(disabled ? 0.45 : 1)).current;
+
+  useEffect(() => {
+    Animated.timing(opacity, {
+      toValue: disabled ? 0.45 : 1,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+  }, [disabled, opacity]);
+
+  const handlePressIn = useCallback(() => {
+    if (disabled) return;
+    Animated.spring(scale, { toValue: 0.85, useNativeDriver: true, speed: 60, bounciness: 2 }).start();
+  }, [disabled, scale]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 12 }).start();
+  }, [scale]);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      disabled={disabled}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+    >
+      <Animated.View style={[style, { transform: [{ scale }], opacity }]}>
+        {streaming ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Ionicons name="arrow-up" size={20} color="#fff" />
+        )}
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -447,7 +566,7 @@ const bubbleStyles = StyleSheet.create({
     justifyContent: "center",
   },
   bubble: { maxWidth: "75%", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10 },
-  text: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 21 },
+  text: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22 },
 });
 
 function ConvoModal({
@@ -472,18 +591,30 @@ function ConvoModal({
   const insets = useSafeAreaInsets();
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={[{ paddingTop: Platform.OS === "web" ? 67 : insets.top + 16, paddingHorizontal: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }]}>
+      <View style={{
+        paddingTop: Platform.OS === "web" ? 67 : insets.top + 16,
+        paddingHorizontal: 20,
+        paddingBottom: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}>
         <Text style={{ color: colors.foreground, fontSize: 18, fontFamily: "Inter_600SemiBold" }}>
           Conversazioni
         </Text>
-        <View style={{ flexDirection: "row", gap: 12 }}>
-          <TouchableOpacity onPress={onNew} style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.primary + "20", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
+        <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+          <PressableScale
+            onPress={onNew}
+            style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.primary + "20", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
+          >
             <Ionicons name="add" size={16} color={colors.primary} />
             <Text style={{ color: colors.primary, fontFamily: "Inter_500Medium", fontSize: 13 }}>Nuova</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onClose}>
+          </PressableScale>
+          <PressableScale onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} haptic={false}>
             <Ionicons name="close" size={24} color={colors.mutedForeground} />
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </View>
       {loading ? (
@@ -500,23 +631,87 @@ function ConvoModal({
           data={conversations}
           keyExtractor={c => String(c.id)}
           contentContainerStyle={{ paddingVertical: 8 }}
+          removeClippedSubviews
+          maxToRenderPerBatch={10}
           renderItem={({ item }) => (
-            <TouchableOpacity
-              onPress={() => onSelect(item.id)}
-              style={[{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border + "44" }, item.id === activeId && { backgroundColor: colors.primary + "10" }]}
-            >
-              <Ionicons name="chatbubble-outline" size={16} color={item.id === activeId ? colors.primary : colors.mutedForeground} style={{ marginRight: 12 }} />
-              <Text style={{ flex: 1, color: item.id === activeId ? colors.foreground : colors.foreground, fontFamily: "Inter_400Regular", fontSize: 14 }} numberOfLines={1}>
-                {item.title}
-              </Text>
-              <TouchableOpacity onPress={() => onDelete(item.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="trash-outline" size={16} color={colors.destructive + "88"} />
-              </TouchableOpacity>
-            </TouchableOpacity>
+            <ConvoRow
+              item={item}
+              isActive={item.id === activeId}
+              onSelect={onSelect}
+              onDelete={onDelete}
+              colors={colors}
+            />
           )}
         />
       )}
     </View>
+  );
+}
+
+function ConvoRow({
+  item,
+  isActive,
+  onSelect,
+  onDelete,
+  colors,
+}: {
+  item: { id: number; title: string; createdAt: string };
+  isActive: boolean;
+  onSelect: (id: number) => void;
+  onDelete: (id: number) => void;
+  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
+}) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = useCallback(() => {
+    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 60, bounciness: 2 }).start();
+  }, [scale]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 8 }).start();
+  }, [scale]);
+
+  return (
+    <Pressable
+      onPress={() => { Haptics.selectionAsync(); onSelect(item.id); }}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+    >
+      <Animated.View
+        style={[
+          {
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 20,
+            paddingVertical: 14,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border + "44",
+            transform: [{ scale }],
+          },
+          isActive && { backgroundColor: colors.primary + "10" },
+        ]}
+      >
+        <Ionicons
+          name="chatbubble-outline"
+          size={16}
+          color={isActive ? colors.primary : colors.mutedForeground}
+          style={{ marginRight: 12 }}
+        />
+        <Text
+          style={{ flex: 1, color: colors.foreground, fontFamily: "Inter_400Regular", fontSize: 14 }}
+          numberOfLines={1}
+        >
+          {item.title}
+        </Text>
+        <PressableScale
+          onPress={() => onDelete(item.id)}
+          haptic={false}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="trash-outline" size={16} color={colors.destructive + "88"} />
+        </PressableScale>
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -532,7 +727,7 @@ function makeStyles(colors: ReturnType<typeof import("@/hooks/useColors").useCol
       borderBottomColor: colors.border,
       gap: 8,
     },
-    headerBtn: { padding: 6 },
+    headerBtn: { padding: 8 },
     headerTitle: {
       flex: 1,
       color: colors.foreground,
@@ -634,14 +829,13 @@ function makeStyles(colors: ReturnType<typeof import("@/hooks/useColors").useCol
       fontFamily: "Inter_400Regular",
     },
     sendBtn: {
-      width: 42,
-      height: 42,
-      borderRadius: 21,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       backgroundColor: colors.primary,
       alignItems: "center",
       justifyContent: "center",
     },
-    sendBtnDisabled: { opacity: 0.45 },
     overlay: {
       flex: 1,
       backgroundColor: "rgba(0,0,0,0.6)",
@@ -654,7 +848,7 @@ function makeStyles(colors: ReturnType<typeof import("@/hooks/useColors").useCol
       borderTopWidth: 1,
       borderTopColor: colors.border,
       padding: 20,
-      gap: 8,
+      gap: 10,
     },
     modelSheetTitle: {
       color: colors.foreground,
