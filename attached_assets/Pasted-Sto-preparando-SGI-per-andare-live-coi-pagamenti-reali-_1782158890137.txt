@@ -1,0 +1,101 @@
+Sto preparando SGI per andare live coi pagamenti reali (Stripe Business
+live arriva tra pochi giorni: pagamenti utenti + rimborsi). Prima di
+abbellire qualsiasi cosa devo sapere due cose: se il prodotto core è vero,
+e se la macchina è pronta a incassare. Poi rendo il sito più vivo.
+
+Lavora UNA FASE ALLA VOLTA. Dopo ogni fase fermati, mostrami i risultati e
+aspetta il mio ok. Spiega tutto in italiano. Dove qualcosa non funziona,
+dimmelo chiaramente: voglio diagnosi oneste, non rassicurazioni.
+
+═══════════════════════════════════
+FASE 1 — TEST DI VERITÀ DEL PUNTEGGIO (cancello: se fallisce, ci si ferma)
+═══════════════════════════════════
+a) Prendi UN testo e calcola il punteggio SGI 5 volte di fila, identico.
+   Mostrami i 5 valori. Se variano molto, il punteggio è un'opinione
+   dell'AI, non una misura: dimmelo.
+b) Mostrami COME nasce il numero: l'AI restituisce direttamente un voto, o
+   estrae metriche linguistiche oggettive (ricchezza lessicale, complessità
+   sintattica, densità concettuale, type-token ratio) che poi una FORMULA
+   nel codice trasforma in punteggio?
+c) Sensibilità: punteggio di tre testi (banale, medio, ricco). Devono
+   ordinarsi in modo sensato (banale < medio < ricco). Mostrameli.
+VERDETTO ONESTO: è una misura ripetibile o no? Se NO, fermati e dimmi cosa
+riprogettare (di norma: spostare il calcolo del voto dall'AI a una formula
+deterministica, lasciando all'AI solo l'estrazione delle metriche). Non
+proseguire finché non è risolto.
+
+═══════════════════════════════════
+FASE 2 — AUDIT COMPLETO PER IL GO-LIVE
+═══════════════════════════════════
+Per OGNI punto: ✅ funziona / ⚠️ incompleto / ❌ assente o rotto, con una
+riga concreta.
+
+PAGAMENTI (critico):
+- Checkout Stripe implementato? In test mode un pagamento di prova va
+  end-to-end?
+- Webhook che fa l'upgrade del piano dopo il pagamento: esiste e funziona?
+  Cosa succede se fallisce o arriva in ritardo?
+- Rimborsi gestiti? Se rimborso un utente, il piano torna a free in
+  automatico?
+- Lista PRECISA di cosa serve da parte mia per passare da test a live
+  (chiavi, variabili d'ambiente, configurazioni).
+
+UTENTI E PIANI:
+- Registrazione/login e gestione sessione funzionano?
+- Passaggio free↔premium automatico e corretto? Cosa vede premium in più?
+
+CONTROLLO COSTI (verifica che regga col traffico vero):
+- Limiti, blocchi pre-chiamata, routing modelli, caching, valvola globale:
+  tutti attivi?
+- 600 messaggi premium col modello reale stanno dentro i 5,81€? Mostrami il
+  calcolo finale.
+
+PRODOTTO CORE:
+- Traiettorie, classifica, aree di miglioramento funzionano e i dati
+  persistono nel DB?
+
+ROBUSTEZZA E SICUREZZA:
+- Cosa succede se l'API AI è giù, la rete cade a metà risposta, l'input è
+  vuoto/enorme/strano?
+- Chiavi o segreti esposti lato client? I controlli critici sono lato
+  server e non aggirabili?
+- Il DB ha backup / punto di ripristino?
+
+SINTESI:
+- Elenca TUTTO ciò che non funziona, è incompleto o si blocca.
+- Separa i BLOCCANTI per andare live (da risolvere prima del primo cliente)
+  dalle migliorie rimandabili.
+- Una frase finale: "Sei pronto / non pronto ad accettare pagamenti reali,
+  e il motivo è ___". Onesto, non ottimista.
+
+>>> A questo punto fermati e aspetta il mio ok. Le fasi estetiche qui sotto
+le facciamo solo dopo aver risolto i BLOCCANTI della Fase 2. <
+
+═══════════════════════════════════
+FASE 3 — CHAT PIÙ VIVA
+═══════════════════════════════════
+Solo presentazione, non toccare scoring/limiti/blocchi:
+- Risposta in STREAMING (testo parola per parola, non blocco unico).
+- Indicatore "sta scrivendo" durante la generazione.
+- Formattazione pulita (paragrafi, grassetti, elenchi).
+- Auto-scroll fluido. Gestione errori elegante (niente schermata rotta).
+
+═══════════════════════════════════
+FASE 4 — IL MOMENTO-WOW (la parte di valore)
+═══════════════════════════════════
+- Traiettoria del punteggio nel tempo come grafico ANIMATO (linea che si
+  disegna).
+- Punteggio SGI che si aggiorna con animazione (conteggio che sale).
+- Posizione in classifica mostrata in modo che INVITI a migliorare ("hai
+  superato il tuo record" / "top X%"), senza demoralizzare chi è in basso.
+- Aree di miglioramento chiare e azionabili.
+Obiettivo: vedere la PROPRIA crescita dev'essere la cosa più bella del sito.
+
+═══════════════════════════════════
+FASE 5 — CONDIVISIBILITÀ (motore del passaparola)
+═══════════════════════════════════
+Bottone "Condividi" che genera un'IMMAGINE pulita con: punteggio SGI,
+mini-grafico della traiettoria, nome/logo SGI. Pronta per Instagram/X.
+
+VINCOLI: non rimuovere funzioni esistenti, non rifattorizzare file non
+collegati, fermati dopo ogni fase.
