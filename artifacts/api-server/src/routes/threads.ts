@@ -114,6 +114,18 @@ router.get("/threads", async (req, res) => {
       .orderBy(desc(threads.createdAt))
       .limit(50);
 
+    // Fetch all battle cards for these threads in one query
+    const threadIds = rows.map(t => t.id);
+    let battleCardMap = new Map<string, string>(); // threadId → battleCardId
+    if (threadIds.length > 0) {
+      const cards = await db.select({ threadId: battleCards.threadId, id: battleCards.id })
+        .from(battleCards)
+        .orderBy(desc(battleCards.createdAt));
+      for (const c of cards) {
+        if (!battleCardMap.has(c.threadId)) battleCardMap.set(c.threadId, c.id);
+      }
+    }
+
     res.json(rows.map(t => ({
       id: t.id,
       question: t.question,
@@ -124,6 +136,7 @@ router.get("/threads", async (req, res) => {
       totalSessions: t.totalSessions,
       knowledgeBaseSize: (t.knowledgeBase as ThreadConnection[])?.length ?? 0,
       createdAt: t.createdAt,
+      battleCardId: battleCardMap.get(t.id) ?? null,
     })));
   } catch (err) {
     console.error("[threads] list error", err);

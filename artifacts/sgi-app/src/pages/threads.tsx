@@ -4,7 +4,7 @@ import { useAuth } from "@clerk/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Plus, Flame, Brain, Network, BookOpen, Atom, Scale, Cpu, Globe, ChevronRight, Lock } from "lucide-react";
+import { Plus, Flame, Brain, Network, BookOpen, Atom, Scale, Cpu, Globe, ChevronRight, Lock, Trophy, Share2 } from "lucide-react";
 
 const API_BASE = "/api";
 
@@ -28,6 +28,7 @@ interface ThreadSummary {
   totalSessions: number;
   knowledgeBaseSize: number;
   createdAt: string;
+  battleCardId: string | null;
 }
 
 async function fetchThreads(token: string): Promise<ThreadSummary[]> {
@@ -86,6 +87,14 @@ export default function ThreadsPage() {
   });
 
   const filtered = filter ? threads.filter(th => th.category === filter) : threads;
+  const openThreads = filtered.filter(th => !th.battleCardId);
+  const completedThreads = filtered.filter(th => !!th.battleCardId);
+
+  function handleShare(battleCardId: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    const url = `${window.location.origin}/battle-card/${battleCardId}`;
+    navigator.clipboard.writeText(url).then(() => toast.success("Link copiato!")).catch(() => {});
+  }
 
   return (
     <div className="flex-1 overflow-y-auto" style={{ background: "#08090f" }}>
@@ -166,60 +175,130 @@ export default function ThreadsPage() {
             <p className="text-sm" style={{ color: "#9090b8" }}>{t("threads.noThreads")}</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {filtered.map((thread) => {
-              const cat = CATEGORY_META[thread.category] ?? CATEGORY_META.philosophy;
-              return (
-                <button
-                  key={thread.id}
-                  onClick={() => setLocation(`/threads/${thread.id}`)}
-                  className="w-full text-left px-5 py-4 rounded-xl transition-all group"
-                  style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.07)",
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(124,107,255,0.07)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(124,107,255,0.2)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.03)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)"; }}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span
-                          className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                          style={{ background: `${cat.color}18`, color: cat.color }}
-                        >
-                          {cat.icon}
-                          {cat.label}
-                        </span>
-                        {thread.createdByUsername?.startsWith("🤖") && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "rgba(247,37,133,0.1)", color: "#f72585", border: "1px solid rgba(247,37,133,0.2)" }}>
-                            🤖 {t("threads.aiGenerated")}
-                          </span>
-                        )}
-                        {thread.knowledgeBaseSize > 0 && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(6,214,160,0.1)", color: "#06d6a0" }}>
-                            {thread.knowledgeBaseSize} {t("threads.connections")}
-                          </span>
-                        )}
+          <div className="space-y-8">
+
+            {/* ── Aperti ── */}
+            {openThreads.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Flame className="w-3.5 h-3.5" style={{ color: "#f72585" }} />
+                  <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#f72585" }}>
+                    Thread Aperti
+                  </span>
+                  <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: "rgba(247,37,133,0.12)", color: "#f72585" }}>
+                    {openThreads.length}
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {openThreads.map((thread) => {
+                    const cat = CATEGORY_META[thread.category] ?? CATEGORY_META.philosophy!;
+                    return (
+                      <button
+                        key={thread.id}
+                        onClick={() => setLocation(`/threads/${thread.id}`)}
+                        className="w-full text-left px-5 py-4 rounded-xl transition-all group"
+                        style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(124,107,255,0.07)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(124,107,255,0.2)"; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.03)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)"; }}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${cat.color}18`, color: cat.color }}>
+                                {cat.icon}{cat.label}
+                              </span>
+                              {thread.createdByUsername?.startsWith("🤖") && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "rgba(247,37,133,0.1)", color: "#f72585", border: "1px solid rgba(247,37,133,0.2)" }}>
+                                  🤖 {t("threads.aiGenerated")}
+                                </span>
+                              )}
+                              {thread.knowledgeBaseSize > 0 && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(6,214,160,0.1)", color: "#06d6a0" }}>
+                                  {thread.knowledgeBaseSize} {t("threads.connections")}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm font-semibold leading-snug mb-1" style={{ color: "#eeeeff" }}>{thread.question}</p>
+                            {thread.description && <p className="text-xs line-clamp-1" style={{ color: "#9090b8" }}>{thread.description}</p>}
+                          </div>
+                          <div className="flex items-center gap-4 flex-shrink-0">
+                            <div className="text-right">
+                              <div className="text-xs font-bold" style={{ color: "#eeeeff" }}>{thread.totalSessions}</div>
+                              <div className="text-[10px]" style={{ color: "#9090b8" }}>{t("threads.sessions")}</div>
+                            </div>
+                            <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "#7c6bff" }} />
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── Completati (con battle card) ── */}
+            {completedThreads.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Trophy className="w-3.5 h-3.5" style={{ color: "#f0c040" }} />
+                  <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#f0c040" }}>
+                    Battle Completate
+                  </span>
+                  <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: "rgba(240,192,64,0.12)", color: "#f0c040" }}>
+                    {completedThreads.length}
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {completedThreads.map((thread) => {
+                    const cat = CATEGORY_META[thread.category] ?? CATEGORY_META.philosophy!;
+                    return (
+                      <div
+                        key={thread.id}
+                        className="px-5 py-4 rounded-xl"
+                        style={{ background: "rgba(240,192,64,0.03)", border: "1px solid rgba(240,192,64,0.12)" }}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${cat.color}18`, color: cat.color }}>
+                                {cat.icon}{cat.label}
+                              </span>
+                              <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "rgba(240,192,64,0.12)", color: "#f0c040" }}>
+                                <Trophy className="w-3 h-3" /> Sfida completata
+                              </span>
+                            </div>
+                            <p className="text-sm font-semibold leading-snug mb-1" style={{ color: "#c8c8dd" }}>{thread.question}</p>
+                            <p className="text-xs" style={{ color: "#9090b8" }}>{thread.totalSessions} partecipanti</p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button
+                              onClick={() => setLocation(`/battle-card/${thread.battleCardId}`)}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                              style={{ background: "rgba(240,192,64,0.12)", color: "#f0c040", border: "1px solid rgba(240,192,64,0.25)" }}
+                              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(240,192,64,0.22)"; }}
+                              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(240,192,64,0.12)"; }}
+                            >
+                              Vedi Sfida
+                            </button>
+                            <button
+                              onClick={(e) => handleShare(thread.battleCardId!, e)}
+                              className="p-1.5 rounded-lg transition-all"
+                              title="Copia link"
+                              style={{ background: "rgba(255,255,255,0.04)", color: "#9090b8", border: "1px solid rgba(255,255,255,0.08)" }}
+                              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#eeeeff"; }}
+                              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#9090b8"; }}
+                            >
+                              <Share2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-sm font-semibold leading-snug mb-1" style={{ color: "#eeeeff" }}>
-                        {thread.question}
-                      </p>
-                      {thread.description && (
-                        <p className="text-xs line-clamp-1" style={{ color: "#9090b8" }}>{thread.description}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4 flex-shrink-0">
-                      <div className="text-right">
-                        <div className="text-xs font-bold" style={{ color: "#eeeeff" }}>{thread.totalSessions}</div>
-                        <div className="text-[10px]" style={{ color: "#9090b8" }}>{t("threads.sessions")}</div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "#7c6bff" }} />
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
           </div>
         )}
       </div>
