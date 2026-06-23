@@ -10,6 +10,7 @@ import {
   Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useGetMyProfile, useGetMyGamification } from "@workspace/api-client-react";
@@ -43,6 +44,7 @@ const s2 = StyleSheet.create({
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const { signOut } = useAuth();
   const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useGetMyProfile();
   const { data: gamification, isLoading: gamLoading, refetch: refetchGam } = useGetMyGamification();
@@ -76,7 +78,7 @@ export default function ProfileScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
-            paddingBottom: Platform.OS === "web" ? 34 + 24 : insets.bottom + 24,
+            paddingBottom: (Platform.OS === "web" ? 34 : tabBarHeight) + 24,
             paddingHorizontal: 20,
             gap: 16,
             paddingTop: 20,

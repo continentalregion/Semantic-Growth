@@ -40,6 +40,10 @@ export default function TabLayout() {
           ) : isWeb ? (
             <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]} />
           ) : null,
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontFamily: "Inter_500Medium",
+        },
       }}
     >
       <Tabs.Screen
@@ -55,6 +59,30 @@ export default function TabLayout() {
               />
             ) : (
               <Ionicons name="chatbubble-ellipses-outline" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="dashboard"
+        options={{
+          title: "Dashboard",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="chart.line.uptrend.xyaxis" tintColor={color} size={22} />
+            ) : (
+              <Ionicons name="analytics-outline" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="recommendations"
+        options={{
+          title: "Crescita",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="lightbulb" tintColor={color} size={22} />
+            ) : (
+              <Ionicons name="bulb-outline" size={22} color={color} />
             ),
         }}
       />

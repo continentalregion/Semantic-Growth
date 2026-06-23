@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@clerk/expo";
@@ -119,6 +120,7 @@ function PressableScale({
 export default function ChatScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const { getToken } = useAuth();
   const qc = useQueryClient();
 
@@ -403,7 +405,7 @@ export default function ChatScreen() {
           </View>
         )}
 
-        <View style={[s.inputBar, { paddingBottom: Math.max(insets.bottom, Platform.OS === "web" ? 34 : 0) + 8 }]}>
+        <View style={[s.inputBar, { paddingBottom: (Platform.OS === "web" ? Math.max(insets.bottom, 34) : tabBarHeight) + 8 }]}>
           <TextInput
             ref={inputRef}
             style={s.textInput}

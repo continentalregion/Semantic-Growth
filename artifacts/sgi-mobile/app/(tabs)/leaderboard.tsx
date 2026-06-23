@@ -9,6 +9,7 @@ import {
   Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useGetLeaderboard } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
@@ -42,6 +43,7 @@ const badgeStyles = StyleSheet.create({
 export default function LeaderboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const { data, isLoading, refetch, isRefetching } = useGetLeaderboard({ limit: 100, offset: 0 });
 
   const entries = data?.entries ?? [];
@@ -60,9 +62,9 @@ export default function LeaderboardScreen() {
       ) : (
         <FlatList
           data={entries}
-          keyExtractor={e => String(e.rank)}
+          keyExtractor={(e, i) => (e.userId ? String(e.userId) : `rank-${e.rank ?? i}`)}
           scrollEnabled={entries.length > 0}
-          contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 34 + 16 : insets.bottom + 16 }}
+          contentContainerStyle={{ paddingBottom: (Platform.OS === "web" ? 34 : tabBarHeight) + 16 }}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}
