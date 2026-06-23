@@ -12,7 +12,9 @@
   "dependencies": {
     "@clerk/expo": "^3.5.2",
     "expo-secure-store": "^15.0.8",
-    "react-native-markdown-display": "^7.0.2"
+    "expo-sharing": "~14.0.8",
+    "react-native-markdown-display": "^7.0.2",
+    "react-native-view-shot": "4.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

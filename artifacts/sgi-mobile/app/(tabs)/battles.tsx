@@ -12,7 +12,11 @@ import {
   Alert,
   Share,
   Platform,
+  Dimensions,
 } from "react-native";
+import { captureRef } from "react-native-view-shot";
+import * as Sharing from "expo-sharing";
+import { ShareableBattleCard, type ShareCardData } from "@/components/ui/ShareableBattleCard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
@@ -104,6 +108,8 @@ function BattleSessionModal({
   const [battleCardId, setBattleCardId] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const flatListRef = useRef<FlatList<Message>>(null);
+  const shareCardRef = useRef<View>(null);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     if (!visible) {
@@ -193,14 +199,25 @@ function BattleSessionModal({
   }
 
   async function handleShare() {
-    if (!battleCardId) return;
-    const url = `https://${process.env.EXPO_PUBLIC_DOMAIN}/battle-cards/${battleCardId}`;
-    const text = score
-      ? `Ho completato una Battaglia AI SGI con ${score.total} punti!\n🧠 Densità: ${score.density} · 🔗 Connessioni: ${score.connections} · 📐 Profondità: ${score.depth}\n\n${url}`
-      : url;
+    if (!score) return;
+    setSharing(true);
     try {
-      await Share.share({ message: text, url });
-    } catch { /* user cancelled */ }
+      await new Promise(r => setTimeout(r, 200));
+      const uri = await captureRef(shareCardRef, { format: "png", quality: 1.0, result: "tmpfile" });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: "Condividi il tuo risultato" });
+      } else {
+        const url = battleCardId ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/battle-cards/${battleCardId}` : "";
+        await Share.share({
+          message: `Ho completato una Battaglia AI SGI con ${score.total} punti!\n🧠 ${score.density} · 🔗 ${score.connections} · 📐 ${score.depth}${url ? `\n${url}` : ""}`,
+        });
+      }
+    } catch {
+      /* user cancelled or error — silent fallback */
+    } finally {
+      setSharing(false);
+    }
   }
 
   const timerColor = timeLeft > 60 ? colors.primary : colors.pink;
@@ -208,6 +225,25 @@ function BattleSessionModal({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => !timerActive && onClose()}>
       <View style={{ flex: 1, backgroundColor: colors.background }}>
+        {/* Off-screen shareable card — catturata da captureRef */}
+        {completed && score && (
+          <View
+            ref={shareCardRef}
+            collapsable={false}
+            style={{ position: "absolute", left: -Dimensions.get("window").width * 2, top: 0 }}
+            pointerEvents="none"
+          >
+            <ShareableBattleCard
+              data={{
+                total: score.total,
+                density: score.density,
+                connections: score.connections,
+                depth: score.depth,
+                question: thread?.question ?? "",
+              }}
+            />
+          </View>
+        )}
         {/* Header */}
         <View style={[styles.sessionHeader, { borderBottomColor: colors.border }]}>
           <Pressable onPress={() => {
@@ -256,10 +292,14 @@ function BattleSessionModal({
 
             <Text style={[styles.scoreExplanation, { color: colors.mutedForeground }]}>{score.explanation}</Text>
 
-            {battleCardId && (
-              <Pressable style={[styles.shareBtn, { backgroundColor: colors.primary }]} onPress={handleShare}>
-                <Ionicons name="share-outline" size={18} color={colors.palette.white} />
-                <Text style={styles.shareBtnText}>Condividi Risultato</Text>
+            {score && (
+              <Pressable
+                style={[styles.shareBtn, { backgroundColor: colors.primary, opacity: sharing ? 0.6 : 1 }]}
+                onPress={handleShare}
+                disabled={sharing}
+              >
+                <Ionicons name={sharing ? "hourglass-outline" : "share-outline"} size={18} color={palette.white} />
+                <Text style={styles.shareBtnText}>{sharing ? "Preparando…" : "Condividi Risultato"}</Text>
               </Pressable>
             )}
 
@@ -348,6 +388,9 @@ export default function BattlesScreen() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [sessionVisible, setSessionVisible] = useState(false);
   const [startingThreadId, setStartingThreadId] = useState<string | null>(null);
+  const [pendingShareCard, setPendingShareCard] = useState<ShareCardData | null>(null);
+  const [historySharing, setHistorySharing] = useState(false);
+  const historyCardRef = useRef<View>(null);
 
   async function loadData(silent = false) {
     if (!silent) setLoading(true);
@@ -539,13 +582,31 @@ export default function BattlesScreen() {
             const loser = card.player1.isWinner ? card.player2 : card.player1;
 
             async function shareCard() {
-              const url = `https://${process.env.EXPO_PUBLIC_DOMAIN}/battle-cards/${card.id}`;
+              const data: ShareCardData = {
+                total: winner.scoreTotal,
+                density: winner.scoreDensity,
+                connections: winner.scoreConnections,
+                depth: winner.scoreDepth,
+                question: card.thread.question,
+                username: winner.username,
+              };
+              setPendingShareCard(data);
+              setHistorySharing(true);
+              await new Promise(r => setTimeout(r, 200));
               try {
-                await Share.share({
-                  message: `Battaglia AI SGI: ${winner.username} vince con ${winner.scoreTotal} pts su "${card.thread.question}"\n${url}`,
-                  url,
-                });
-              } catch { /* cancelled */ }
+                const uri = await captureRef(historyCardRef, { format: "png", quality: 1.0, result: "tmpfile" });
+                const canShare = await Sharing.isAvailableAsync();
+                if (canShare) {
+                  await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: "Condividi battaglia" });
+                } else {
+                  await Share.share({
+                    message: `Battaglia SGI: ${winner.username} vince con ${winner.scoreTotal} pts!\n🧠 ${winner.scoreDensity} · 🔗 ${winner.scoreConnections} · 📐 ${winner.scoreDepth}`,
+                  });
+                }
+              } catch { /* cancelled or error */ } finally {
+                setPendingShareCard(null);
+                setHistorySharing(false);
+              }
             }
 
             return (
@@ -591,14 +652,36 @@ export default function BattlesScreen() {
                   </View>
                 </View>
 
-                <Pressable style={[styles.shareCardBtn, { borderColor: colors.border }]} onPress={shareCard}>
-                  <Ionicons name="share-outline" size={14} color={colors.mutedForeground} />
-                  <Text style={[styles.shareCardText, { color: colors.mutedForeground }]}>Condividi</Text>
+                <Pressable
+                  style={[styles.shareCardBtn, { borderColor: colors.border, opacity: historySharing ? 0.5 : 1 }]}
+                  onPress={shareCard}
+                  disabled={historySharing}
+                >
+                  <Ionicons
+                    name={historySharing ? "hourglass-outline" : "share-outline"}
+                    size={14}
+                    color={colors.mutedForeground}
+                  />
+                  <Text style={[styles.shareCardText, { color: colors.mutedForeground }]}>
+                    {historySharing ? "Preparando…" : "Condividi"}
+                  </Text>
                 </Pressable>
               </View>
             );
           }}
         />
+      )}
+
+      {/* Off-screen card per condivisione storico */}
+      {pendingShareCard && (
+        <View
+          ref={historyCardRef}
+          collapsable={false}
+          style={{ position: "absolute", left: -Dimensions.get("window").width * 2, top: 0 }}
+          pointerEvents="none"
+        >
+          <ShareableBattleCard data={pendingShareCard} />
+        </View>
       )}
 
       <BattleSessionModal
