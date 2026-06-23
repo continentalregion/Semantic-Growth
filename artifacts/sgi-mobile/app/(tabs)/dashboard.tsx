@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
   RefreshControl,
   Platform,
 } from "react-native";
@@ -14,6 +13,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useGetMyProfile, useGetSgiHistory } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
+import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
+import { SkeletonCard, SkeletonBox } from "@/components/ui/SkeletonBox";
 
 const MACRO_DIMS = [
   { key: "profondita",   label: "Profondità",   icon: "🧠", color: palette.primary },
@@ -104,7 +105,7 @@ export default function DashboardScreen() {
   const planColor = { free: colors.mutedForeground, premium: colors.gold, pro: colors.teal }[profile?.plan ?? "free"] ?? colors.mutedForeground;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <AnimatedScreen style={{ backgroundColor: colors.background }}>
       <View style={[
         styles.header,
         {
@@ -120,8 +121,17 @@ export default function DashboardScreen() {
       </View>
 
       {isLoading ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator color={colors.primary} size="large" />
+        <View style={{ flex: 1, paddingHorizontal: colors.spacing.lg, paddingTop: colors.spacing.lg, gap: colors.spacing.lg }}>
+          <SkeletonCard style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }} />
+          <SkeletonCard style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }} />
+          <View style={{ gap: colors.spacing.md }}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <View key={i} style={{ gap: colors.spacing.sm }}>
+                <SkeletonBox width="50%" height={12} borderRadius={6} />
+                <SkeletonBox width="100%" height={8} borderRadius={4} />
+              </View>
+            ))}
+          </View>
         </View>
       ) : (
         <ScrollView
@@ -262,7 +272,7 @@ export default function DashboardScreen() {
           )}
         </ScrollView>
       )}
-    </View>
+    </AnimatedScreen>
   );
 }
 

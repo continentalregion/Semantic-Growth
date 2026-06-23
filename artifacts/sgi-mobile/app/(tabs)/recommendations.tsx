@@ -4,7 +4,6 @@ import {
   Text,
   FlatList,
   StyleSheet,
-  ActivityIndicator,
   RefreshControl,
   Platform,
 } from "react-native";
@@ -14,6 +13,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useGetMyRecommendations } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
+import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
+import { StaggeredItem } from "@/components/ui/StaggeredItem";
+import { SkeletonListCard } from "@/components/ui/SkeletonBox";
 
 type Category = "reasoning" | "interdisciplinary" | "abstraction" | "domain" | "conceptual";
 
@@ -120,7 +122,7 @@ export default function RecommendationsScreen() {
     (error as { response?: { status: number } } | null)?.response?.status === 403;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <AnimatedScreen style={{ backgroundColor: colors.background }}>
       <View style={[styles.header, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>
         <Ionicons name="bulb" size={20} color={palette.warning} />
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>Raccomandazioni</Text>
@@ -134,8 +136,10 @@ export default function RecommendationsScreen() {
       </View>
 
       {isLoading ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator color={colors.primary} size="large" />
+        <View style={{ flex: 1, paddingTop: 16, gap: 0 }}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <SkeletonListCard key={i} style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }} />
+          ))}
         </View>
       ) : isPremiumLocked ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, gap: 16 }}>
@@ -190,10 +194,14 @@ export default function RecommendationsScreen() {
               Percorso di crescita personalizzato · {recs.length} suggeriment{recs.length === 1 ? "o" : "i"}
             </Text>
           }
-          renderItem={({ item }) => <RecCard item={item} colors={colors} />}
+          renderItem={({ item, index }) => (
+            <StaggeredItem index={index} stepDelay={40}>
+              <RecCard item={item} colors={colors} />
+            </StaggeredItem>
+          )}
         />
       )}
-    </View>
+    </AnimatedScreen>
   );
 }
 

@@ -70,7 +70,7 @@ function RootLayoutNav() {
   return (
     <>
       <AuthGuard />
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ headerShown: false, animation: "fade", animationDuration: 200 }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
       </Stack>

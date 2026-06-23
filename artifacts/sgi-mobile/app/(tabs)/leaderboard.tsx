@@ -4,7 +4,6 @@ import {
   Text,
   FlatList,
   StyleSheet,
-  ActivityIndicator,
   RefreshControl,
   Platform,
 } from "react-native";
@@ -13,6 +12,9 @@ import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useGetLeaderboard } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
+import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
+import { StaggeredItem } from "@/components/ui/StaggeredItem";
+import { SkeletonRow } from "@/components/ui/SkeletonBox";
 
 const MEDAL = ["🥇", "🥈", "🥉"];
 
@@ -43,7 +45,7 @@ export default function LeaderboardScreen() {
   const entries = data?.entries ?? [];
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <AnimatedScreen style={{ backgroundColor: colors.background }}>
       <View style={[
         styles.header,
         {
@@ -56,8 +58,8 @@ export default function LeaderboardScreen() {
       </View>
 
       {isLoading ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator color={colors.primary} size="large" />
+        <View style={{ flex: 1 }}>
+          {Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)}
         </View>
       ) : (
         <FlatList
@@ -85,59 +87,61 @@ export default function LeaderboardScreen() {
               </Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <View style={[
-              styles.row,
-              {
-                borderBottomColor: colors.border + "44",
-                backgroundColor: item.isCurrentUser ? colors.primary + "10" : colors.transparent,
-              },
-            ]}>
-              <RankBadge rank={item.rank} colors={colors} />
-              <View style={{ flex: 1, marginLeft: colors.spacing.md }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: colors.spacing.xs }}>
-                  <Text
-                    style={[styles.name, { color: item.isCurrentUser ? colors.primary : colors.foreground }]}
-                    numberOfLines={1}
-                  >
-                    {item.displayName}
+          renderItem={({ item, index }) => (
+            <StaggeredItem index={index} stepDelay={35}>
+              <View style={[
+                styles.row,
+                {
+                  borderBottomColor: colors.border + "44",
+                  backgroundColor: item.isCurrentUser ? colors.primary + "10" : colors.transparent,
+                },
+              ]}>
+                <RankBadge rank={item.rank} colors={colors} />
+                <View style={{ flex: 1, marginLeft: colors.spacing.md }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: colors.spacing.xs }}>
+                    <Text
+                      style={[styles.name, { color: item.isCurrentUser ? colors.primary : colors.foreground }]}
+                      numberOfLines={1}
+                    >
+                      {item.displayName}
+                    </Text>
+                    {item.isCurrentUser && (
+                      <View style={[styles.youBadge, { backgroundColor: colors.primary + "25", borderColor: colors.primary + "40" }]}>
+                        <Text style={{ color: colors.primary, fontSize: colors.font.size.xs, fontFamily: colors.font.family.semibold }}>TU</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.percentile, { color: colors.mutedForeground }]}>
+                    Top {(100 - item.percentile).toFixed(0)}%
                   </Text>
-                  {item.isCurrentUser && (
-                    <View style={[styles.youBadge, { backgroundColor: colors.primary + "25", borderColor: colors.primary + "40" }]}>
-                      <Text style={{ color: colors.primary, fontSize: colors.font.size.xs, fontFamily: colors.font.family.semibold }}>TU</Text>
+                </View>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={[styles.score, { color: colors.teal }]}>
+                    {item.sgiScore.toFixed(1)}
+                  </Text>
+                  {item.rankChange30d !== null && item.rankChange30d !== 0 && (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+                      <Ionicons
+                        name={item.rankChange30d > 0 ? "trending-up" : "trending-down"}
+                        size={11}
+                        color={item.rankChange30d > 0 ? colors.teal : colors.destructive}
+                      />
+                      <Text style={{
+                        fontSize: colors.font.size.xs,
+                        color: item.rankChange30d > 0 ? colors.teal : colors.destructive,
+                        fontFamily: colors.font.family.medium,
+                      }}>
+                        {Math.abs(item.rankChange30d)}
+                      </Text>
                     </View>
                   )}
                 </View>
-                <Text style={[styles.percentile, { color: colors.mutedForeground }]}>
-                  Top {(100 - item.percentile).toFixed(0)}%
-                </Text>
               </View>
-              <View style={{ alignItems: "flex-end" }}>
-                <Text style={[styles.score, { color: colors.teal }]}>
-                  {item.sgiScore.toFixed(1)}
-                </Text>
-                {item.rankChange30d !== null && item.rankChange30d !== 0 && (
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
-                    <Ionicons
-                      name={item.rankChange30d > 0 ? "trending-up" : "trending-down"}
-                      size={11}
-                      color={item.rankChange30d > 0 ? colors.teal : colors.destructive}
-                    />
-                    <Text style={{
-                      fontSize: colors.font.size.xs,
-                      color: item.rankChange30d > 0 ? colors.teal : colors.destructive,
-                      fontFamily: colors.font.family.medium,
-                    }}>
-                      {Math.abs(item.rankChange30d)}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
+            </StaggeredItem>
           )}
         />
       )}
-    </View>
+    </AnimatedScreen>
   );
 }
 

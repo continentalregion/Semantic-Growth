@@ -4,8 +4,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  Pressable,
-  ActivityIndicator,
   RefreshControl,
   Platform,
 } from "react-native";
@@ -16,6 +14,9 @@ import { useAuth } from "@clerk/expo";
 import { useGetMyProfile, useGetMyGamification } from "@workspace/api-client-react";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/useColors";
+import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
+import { PressableScale } from "@/components/ui/PressableScale";
+import { SkeletonBox, SkeletonCard } from "@/components/ui/SkeletonBox";
 
 function DeltaBadge({ value, colors }: { value: number | null; colors: ReturnType<typeof useColors> }) {
   if (value === null) return null;
@@ -65,7 +66,7 @@ export default function ProfileScreen() {
   const isLoading = profileLoading || gamLoading;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <AnimatedScreen style={{ backgroundColor: colors.background }}>
       <View style={[
         styles.header,
         {
@@ -82,8 +83,9 @@ export default function ProfileScreen() {
       </View>
 
       {isLoading ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator color={colors.primary} size="large" />
+        <View style={{ flex: 1, paddingHorizontal: colors.spacing.lg, paddingTop: colors.spacing.lg, gap: colors.spacing.lg }}>
+          <SkeletonCard style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }} />
+          <SkeletonCard style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }} />
         </View>
       ) : (
         <ScrollView
@@ -178,16 +180,17 @@ export default function ProfileScreen() {
           </View>
 
           {/* Sign out */}
-          <Pressable
+          <PressableScale
             style={[styles.signOutBtn, { backgroundColor: colors.destructive + "15", borderColor: colors.destructive + "33" }]}
             onPress={handleSignOut}
+            haptic={false}
           >
             <Ionicons name="log-out-outline" size={18} color={colors.destructive} />
             <Text style={[styles.signOutText, { color: colors.destructive }]}>Esci</Text>
-          </Pressable>
+          </PressableScale>
         </ScrollView>
       )}
-    </View>
+    </AnimatedScreen>
   );
 }
 

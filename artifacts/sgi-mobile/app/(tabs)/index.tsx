@@ -4,13 +4,22 @@ import {
   Text,
   TextInput,
   Pressable,
-  Animated,
   FlatList,
   StyleSheet,
   ActivityIndicator,
   Platform,
   Modal,
 } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  withRepeat,
+  withSequence,
+  withDelay,
+  Easing,
+} from "react-native-reanimated";
 import Markdown from "react-native-markdown-display";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -30,6 +39,7 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
 import { LinearGradient } from "expo-linear-gradient";
+import { PressableScale } from "@/components/ui/PressableScale";
 
 const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
 
@@ -43,23 +53,24 @@ type ModelId = (typeof MODELS)[number]["id"];
 type LocalMessage = { id: string; role: "user" | "assistant"; content: string; streaming?: boolean };
 
 function TypingDot({ delay }: { delay: number }) {
-  const opacity = useRef(new Animated.Value(0.3)).current;
+  const opacity = useSharedValue(0.3);
   useEffect(() => {
-    let anim: Animated.CompositeAnimation;
-    const t = setTimeout(() => {
-      anim = Animated.loop(
-        Animated.sequence([
-          Animated.timing(opacity, { toValue: 0.9, duration: 380, useNativeDriver: true }),
-          Animated.timing(opacity, { toValue: 0.3, duration: 380, useNativeDriver: true }),
-        ])
-      );
-      anim.start();
-    }, delay);
-    return () => { clearTimeout(t); anim?.stop(); };
-  }, [delay, opacity]);
+    opacity.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(0.9, { duration: 380, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0.3, { duration: 380, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+        false,
+      ),
+    );
+  }, []);
+  const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
   return (
     <Animated.View
-      style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: palette.primary, opacity, marginHorizontal: 2.5 }}
+      style={[{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: palette.primary, marginHorizontal: 2.5 }, animStyle]}
     />
   );
 }
@@ -74,50 +85,6 @@ function TypingIndicator() {
   );
 }
 
-function PressableScale({
-  onPress,
-  style,
-  children,
-  disabled = false,
-  haptic = true,
-  hitSlop,
-}: {
-  onPress: () => void;
-  style?: object | object[];
-  children: React.ReactNode;
-  disabled?: boolean;
-  haptic?: boolean;
-  hitSlop?: { top: number; bottom: number; left: number; right: number };
-}) {
-  const scale = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = useCallback(() => {
-    Animated.spring(scale, { toValue: 0.88, useNativeDriver: true, speed: 60, bounciness: 2 }).start();
-  }, [scale]);
-
-  const handlePressOut = useCallback(() => {
-    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 10 }).start();
-  }, [scale]);
-
-  const handlePress = useCallback(() => {
-    if (haptic && !disabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onPress();
-  }, [haptic, disabled, onPress]);
-
-  return (
-    <Pressable
-      onPress={handlePress}
-      onPressIn={!disabled ? handlePressIn : undefined}
-      onPressOut={!disabled ? handlePressOut : undefined}
-      disabled={disabled}
-      hitSlop={hitSlop}
-    >
-      <Animated.View style={[style, { transform: [{ scale }] }]}>
-        {children}
-      </Animated.View>
-    </Pressable>
-  );
-}
 
 export default function ChatScreen() {
   const colors = useColors();
@@ -486,25 +453,26 @@ function SendButton({
   colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
   style: object;
 }) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const opacity = useRef(new Animated.Value(disabled ? 0.45 : 1)).current;
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(disabled ? 0.45 : 1);
 
   useEffect(() => {
-    Animated.timing(opacity, {
-      toValue: disabled ? 0.45 : 1,
-      duration: 150,
-      useNativeDriver: true,
-    }).start();
-  }, [disabled, opacity]);
+    opacity.value = withTiming(disabled ? 0.45 : 1, { duration: 150 });
+  }, [disabled]);
 
   const handlePressIn = useCallback(() => {
     if (disabled) return;
-    Animated.spring(scale, { toValue: 0.85, useNativeDriver: true, speed: 60, bounciness: 2 }).start();
-  }, [disabled, scale]);
+    scale.value = withSpring(0.85, { damping: 18, stiffness: 350 });
+  }, [disabled]);
 
   const handlePressOut = useCallback(() => {
-    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 12 }).start();
-  }, [scale]);
+    scale.value = withSpring(1, { damping: 14, stiffness: 220, mass: 0.8 });
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
 
   return (
     <Pressable
@@ -514,11 +482,11 @@ function SendButton({
       disabled={disabled}
       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
     >
-      <Animated.View style={[style, { transform: [{ scale }], opacity }]}>
+      <Animated.View style={[style, animStyle]}>
         {streaming ? (
-          <ActivityIndicator size="small" color="#fff" />
+          <ActivityIndicator size="small" color={palette.white} />
         ) : (
-          <Ionicons name="arrow-up" size={20} color="#fff" />
+          <Ionicons name="arrow-up" size={20} color={palette.white} />
         )}
       </Animated.View>
     </Pressable>
@@ -804,24 +772,18 @@ function ConvoRow({
   onDelete: (id: number) => void;
   colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
 }) {
-  const scale = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = useCallback(() => {
-    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 60, bounciness: 2 }).start();
-  }, [scale]);
-
-  const handlePressOut = useCallback(() => {
-    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 8 }).start();
-  }, [scale]);
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
     <Pressable
       onPress={() => { Haptics.selectionAsync(); onSelect(item.id); }}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
+      onPressIn={() => { scale.value = withSpring(0.97, { damping: 18, stiffness: 350 }); }}
+      onPressOut={() => { scale.value = withSpring(1, { damping: 14, stiffness: 220 }); }}
     >
       <Animated.View
         style={[
+          animStyle,
           {
             flexDirection: "row",
             alignItems: "center",
@@ -829,7 +791,6 @@ function ConvoRow({
             paddingVertical: 14,
             borderBottomWidth: 1,
             borderBottomColor: colors.border + "44",
-            transform: [{ scale }],
           },
           isActive && { backgroundColor: colors.primary + "10" },
         ]}

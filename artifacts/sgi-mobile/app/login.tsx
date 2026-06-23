@@ -3,13 +3,13 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   Platform,
   KeyboardAvoidingView,
   ScrollView,
 } from "react-native";
+import { PressableScale } from "@/components/ui/PressableScale";
 // @clerk/expo/legacy esporta useSignIn/useSignUp con la forma legacy:
 //   { signIn, isLoaded, setActive }  — identica a @clerk/react/legacy
 // È un pacchetto locale (sgi-mobile/node_modules/@clerk/expo), Metro lo trova.
@@ -331,38 +331,40 @@ export default function LoginScreen() {
               </View>
               {fieldErrors.code ? <Text style={s.errorText}>{fieldErrors.code}</Text> : null}
               {fieldErrors.general ? <Text style={s.errorText}>{fieldErrors.general}</Text> : null}
-              <TouchableOpacity
-                style={[s.btn, loading && s.btnDisabled]}
+              <PressableScale
+                style={[s.btn, (loading || code.length < 6) && s.btnDisabled]}
                 onPress={handleVerify}
                 disabled={loading || code.length < 6}
-                activeOpacity={0.8}
+                haptic={false}
               >
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={s.btnText}>Verifica</Text>
                 )}
-              </TouchableOpacity>
+              </PressableScale>
             </View>
           ) : (
             <View style={s.card}>
               <View style={s.modeTabs}>
-                <TouchableOpacity
+                <PressableScale
                   style={[s.modeTab, mode === "signin" && s.modeTabActive]}
                   onPress={() => { setMode("signin"); clearErrors(); }}
+                  scaleTarget={0.96}
                 >
                   <Text style={[s.modeTabText, mode === "signin" && s.modeTabTextActive]}>
                     Accedi
                   </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
+                </PressableScale>
+                <PressableScale
                   style={[s.modeTab, mode === "signup" && s.modeTabActive]}
                   onPress={() => { setMode("signup"); clearErrors(); }}
+                  scaleTarget={0.96}
                 >
                   <Text style={[s.modeTabText, mode === "signup" && s.modeTabTextActive]}>
                     Registrati
                   </Text>
-                </TouchableOpacity>
+                </PressableScale>
               </View>
 
               <View style={[s.inputWrap, hasEmailError && s.inputWrapError]}>
@@ -398,13 +400,18 @@ export default function LoginScreen() {
                     else handleSignIn();
                   }}
                 />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={s.eyeBtn}>
+                <PressableScale
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={s.eyeBtn}
+                  scaleTarget={0.88}
+                  haptic={false}
+                >
                   <Ionicons
                     name={showPassword ? "eye-off-outline" : "eye-outline"}
                     size={18}
                     color={colors.mutedForeground}
                   />
-                </TouchableOpacity>
+                </PressableScale>
               </View>
               {fieldErrors.password ? <Text style={s.errorText}>{fieldErrors.password}</Text> : null}
 
@@ -427,11 +434,11 @@ export default function LoginScreen() {
 
               {fieldErrors.general ? <Text style={s.errorText}>{fieldErrors.general}</Text> : null}
 
-              <TouchableOpacity
+              <PressableScale
                 style={[s.btn, (loading || !email || !password) && s.btnDisabled]}
                 onPress={mode === "signin" ? handleSignIn : handleSignUp}
                 disabled={loading || !email || !password}
-                activeOpacity={0.8}
+                haptic={false}
               >
                 {loading ? (
                   <ActivityIndicator color="#fff" />
@@ -440,7 +447,7 @@ export default function LoginScreen() {
                     {mode === "signin" ? "Accedi" : "Crea account"}
                   </Text>
                 )}
-              </TouchableOpacity>
+              </PressableScale>
             </View>
           )}
         </ScrollView>

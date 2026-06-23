@@ -7,7 +7,6 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
-  ActivityIndicator,
   RefreshControl,
   Modal,
   Alert,
@@ -20,6 +19,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
+import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
+import { PressableScale } from "@/components/ui/PressableScale";
+import { SkeletonBox } from "@/components/ui/SkeletonBox";
 import { LinearGradient } from "expo-linear-gradient";
 import { fetch } from "expo/fetch";
 
@@ -401,14 +403,38 @@ export default function BattlesScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator color={colors.primary} size="large" />
-      </View>
+      <AnimatedScreen style={{ backgroundColor: colors.background }}>
+        <LinearGradient
+          colors={[colors.primary + "18", colors.transparent]}
+          style={[styles.header, { paddingTop: insets.top + colors.spacing.sm }]}
+        >
+          <View style={styles.headerRow}>
+            <View style={{ gap: 8 }}>
+              <SkeletonBox width={140} height={22} borderRadius={8} />
+              <SkeletonBox width={200} height={13} borderRadius={6} />
+            </View>
+          </View>
+          <View style={[styles.tabRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <SkeletonBox width="45%" height={32} borderRadius={8} />
+            <SkeletonBox width="45%" height={32} borderRadius={8} />
+          </View>
+        </LinearGradient>
+        <View style={{ flex: 1, padding: colors.spacing.lg, gap: colors.spacing.md }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <View key={i} style={{ borderRadius: 14, padding: 16, gap: 10, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+              <SkeletonBox width="40%" height={11} borderRadius={5} />
+              <SkeletonBox width="90%" height={16} borderRadius={6} />
+              <SkeletonBox width="70%" height={16} borderRadius={6} />
+              <SkeletonBox width={90} height={32} borderRadius={8} style={{ marginTop: 4 }} />
+            </View>
+          ))}
+        </View>
+      </AnimatedScreen>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <AnimatedScreen style={{ backgroundColor: colors.background }}>
       {/* Header */}
       <LinearGradient
         colors={[colors.primary + "18", colors.transparent]}
@@ -449,14 +475,15 @@ export default function BattlesScreen() {
               <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>Nessuna arena disponibile</Text>
             </View>
           }
-          renderItem={({ item: thread }) => {
+          renderItem={({ item: thread, index }) => {
             const meta = CATEGORY_META[thread.category] ?? { label: thread.category, color: colors.mutedForeground, icon: "help-outline" };
             const isStarting = startingThreadId === thread.id;
             return (
-              <Pressable
+              <PressableScale
                 style={[styles.threadCard, { backgroundColor: colors.card, borderColor: colors.border }]}
                 onPress={() => startBattle(thread)}
                 disabled={isStarting}
+                scaleTarget={0.97}
               >
                 <View style={styles.threadTop}>
                   <View style={[styles.catBadge, { backgroundColor: meta.color + "18", borderColor: meta.color + "30" }]}>
@@ -488,7 +515,7 @@ export default function BattlesScreen() {
                     </>
                   )}
                 </View>
-              </Pressable>
+              </PressableScale>
             );
           }}
         />
@@ -582,7 +609,7 @@ export default function BattlesScreen() {
         colors={colors}
         getToken={getToken}
       />
-    </View>
+    </AnimatedScreen>
   );
 }
 
