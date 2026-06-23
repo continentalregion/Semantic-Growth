@@ -13,18 +13,19 @@ import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useGetMyRecommendations } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
+import { palette } from "@/constants/theme";
 
 type Category = "reasoning" | "interdisciplinary" | "abstraction" | "domain" | "conceptual";
 
 const CATEGORY_CONFIG: Record<Category, { icon: string; label: string; color: string }> = {
-  reasoning:        { icon: "🧠", label: "Ragionamento",     color: "#a855f7" },
-  interdisciplinary:{ icon: "🔗", label: "Interdisciplinare",color: "#06b6d4" },
-  abstraction:      { icon: "⬆️",  label: "Astrazione",       color: "#3b82f6" },
-  domain:           { icon: "📚", label: "Dominio",           color: "#f59e0b" },
-  conceptual:       { icon: "💡", label: "Concettuale",       color: "#10b981" },
+  reasoning:        { icon: "🧠", label: "Ragionamento",     color: palette.violet },
+  interdisciplinary:{ icon: "🔗", label: "Interdisciplinare",color: palette.cyan },
+  abstraction:      { icon: "⬆️",  label: "Astrazione",       color: palette.primaryLight },
+  domain:           { icon: "📚", label: "Dominio",           color: palette.warning },
+  conceptual:       { icon: "💡", label: "Concettuale",       color: palette.teal },
 };
 
-const DEFAULT_CAT = { icon: "✦", label: "Crescita", color: "#7c6bff" };
+const DEFAULT_CAT = { icon: "✦", label: "Crescita", color: palette.primary };
 
 function getCat(cat: string) {
   return CATEGORY_CONFIG[cat as Category] ?? DEFAULT_CAT;
@@ -50,8 +51,8 @@ function RecCard({
               <Text style={[cardStyles.catText, { color: cat.color }]}>{cat.label}</Text>
             </View>
             {item.priority != null && item.priority >= 8 && (
-              <View style={[cardStyles.catBadge, { backgroundColor: "#ef444418", borderColor: "#ef444433" }]}>
-                <Text style={[cardStyles.catText, { color: "#ef4444" }]}>Alta priorità</Text>
+              <View style={[cardStyles.catBadge, { backgroundColor: palette.pink + "18", borderColor: palette.pink + "33" }]}>
+                <Text style={[cardStyles.catText, { color: palette.pink }]}>Alta priorità</Text>
               </View>
             )}
           </View>
@@ -121,7 +122,7 @@ export default function RecommendationsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={[styles.header, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>
-        <Ionicons name="bulb" size={20} color="#f59e0b" />
+        <Ionicons name="bulb" size={20} color={palette.warning} />
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>Raccomandazioni</Text>
         {recs && recs.length > 0 && (
           <View style={[styles.countBadge, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "33" }]}>
@@ -156,7 +157,7 @@ export default function RecommendationsScreen() {
               marginTop: 8,
             }}
           >
-            <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 15 }}>
+            <Text style={{ color: palette.primaryFg, fontFamily: "Inter_600SemiBold", fontSize: 15 }}>
               Aggiorna il piano →
             </Text>
           </View>
@@ -204,7 +205,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#1a1e3a",
+    borderBottomColor: palette.surface3,
   },
   headerTitle: {
     flex: 1,

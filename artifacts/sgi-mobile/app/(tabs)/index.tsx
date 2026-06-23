@@ -28,6 +28,7 @@ import {
   getGetOpenaiConversationQueryKey,
 } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
+import { palette } from "@/constants/theme";
 import { LinearGradient } from "expo-linear-gradient";
 
 const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
@@ -58,7 +59,7 @@ function TypingDot({ delay }: { delay: number }) {
   }, [delay, opacity]);
   return (
     <Animated.View
-      style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: "#7c6bff", opacity, marginHorizontal: 2.5 }}
+      style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: palette.primary, opacity, marginHorizontal: 2.5 }}
     />
   );
 }
@@ -329,7 +330,7 @@ export default function ChatScreen() {
 
   return (
     <View style={s.root}>
-      <LinearGradient colors={["#08090f", "#08090f"]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[palette.bg, palette.bg]} style={StyleSheet.absoluteFill} />
 
       <View style={[s.header, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>
         <PressableScale
@@ -532,163 +533,155 @@ function MessageBubble({
   colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
 }) {
   const isUser = msg.role === "user";
+  const c = colors;
 
   const markdownStyles = {
     body: {
-      color: "#f0f1fa",
-      fontSize: 15,
-      fontFamily: "Inter_400Regular",
+      color: c.foreground,
+      fontSize: c.font.size.base,
+      fontFamily: c.font.family.regular,
       lineHeight: 23,
     },
     paragraph: {
       marginTop: 0,
       marginBottom: 6,
-      color: "#f0f1fa",
-      fontSize: 15,
-      fontFamily: "Inter_400Regular",
+      color: c.foreground,
+      fontSize: c.font.size.base,
+      fontFamily: c.font.family.regular,
       lineHeight: 23,
     },
     strong: {
-      fontFamily: "Inter_600SemiBold" as never,
-      color: "#ffffff",
+      fontFamily: c.font.family.semibold as never,
+      color: c.palette.white,
       fontWeight: "600" as const,
     },
     em: {
       fontStyle: "italic" as const,
-      color: "#d0d1f0",
+      color: c.palette.textPrimary,
     },
     heading1: {
-      fontSize: 18,
-      fontFamily: "SpaceGrotesk_700Bold",
-      color: "#ffffff",
-      marginBottom: 8,
-      marginTop: 10,
+      fontSize: c.font.size.lg,
+      fontFamily: c.font.family.heading,
+      color: c.palette.white,
+      marginBottom: c.spacing.sm,
+      marginTop: c.spacing.md,
     },
     heading2: {
-      fontSize: 16,
-      fontFamily: "SpaceGrotesk_700Bold",
-      color: "#e8e9ff",
-      marginBottom: 6,
-      marginTop: 8,
+      fontSize: c.font.size.md,
+      fontFamily: c.font.family.heading,
+      color: c.foreground,
+      marginBottom: c.spacing.sm,
+      marginTop: c.spacing.sm,
     },
     heading3: {
-      fontSize: 15,
-      fontFamily: "Inter_600SemiBold" as never,
-      color: "#d0d1f0",
-      marginBottom: 4,
-      marginTop: 6,
+      fontSize: c.font.size.base,
+      fontFamily: c.font.family.semibold as never,
+      color: c.foreground,
+      marginBottom: c.spacing.xs,
+      marginTop: c.spacing.sm,
     },
     code_inline: {
-      backgroundColor: "rgba(124,107,255,0.18)",
-      color: "#a89fff",
+      backgroundColor: c.primary + "2e",
+      color: c.primaryLight,
       fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
-      fontSize: 13,
+      fontSize: c.font.size.sm,
       paddingHorizontal: 5,
       paddingVertical: 1,
-      borderRadius: 4,
+      borderRadius: c.radii.xs,
     },
     fence: {
-      backgroundColor: "#0a0d1a",
-      borderRadius: 10,
-      padding: 12,
-      marginVertical: 8,
+      backgroundColor: c.background,
+      borderRadius: c.radii.md,
+      padding: c.spacing.md,
+      marginVertical: c.spacing.sm,
       borderWidth: 1,
-      borderColor: "#1a1e3a",
+      borderColor: c.border,
     },
     code_block: {
-      backgroundColor: "#0a0d1a",
-      borderRadius: 10,
-      padding: 12,
-      marginVertical: 8,
+      backgroundColor: c.background,
+      borderRadius: c.radii.md,
+      padding: c.spacing.md,
+      marginVertical: c.spacing.sm,
       fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
-      fontSize: 13,
-      color: "#a89fff",
+      fontSize: c.font.size.sm,
+      color: c.primaryLight,
     },
-    bullet_list: {
-      marginVertical: 4,
-    },
-    ordered_list: {
-      marginVertical: 4,
-    },
-    list_item: {
-      marginVertical: 2,
-      flexDirection: "row" as const,
-    },
+    bullet_list: { marginVertical: c.spacing.xs },
+    ordered_list: { marginVertical: c.spacing.xs },
+    list_item: { marginVertical: 2, flexDirection: "row" as const },
     bullet_list_icon: {
-      color: "#7c6bff",
-      fontSize: 15,
-      marginRight: 6,
+      color: c.primary,
+      fontSize: c.font.size.base,
+      marginRight: c.spacing.sm,
       marginTop: 1,
     },
     ordered_list_icon: {
-      color: "#7c6bff",
-      fontSize: 15,
-      fontFamily: "Inter_600SemiBold" as never,
-      marginRight: 6,
+      color: c.primary,
+      fontSize: c.font.size.base,
+      fontFamily: c.font.family.semibold as never,
+      marginRight: c.spacing.sm,
     },
     blockquote: {
-      backgroundColor: "rgba(124,107,255,0.08)",
+      backgroundColor: c.primary + "14",
       borderLeftWidth: 3,
-      borderLeftColor: "#7c6bff",
-      paddingLeft: 12,
-      paddingVertical: 6,
-      borderRadius: 4,
-      marginVertical: 6,
+      borderLeftColor: c.primary,
+      paddingLeft: c.spacing.md,
+      paddingVertical: c.spacing.sm,
+      borderRadius: c.radii.xs,
+      marginVertical: c.spacing.sm,
     },
     hr: {
-      backgroundColor: "#1a1e3a",
+      backgroundColor: c.border,
       height: 1,
-      marginVertical: 12,
+      marginVertical: c.spacing.md,
     },
     link: {
-      color: "#7c6bff",
+      color: c.primary,
       textDecorationLine: "underline" as const,
     },
     table: {
       borderWidth: 1,
-      borderColor: "#1a1e3a",
-      borderRadius: 8,
-      marginVertical: 8,
+      borderColor: c.border,
+      borderRadius: c.radii.sm,
+      marginVertical: c.spacing.sm,
     },
     th: {
-      backgroundColor: "rgba(124,107,255,0.12)",
-      padding: 8,
-      color: "#a89fff",
-      fontFamily: "Inter_600SemiBold" as never,
-      fontSize: 13,
+      backgroundColor: c.primary + "1f",
+      padding: c.spacing.sm,
+      color: c.primaryLight,
+      fontFamily: c.font.family.semibold as never,
+      fontSize: c.font.size.sm,
     },
     td: {
-      padding: 8,
-      color: "#d0d1f0",
-      fontSize: 13,
+      padding: c.spacing.sm,
+      color: c.foreground,
+      fontSize: c.font.size.sm,
       borderTopWidth: 1,
-      borderTopColor: "#1a1e3a",
+      borderTopColor: c.border,
     },
   };
 
   return (
     <View style={[bubbleStyles.row, isUser ? bubbleStyles.rowUser : bubbleStyles.rowAssistant]}>
       {!isUser && (
-        <View style={[bubbleStyles.avatar, { backgroundColor: "#7c6bff22", borderColor: "#7c6bff33" }]}>
-          <Ionicons name="sparkles" size={14} color="#7c6bff" />
+        <View style={[bubbleStyles.avatar, { backgroundColor: c.primary + "22", borderColor: c.primary + "33" }]}>
+          <Ionicons name="sparkles" size={14} color={c.primary} />
         </View>
       )}
       <View
         style={[
           bubbleStyles.bubble,
           isUser
-            ? { backgroundColor: "#7c6bff", borderBottomRightRadius: 4 }
-            : { backgroundColor: "#0f1322", borderColor: "#1a1e3a", borderWidth: 1, borderBottomLeftRadius: 4 },
+            ? { backgroundColor: c.primary, borderBottomRightRadius: c.radii.xs }
+            : { backgroundColor: c.card, borderColor: c.border, borderWidth: 1, borderBottomLeftRadius: c.radii.xs },
         ]}
       >
         {isUser ? (
-          <Text style={bubbleStyles.userText}>{msg.content}</Text>
+          <Text style={[bubbleStyles.userText, { color: c.palette.white }]}>{msg.content}</Text>
         ) : msg.streaming ? (
           <>
-            <Text style={bubbleStyles.streamingText}>
-              {msg.content}
-            </Text>
-            <Text style={bubbleStyles.cursor}>▎</Text>
+            <Text style={[bubbleStyles.streamingText, { color: c.foreground }]}>{msg.content}</Text>
+            <Text style={[bubbleStyles.cursor, { color: c.primary }]}>▎</Text>
           </>
         ) : (
           <Markdown style={markdownStyles as never}>
@@ -714,9 +707,9 @@ const bubbleStyles = StyleSheet.create({
     marginBottom: 2,
   },
   bubble: { maxWidth: "85%", borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10 },
-  userText: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22, color: "#fff" },
-  streamingText: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 23, color: "#f0f1fa" },
-  cursor: { color: "#7c6bff", fontSize: 16 },
+  userText: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22 },
+  streamingText: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 23 },
+  cursor: { fontSize: 16 },
 });
 
 function ConvoModal({

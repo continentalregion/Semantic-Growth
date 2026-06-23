@@ -282,7 +282,7 @@ export default function LoginScreen() {
   return (
     <View style={[s.root, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={["#1a0d4a", "#08090f", "#08090f"]}
+        colors={[colors.primary + "3a", colors.background, colors.background]}
         style={StyleSheet.absoluteFill}
       />
 
@@ -366,7 +366,7 @@ export default function LoginScreen() {
               </View>
 
               <View style={[s.inputWrap, hasEmailError && s.inputWrapError]}>
-                <Ionicons name="mail-outline" size={18} color={hasEmailError ? "#f87171" : colors.mutedForeground} style={s.inputIcon} />
+                <Ionicons name="mail-outline" size={18} color={hasEmailError ? colors.destructive : colors.mutedForeground} style={s.inputIcon} />
                 <TextInput
                   style={s.input}
                   placeholder="Email"
@@ -383,7 +383,7 @@ export default function LoginScreen() {
               {fieldErrors.email ? <Text style={s.errorText}>{fieldErrors.email}</Text> : null}
 
               <View style={[s.inputWrap, hasPasswordError && s.inputWrapError]}>
-                <Ionicons name="lock-closed-outline" size={18} color={hasPasswordError ? "#f87171" : colors.mutedForeground} style={s.inputIcon} />
+                <Ionicons name="lock-closed-outline" size={18} color={hasPasswordError ? colors.destructive : colors.mutedForeground} style={s.inputIcon} />
                 <TextInput
                   ref={passwordRef}
                   style={[s.input, { flex: 1 }]}
@@ -410,7 +410,7 @@ export default function LoginScreen() {
 
               {mode === "signup" && (
                 <View style={[s.inputWrap, hasPasswordError && s.inputWrapError]}>
-                  <Ionicons name="lock-closed-outline" size={18} color={hasPasswordError ? "#f87171" : colors.mutedForeground} style={s.inputIcon} />
+                  <Ionicons name="lock-closed-outline" size={18} color={hasPasswordError ? colors.destructive : colors.mutedForeground} style={s.inputIcon} />
                   <TextInput
                     ref={confirmRef}
                     style={s.input}
@@ -542,7 +542,7 @@ function makeStyles(colors: ReturnType<typeof import("@/hooks/useColors").useCol
       height: 48,
     },
     inputWrapError: {
-      borderColor: "#f87171",
+      borderColor: colors.destructive,
     },
     inputIcon: {
       marginRight: 8,
@@ -557,7 +557,7 @@ function makeStyles(colors: ReturnType<typeof import("@/hooks/useColors").useCol
       padding: 4,
     },
     errorText: {
-      color: "#f87171",
+      color: colors.destructive,
       fontSize: 12,
       fontFamily: "Inter_400Regular",
       marginTop: -4,

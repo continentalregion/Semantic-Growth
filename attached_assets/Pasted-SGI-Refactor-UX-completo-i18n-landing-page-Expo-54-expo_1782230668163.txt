@@ -1,0 +1,19 @@
+SGI — Refactor UX completo + i18n + landing page (Expo 54, expo-router 6, Clerk, TanStack Query)
+
+Audit Fase 0 ricevuto e approvato. reanimated 4.1.1 e react-native-svg 15.12.1 già installati: non installare nulla per le fasi 2-3. Lavora UNA FASE ALLA VOLTA, fermandoti per mia conferma tra una e l'altra. Non rifare da zero ciò che funziona: rifattorizza. Mantieni l'app sempre avviabile su Expo Go dopo ogni fase. Non introdurre dipendenze senza dirmelo prima. Principio guida: l'app sembra "AI primi tempi" — rigida, dato che non racconta nulla. Obiettivo: far percepire qualità e valore, non aggiungere feature superflue.
+
+FASE 1 — DESIGN SYSTEM (la più importante, è la causa del feel "primi tempi"): estendi constants/colors.ts (o crea constants/theme.ts) con token completi: palette coerente (primario, accento, scala grigi semantica surface/border/text-primary/text-muted, stati success/warning/error), tipografia a 4-5 livelli, spacing a step fissi (4-8-12-16-24-32), border radius coerenti, durate animazioni (150/250/400ms con easing). Poi ELIMINA tutti gli hex hardcoded ("#1a1e3a", "#7c6bff", ecc.) e i numeri magic per spacing/fontSize/radius da TUTTE le schermate, sostituendoli coi token via useColors/theme. Criterio: zero valori hardcoded residui, ogni schermata legge solo dai token.
+
+FASE 2 — FLUIDITÀ con reanimated (già installato): transizioni morbide tra schermate, feedback al tap ovunque (Pressable con scale/opacity, non TouchableOpacity nudo), comparsa progressiva (fade/slide-in, staggered nelle liste), skeleton loader al posto degli spinner. Criterio: niente appare "di colpo", feedback entro 100ms.
+
+FASE 3 — CRESCITA SEMANTICA (cuore del prodotto, oggi punto più debole; i dati esistono GIÀ tutti negli endpoint, vanno solo visualizzati bene). Su dashboard.tsx: score finale "da hero" (numero grande, count-up animato, con sgiDailyDelta/weeklyDelta/monthlyDelta accanto, segno + colore di stato); grafico trend temporale dello score da /sgi-history (usa react-native-svg già presente); breakdown delle 4 macro-dimensioni (profondità/connettività/precisione/revisione) in radar o barre orizzontali; le 7 metriche raw con label umana + 1 riga di spiegazione ciascuna (NON nomi tecnici nudi tipo "conceptualComplexity"); per premium/pro integra semantic-map e predictions. Criterio: l'utente capisce in <5 secondi se sta crescendo e in cosa.
+
+FASE 4 — LEADERBOARD PIÙ SOCIALE (NON costruire un social da zero — non esiste feed/connessioni e non li vogliamo ora): rendi i profili in classifica tappabili → profilo pubblico con sgiScore, macro-dimensioni e rank; aggiungi confronto "tu vs questo utente". Mostrami prima cosa restituisce oggi l'endpoint leaderboard e proponi il flusso PRIMA di implementare, aspetta conferma.
+
+FASE 5 — FIX BATTLE (bug circoscritti, no rifacimento): 1) sostituisci l'avatar hardcoded "Tu" col nome reale da Clerk (useUser); 2) impedisci handleComplete se non è stato inviato almeno un messaggio (niente score su 0 messaggi); 3) stati chiari in attesa/in corso/conclusa con esito leggibile; poi applica design system e animazioni delle fasi precedenti.
+
+FASE 6 — i18N (IT/EN/ES selezionabile in-app): imposta internazionalizzazione (proponi la libreria, es. i18next/expo-localization, e chiedimi conferma prima di installare). Estrai TUTTE le stringhe hardcoded in file di traduzione it/en/es. Aggiungi un selettore lingua in profile.tsx che persiste la scelta. Default: lingua di sistema, fallback inglese.
+
+FASE 7 — LANDING PAGE PRE-LOGIN: oggi si apre direttamente login.tsx. Inserisci prima una schermata di benvenuto che presenti SGI in breve, allineata al sito web: non è solo una chat con l'AI, ma una piattaforma che traccia la tua crescita semantica nel tempo attraverso metriche e punteggi. Pochi punti chiave + un CTA "Inizia / Accedi" che porta al login Clerk. Tradotta nelle 3 lingue (Fase 6). Mostrami il copy proposto prima di finalizzare.
+
+Inizia dalla Fase 1.

@@ -16,29 +16,23 @@ import { useColors } from "@/hooks/useColors";
 
 const MEDAL = ["🥇", "🥈", "🥉"];
 
-function RankBadge({ rank, colors }: { rank: number; colors: ReturnType<typeof import("@/hooks/useColors").useColors> }) {
+function RankBadge({ rank, colors }: { rank: number; colors: ReturnType<typeof useColors> }) {
   if (rank <= 3) {
+    const bg = [colors.gold, colors.silver, colors.bronze][rank - 1]! + "22";
     return (
-      <View style={[badgeStyles.root, badgeStyles[`r${rank}` as "r1" | "r2" | "r3"]]}>
+      <View style={[styles.badgeRoot, { backgroundColor: bg }]}>
         <Text style={{ fontSize: 13 }}>{MEDAL[rank - 1]}</Text>
       </View>
     );
   }
   return (
-    <View style={[badgeStyles.root, { backgroundColor: colors.muted }]}>
-      <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
+    <View style={[styles.badgeRoot, { backgroundColor: colors.muted }]}>
+      <Text style={{ color: colors.mutedForeground, fontFamily: colors.font.family.semibold, fontSize: colors.font.size.sm }}>
         #{rank}
       </Text>
     </View>
   );
 }
-
-const badgeStyles = StyleSheet.create({
-  root: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
-  r1: { backgroundColor: "#ffd70022" },
-  r2: { backgroundColor: "#c0c0c022" },
-  r3: { backgroundColor: "#cd7f3222" },
-});
 
 export default function LeaderboardScreen() {
   const colors = useColors();
@@ -50,8 +44,14 @@ export default function LeaderboardScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={[styles.header, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>
-        <Ionicons name="trophy" size={20} color="#ffd700" />
+      <View style={[
+        styles.header,
+        {
+          paddingTop: Platform.OS === "web" ? 67 : insets.top,
+          borderBottomColor: colors.border,
+        },
+      ]}>
+        <Ionicons name="trophy" size={20} color={colors.gold} />
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>Classifica</Text>
       </View>
 
@@ -64,13 +64,9 @@ export default function LeaderboardScreen() {
           data={entries}
           keyExtractor={(_e, i) => String(i)}
           scrollEnabled={entries.length > 0}
-          contentContainerStyle={{ paddingBottom: (Platform.OS === "web" ? 34 : tabBarHeight) + 16 }}
+          contentContainerStyle={{ paddingBottom: (Platform.OS === "web" ? 34 : tabBarHeight) + colors.spacing.lg }}
           refreshControl={
-            <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={refetch}
-              tintColor={colors.primary}
-            />
+            <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary} />
           }
           ListHeaderComponent={
             entries.length > 0 ? (
@@ -82,38 +78,33 @@ export default function LeaderboardScreen() {
             ) : null
           }
           ListEmptyComponent={
-            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 12 }}>
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 80, gap: colors.spacing.md }}>
               <Ionicons name="trophy-outline" size={48} color={colors.border} />
-              <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular" }}>
+              <Text style={{ color: colors.mutedForeground, fontFamily: colors.font.family.regular }}>
                 Nessun dato disponibile
               </Text>
             </View>
           }
           renderItem={({ item }) => (
-            <View
-              style={[
-                styles.row,
-                {
-                  borderBottomColor: colors.border + "44",
-                  backgroundColor: item.isCurrentUser ? colors.primary + "10" : "transparent",
-                },
-              ]}
-            >
+            <View style={[
+              styles.row,
+              {
+                borderBottomColor: colors.border + "44",
+                backgroundColor: item.isCurrentUser ? colors.primary + "10" : colors.transparent,
+              },
+            ]}>
               <RankBadge rank={item.rank} colors={colors} />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <View style={{ flex: 1, marginLeft: colors.spacing.md }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: colors.spacing.xs }}>
                   <Text
-                    style={[
-                      styles.name,
-                      { color: item.isCurrentUser ? colors.primary : colors.foreground },
-                    ]}
+                    style={[styles.name, { color: item.isCurrentUser ? colors.primary : colors.foreground }]}
                     numberOfLines={1}
                   >
                     {item.displayName}
                   </Text>
                   {item.isCurrentUser && (
                     <View style={[styles.youBadge, { backgroundColor: colors.primary + "25", borderColor: colors.primary + "40" }]}>
-                      <Text style={{ color: colors.primary, fontSize: 10, fontFamily: "Inter_600SemiBold" }}>TU</Text>
+                      <Text style={{ color: colors.primary, fontSize: colors.font.size.xs, fontFamily: colors.font.family.semibold }}>TU</Text>
                     </View>
                   )}
                 </View>
@@ -132,7 +123,11 @@ export default function LeaderboardScreen() {
                       size={11}
                       color={item.rankChange30d > 0 ? colors.teal : colors.destructive}
                     />
-                    <Text style={{ fontSize: 10, color: item.rankChange30d > 0 ? colors.teal : colors.destructive, fontFamily: "Inter_500Medium" }}>
+                    <Text style={{
+                      fontSize: colors.font.size.xs,
+                      color: item.rankChange30d > 0 ? colors.teal : colors.destructive,
+                      fontFamily: colors.font.family.medium,
+                    }}>
                       {Math.abs(item.rankChange30d)}
                     </Text>
                   </View>
@@ -154,7 +149,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#1a1e3a",
   },
   headerTitle: {
     fontSize: 20,
@@ -194,5 +188,12 @@ const styles = StyleSheet.create({
   score: {
     fontSize: 16,
     fontFamily: "Inter_700Bold",
+  },
+  badgeRoot: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

@@ -1,49 +1,15 @@
+/**
+ * Re-exports from theme.ts for backward compatibility.
+ * Screens should import useColors() from @/hooks/useColors — not this file directly.
+ */
+export { colorTokens as default, palette } from "./theme";
+
+import { colorTokens, radii } from "./theme";
+
 const colors = {
-  light: {
-    text: "#f0f1fa",
-    tint: "#7c6bff",
-    background: "#08090f",
-    foreground: "#f0f1fa",
-    card: "#0f1322",
-    cardForeground: "#f0f1fa",
-    primary: "#7c6bff",
-    primaryForeground: "#0a0e1a",
-    secondary: "#1b1e35",
-    secondaryForeground: "#f0f1fa",
-    muted: "#151728",
-    mutedForeground: "#7a7ea8",
-    accent: "#7c6bff",
-    accentForeground: "#f0f1fa",
-    destructive: "#f72585",
-    destructiveForeground: "#ffffff",
-    border: "#1a1e3a",
-    input: "#1a1e3a",
-    teal: "#06d6a0",
-    pink: "#f72585",
-  },
-  dark: {
-    text: "#f0f1fa",
-    tint: "#7c6bff",
-    background: "#08090f",
-    foreground: "#f0f1fa",
-    card: "#0f1322",
-    cardForeground: "#f0f1fa",
-    primary: "#7c6bff",
-    primaryForeground: "#0a0e1a",
-    secondary: "#1b1e35",
-    secondaryForeground: "#f0f1fa",
-    muted: "#151728",
-    mutedForeground: "#7a7ea8",
-    accent: "#7c6bff",
-    accentForeground: "#f0f1fa",
-    destructive: "#f72585",
-    destructiveForeground: "#ffffff",
-    border: "#1a1e3a",
-    input: "#1a1e3a",
-    teal: "#06d6a0",
-    pink: "#f72585",
-  },
-  radius: 12,
+  light: { ...colorTokens },
+  dark:  { ...colorTokens },
+  radius: radii.lg,
 };
 
 export default colors;

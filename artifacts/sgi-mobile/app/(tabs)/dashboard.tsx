@@ -13,31 +13,29 @@ import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useGetMyProfile, useGetSgiHistory } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
+import { palette } from "@/constants/theme";
 
 const MACRO_DIMS = [
-  { key: "profondita",   label: "Profondità",   icon: "🧠", color: "#7c6bff" },
-  { key: "connettivita", label: "Connettività",  icon: "🔗", color: "#06b6d4" },
-  { key: "precisione",   label: "Precisione",    icon: "🎯", color: "#a855f7" },
-  { key: "revisione",    label: "Revisione",     icon: "🔄", color: "#10b981" },
+  { key: "profondita",   label: "Profondità",   icon: "🧠", color: palette.primary },
+  { key: "connettivita", label: "Connettività",  icon: "🔗", color: palette.cyan },
+  { key: "precisione",   label: "Precisione",    icon: "🎯", color: palette.violet },
+  { key: "revisione",    label: "Revisione",     icon: "🔄", color: palette.teal },
 ] as const;
 
 function DeltaChip({
-  label,
-  value,
-  colors,
+  label, value, colors,
 }: {
   label: string;
   value: number | null | undefined;
-  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
+  colors: ReturnType<typeof useColors>;
 }) {
   const v = value ?? 0;
   const up = v >= 0;
+  const c = up ? colors.teal : colors.destructive;
   return (
-    <View style={[chipStyles.root, { backgroundColor: (up ? colors.teal : colors.destructive) + "18", borderColor: (up ? colors.teal : colors.destructive) + "33" }]}>
-      <Ionicons name={up ? "trending-up" : "trending-down"} size={11} color={up ? colors.teal : colors.destructive} />
-      <Text style={[chipStyles.val, { color: up ? colors.teal : colors.destructive }]}>
-        {up ? "+" : ""}{v.toFixed(2)}
-      </Text>
+    <View style={[chipStyles.root, { backgroundColor: c + "18", borderColor: c + "33" }]}>
+      <Ionicons name={up ? "trending-up" : "trending-down"} size={11} color={c} />
+      <Text style={[chipStyles.val, { color: c }]}>{up ? "+" : ""}{v.toFixed(2)}</Text>
       <Text style={[chipStyles.lbl, { color: colors.mutedForeground }]}>{label}</Text>
     </View>
   );
@@ -103,15 +101,21 @@ export default function DashboardScreen() {
   const scores = sorted.map(h => h.score);
 
   const planLabel = { free: "Free", premium: "Premium ⚡", pro: "Pro 🚀" }[profile?.plan ?? "free"] ?? "Free";
-  const planColor = { free: colors.mutedForeground, premium: "#ffd700", pro: colors.teal }[profile?.plan ?? "free"] ?? colors.mutedForeground;
+  const planColor = { free: colors.mutedForeground, premium: colors.gold, pro: colors.teal }[profile?.plan ?? "free"] ?? colors.mutedForeground;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={[styles.header, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>
+      <View style={[
+        styles.header,
+        {
+          paddingTop: Platform.OS === "web" ? 67 : insets.top,
+          borderBottomColor: colors.border,
+        },
+      ]}>
         <Ionicons name="analytics" size={20} color={colors.primary} />
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>Dashboard</Text>
         <View style={[styles.planChip, { borderColor: planColor + "44", backgroundColor: planColor + "18" }]}>
-          <Text style={{ color: planColor, fontSize: 11, fontFamily: "Inter_600SemiBold" }}>{planLabel}</Text>
+          <Text style={{ color: planColor, fontSize: colors.font.size.xs, fontFamily: colors.font.family.semibold }}>{planLabel}</Text>
         </View>
       </View>
 
@@ -123,10 +127,10 @@ export default function DashboardScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingTop: 20,
-            paddingBottom: tabBarHeight + 20,
-            gap: 16,
+            paddingHorizontal: colors.spacing.lg,
+            paddingTop: colors.spacing.lg,
+            paddingBottom: tabBarHeight + colors.spacing.lg,
+            gap: colors.spacing.lg,
           }}
           refreshControl={
             <RefreshControl
@@ -139,27 +143,27 @@ export default function DashboardScreen() {
           {/* SGI Score card */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.primary + "33" }]}>
             <Text style={[styles.cardLabel, { color: colors.mutedForeground }]}>SGI SCORE</Text>
-            <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 12, marginTop: 4 }}>
+            <View style={{ flexDirection: "row", alignItems: "flex-end", gap: colors.spacing.md, marginTop: colors.spacing.xs }}>
               <Text style={[styles.bigScore, { color: colors.primary }]}>
                 {(profile?.sgiScore ?? 0).toFixed(1)}
               </Text>
-              <View style={{ gap: 4, paddingBottom: 6, flexDirection: "row", flexWrap: "wrap", flex: 1 }}>
+              <View style={{ gap: colors.spacing.xs, paddingBottom: colors.spacing.sm, flexDirection: "row", flexWrap: "wrap", flex: 1 }}>
                 <DeltaChip label="oggi" value={profile?.sgiDailyDelta} colors={colors} />
                 <DeltaChip label="settimana" value={profile?.sgiWeeklyDelta} colors={colors} />
                 <DeltaChip label="mese" value={profile?.sgiMonthlyDelta} colors={colors} />
               </View>
             </View>
             {scores.length >= 2 && (
-              <View style={{ marginTop: 12 }}>
-                <Text style={{ color: colors.mutedForeground, fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 6 }}>
+              <View style={{ marginTop: colors.spacing.md }}>
+                <Text style={{ color: colors.mutedForeground, fontSize: colors.font.size.xs, fontFamily: colors.font.family.regular, marginBottom: colors.spacing.sm }}>
                   Ultimi 14 giorni
                 </Text>
-                <View style={{ flexDirection: "row", gap: 4, alignItems: "flex-end", height: 40 }}>
+                <View style={{ flexDirection: "row", gap: colors.spacing.xs, alignItems: "flex-end", height: 40 }}>
                   {scores.map((s, i) => {
                     const min = Math.min(...scores);
                     const max = Math.max(...scores);
                     const range = max - min || 1;
-                    const pct = ((s - min) / range);
+                    const pct = (s - min) / range;
                     const h = Math.max(4, Math.round(pct * 36));
                     return (
                       <View
@@ -167,7 +171,7 @@ export default function DashboardScreen() {
                         style={{
                           flex: 1,
                           height: h,
-                          borderRadius: 2,
+                          borderRadius: colors.radii.xs,
                           backgroundColor: i === scores.length - 1 ? colors.primary : colors.primary + "44",
                           alignSelf: "flex-end",
                         }}
@@ -184,7 +188,7 @@ export default function DashboardScreen() {
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, flexDirection: "row", gap: 0 }]}>
               {profile?.globalRank != null && (
                 <View style={[styles.statCell, { borderRightWidth: 1, borderRightColor: colors.border }]}>
-                  <Ionicons name="trophy" size={18} color="#ffd700" />
+                  <Ionicons name="trophy" size={18} color={colors.gold} />
                   <Text style={[styles.statNum, { color: colors.foreground }]}>#{profile.globalRank}</Text>
                   <Text style={[styles.statLbl, { color: colors.mutedForeground }]}>Posizione globale</Text>
                 </View>
@@ -208,20 +212,18 @@ export default function DashboardScreen() {
 
           {/* Macro dimensions */}
           {macro && (
-            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, gap: 14 }]}>
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, gap: colors.spacing.md }]}>
               <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Dimensioni semantiche</Text>
               {MACRO_DIMS.map(dim => {
                 const val = (macro[dim.key] ?? 0) * 100;
                 return (
-                  <View key={dim.key} style={{ gap: 6 }}>
+                  <View key={dim.key} style={{ gap: colors.spacing.sm }}>
                     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: colors.spacing.sm }}>
                         <Text style={{ fontSize: 14 }}>{dim.icon}</Text>
-                        <Text style={{ color: colors.foreground, fontFamily: "Inter_500Medium", fontSize: 13 }}>
-                          {dim.label}
-                        </Text>
+                        <Text style={{ color: colors.foreground, fontFamily: colors.font.family.medium, fontSize: colors.font.size.md }}>{dim.label}</Text>
                       </View>
-                      <Text style={{ color: dim.color, fontFamily: "Inter_700Bold", fontSize: 13 }}>
+                      <Text style={{ color: dim.color, fontFamily: colors.font.family.bold, fontSize: colors.font.size.md }}>
                         {val.toFixed(0)}%
                       </Text>
                     </View>
@@ -234,7 +236,7 @@ export default function DashboardScreen() {
 
           {/* Rank change 30d */}
           {(profile as unknown as { rankChange30d?: number })?.rankChange30d != null && (
-            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, flexDirection: "row", alignItems: "center", gap: 12 }]}>
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, flexDirection: "row", alignItems: "center", gap: colors.spacing.md }]}>
               <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary + "18", alignItems: "center", justifyContent: "center" }}>
                 <Ionicons
                   name={(profile as unknown as { rankChange30d?: number })!.rankChange30d! >= 0 ? "trending-up" : "trending-down"}
@@ -243,12 +245,12 @@ export default function DashboardScreen() {
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.foreground, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>
+                <Text style={{ color: colors.foreground, fontFamily: colors.font.family.semibold, fontSize: colors.font.size.base }}>
                   Variazione rank (30gg)
                 </Text>
                 <Text style={{
                   color: (profile as unknown as { rankChange30d?: number })!.rankChange30d! >= 0 ? colors.teal : colors.destructive,
-                  fontFamily: "Inter_700Bold",
+                  fontFamily: colors.font.family.bold,
                   fontSize: 20,
                   marginTop: 2,
                 }}>
@@ -272,7 +274,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#1a1e3a",
   },
   headerTitle: {
     flex: 1,
