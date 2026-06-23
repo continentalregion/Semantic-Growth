@@ -13,6 +13,7 @@ import {
   Share,
   Platform,
   Dimensions,
+  KeyboardAvoidingView,
 } from "react-native";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
@@ -226,6 +227,11 @@ function BattleSessionModal({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => !timerActive && onClose()}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={0}
+      >
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         {/* Off-screen shareable card — catturata da captureRef */}
         {completed && score && (
@@ -316,6 +322,8 @@ function BattleSessionModal({
               ref={flatListRef}
               data={messages}
               keyExtractor={(_, i) => String(i)}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
               contentContainerStyle={{ padding: colors.spacing.lg, gap: colors.spacing.md }}
               ListEmptyComponent={
                 <View style={styles.emptySession}>
@@ -369,6 +377,7 @@ function BattleSessionModal({
           </>
         )}
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
