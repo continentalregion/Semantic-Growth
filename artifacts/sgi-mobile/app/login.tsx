@@ -11,7 +11,10 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { useSignIn, useSignUp, useClerk } from "@clerk/expo";
+import { useClerk } from "@clerk/expo";
+// @clerk/react v6 exports signal-based useSignUp/useSignIn (no isLoaded).
+// Use the legacy path that returns { signUp/signIn resource, isLoaded: boolean }.
+import { useSignIn, useSignUp } from "@clerk/react/legacy";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
