@@ -8,9 +8,11 @@ import chatRouter from "./chat";
 import translateRouter from "./translate";
 import threadsRouter from "./threads";
 import adminRouter from "./admin";
+import authRouter from "./auth";
 
 const router: IRouter = Router();
 
+router.use(authRouter);
 router.use(healthRouter);
 router.use(usersRouter);
 router.use(leaderboardRouter);

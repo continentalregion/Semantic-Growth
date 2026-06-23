@@ -150,6 +150,46 @@ export default function LoginScreen() {
     haptic(Haptics.NotificationFeedbackType.Error);
   }
 
+  // BFF fallback per Expo Go: il backend Clerk Admin API verifica le credenziali
+  // e restituisce un sign-in token one-time. Lo usiamo con strategy:"ticket"
+  // che bypassa il trust check di FAPI (needs_client_trust).
+  async function handleMobileSignInFallback() {
+    if (!signIn || !setActive) return;
+    const base = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
+    try {
+      const bffResp = await fetch(`${base}/api/auth/mobile-signin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const bffData = (await bffResp.json()) as { token?: string; error?: string };
+      if (!bffResp.ok || !bffData.token) {
+        setFieldErrors({ general: bffData.error ?? "Errore di autenticazione. Riprova." });
+        haptic(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
+      // Usa il sign-in token con strategy:"ticket" — bypassa il trust check FAPI
+      const ticketResult = await (signIn as unknown as {
+        create: (p: { strategy: string; ticket: string }) => Promise<{ status: string; createdSessionId: string | null }>;
+      }).create({ strategy: "ticket", ticket: bffData.token });
+      if (ticketResult.status === "complete") {
+        await setActive({ session: ticketResult.createdSessionId });
+        haptic(Haptics.NotificationFeedbackType.Success);
+      } else if ((ticketResult as { status: string }).status === "needs_client_trust") {
+        // Il trust non si può stabilire in Expo Go dev: mostra messaggio chiaro
+        setFieldErrors({
+          general: "Login non disponibile in anteprima. Usa la versione web oppure installa l'app completa.",
+        });
+        haptic(Haptics.NotificationFeedbackType.Error);
+      } else {
+        setFieldErrors({ general: "Accesso non completato (status: " + ticketResult.status + "). Riprova." });
+        haptic(Haptics.NotificationFeedbackType.Error);
+      }
+    } catch (err: unknown) {
+      setErrors(extractClerkErrors(err));
+    }
+  }
+
   async function handleSignIn() {
     if (!signInLoaded || !signIn) {
       setFieldErrors({ general: "Autenticazione non pronta. Attendi un momento e riprova." });
@@ -163,29 +203,11 @@ export default function LoginScreen() {
         await setActive({ session: result.createdSessionId });
         haptic(Haptics.NotificationFeedbackType.Success);
       } else if ((result as { status: string }).status === "needs_client_trust") {
-        // Il client Clerk non è ancora inizializzato (tipico in Expo Go senza
-        // native module). Forziamo un reload dal FAPI e riproviamo una volta.
-        try {
-          const clerk = getClerkInstance();
-          const reload = (clerk as unknown as { __internal_reloadInitialResources?: () => Promise<void> })
-            .__internal_reloadInitialResources;
-          if (typeof reload === "function") {
-            await reload.call(clerk);
-          }
-          await new Promise((r) => setTimeout(r, 600));
-          const retry = await signIn.create({ identifier: email, password });
-          if (retry.status === "complete") {
-            await setActive({ session: retry.createdSessionId });
-            haptic(Haptics.NotificationFeedbackType.Success);
-          } else {
-            setFieldErrors({
-              general: "Inizializzazione in corso. Attendi 2-3 secondi e riprova.",
-            });
-            haptic(Haptics.NotificationFeedbackType.Error);
-          }
-        } catch (retryErr: unknown) {
-          setErrors(extractClerkErrors(retryErr), retryErr);
-        }
+        // Expo Go non può stabilire il trust del client Clerk (nessun native module).
+        // Fallback BFF: il backend verifica email/password tramite Clerk Admin API
+        // e restituisce un sign-in token che usiamo con strategy:"ticket",
+        // bypassando il trust check di FAPI.
+        await handleMobileSignInFallback();
       } else {
         setFieldErrors({ general: "Accesso non completato. Riprova." });
         haptic(Haptics.NotificationFeedbackType.Error);
