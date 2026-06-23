@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,21 +9,70 @@ import {
   Platform,
   KeyboardAvoidingView,
   ScrollView,
-  Alert,
 } from "react-native";
 import { useClerk, useAuth } from "@clerk/expo";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/useColors";
 import { LinearGradient } from "expo-linear-gradient";
 
+type FieldErrors = {
+  email?: string;
+  password?: string;
+  general?: string;
+  code?: string;
+};
+
+type ClerkErrorItem = {
+  code?: string;
+  message?: string;
+  longMessage?: string;
+  paramName?: string;
+};
+
+// Mappa i codici errore Clerk in messaggi italiani per campo
+function mapClerkError(e: ClerkErrorItem): { field: keyof FieldErrors; message: string } {
+  switch (e.code) {
+    case "form_identifier_exists":
+      return { field: "email", message: "Questa email è già registrata. Prova ad accedere invece di registrarti." };
+    case "form_password_pwned":
+      return { field: "password", message: "Questa password è troppo diffusa o compromessa. Scegline una più sicura." };
+    case "form_password_length_too_short":
+      return { field: "password", message: "La password deve avere almeno 8 caratteri." };
+    case "form_param_format_invalid":
+      if (e.paramName?.includes("email")) return { field: "email", message: "Inserisci un indirizzo email valido." };
+      return { field: "general", message: e.message ?? "Formato non valido." };
+    case "form_password_incorrect":
+      return { field: "password", message: "Password non corretta." };
+    case "form_identifier_not_found":
+      return { field: "email", message: "Nessun account trovato con questa email." };
+    case "verification_failed":
+      return { field: "code", message: "Codice non valido. Ricontrolla e riprova." };
+    case "verification_expired":
+      return { field: "code", message: "Il codice è scaduto. Richiedi un nuovo codice." };
+    default: {
+      const param = e.paramName ?? "";
+      if (param.includes("email")) return { field: "email", message: e.message ?? "Errore email." };
+      if (param.includes("password")) return { field: "password", message: e.message ?? "Errore password." };
+      return { field: "general", message: e.message ?? "Si è verificato un errore. Riprova." };
+    }
+  }
+}
+
+function extractClerkErrors(err: unknown): ClerkErrorItem[] {
+  const e = err as { errors?: ClerkErrorItem[]; message?: string; code?: string };
+  if (e.errors && e.errors.length > 0) return e.errors;
+  if (e.code || e.message) return [{ code: e.code, message: e.message }];
+  return [{ message: "Si è verificato un errore. Riprova." }];
+}
+
 export default function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  // useClerk() from @clerk/expo is the confirmed-working path.
-  // clerk.client.signUp / clerk.client.signIn are the live resource objects.
-  // clerk.loaded tells us if Clerk is ready.
+  const router = useRouter();
+
   const clerk = useClerk() as unknown as {
     loaded: boolean;
     setActive: (params: { session: string | null }) => Promise<void>;
@@ -36,9 +85,17 @@ export default function LoginScreen() {
       signIn: {
         create: (params: { identifier: string; password: string }) => Promise<{ status: string; createdSessionId: string | null }>;
       };
+      activeSessions?: { id: string }[];
     };
   };
-  const { isLoaded: authLoaded } = useAuth();
+  const { isLoaded: authLoaded, isSignedIn } = useAuth();
+
+  // Se già autenticato, vai direttamente alla schermata principale
+  useEffect(() => {
+    if (authLoaded && isSignedIn) {
+      router.replace("/");
+    }
+  }, [authLoaded, isSignedIn]);
 
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -48,6 +105,8 @@ export default function LoginScreen() {
   const [pendingVerification, setPendingVerification] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+
   const passwordRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
 
@@ -56,8 +115,23 @@ export default function LoginScreen() {
   const haptic = (type: Haptics.NotificationFeedbackType) =>
     Haptics.notificationAsync(type).catch(() => {});
 
+  function clearErrors() {
+    setFieldErrors({});
+  }
+
+  function setErrors(errs: ClerkErrorItem[]) {
+    const next: FieldErrors = {};
+    for (const e of errs) {
+      const { field, message } = mapClerkError(e);
+      if (!next[field]) next[field] = message;
+    }
+    setFieldErrors(next);
+    haptic(Haptics.NotificationFeedbackType.Error);
+  }
+
   async function handleSignIn() {
     if (!authLoaded || !clerk.client) return;
+    clearErrors();
     setLoading(true);
     try {
       const result = await clerk.client.signIn.create({ identifier: email, password });
@@ -66,10 +140,7 @@ export default function LoginScreen() {
         haptic(Haptics.NotificationFeedbackType.Success);
       }
     } catch (err: unknown) {
-      const e = err as { errors?: { message: string }[]; message?: string };
-      console.error("[SGI] signIn.create error:", JSON.stringify(err));
-      Alert.alert("Errore", e.errors?.[0]?.message ?? e.message ?? "Accesso fallito");
-      haptic(Haptics.NotificationFeedbackType.Error);
+      setErrors(extractClerkErrors(err));
     } finally {
       setLoading(false);
     }
@@ -77,8 +148,10 @@ export default function LoginScreen() {
 
   async function handleSignUp() {
     if (!authLoaded || !clerk.client) return;
+    clearErrors();
     if (password !== confirmPassword) {
-      Alert.alert("Errore", "Le password non coincidono");
+      setFieldErrors({ password: "Le password non coincidono." });
+      haptic(Haptics.NotificationFeedbackType.Error);
       return;
     }
     setLoading(true);
@@ -87,10 +160,13 @@ export default function LoginScreen() {
       await clerk.client.signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setPendingVerification(true);
     } catch (err: unknown) {
-      const e = err as { errors?: { message: string }[]; message?: string };
-      console.error("[SGI] signUp.create error:", JSON.stringify(err));
-      Alert.alert("Errore", e.errors?.[0]?.message ?? e.message ?? "Registrazione fallita");
-      haptic(Haptics.NotificationFeedbackType.Error);
+      const clerkErrs = extractClerkErrors(err);
+      // session_exists: l'utente è già loggato, portalo dentro l'app
+      if (clerkErrs.some((e) => e.code === "session_exists")) {
+        router.replace("/");
+        return;
+      }
+      setErrors(clerkErrs);
     } finally {
       setLoading(false);
     }
@@ -98,6 +174,7 @@ export default function LoginScreen() {
 
   async function handleVerify() {
     if (!authLoaded || !clerk.client) return;
+    clearErrors();
     setLoading(true);
     try {
       const result = await clerk.client.signUp.attemptEmailAddressVerification({ code });
@@ -106,13 +183,21 @@ export default function LoginScreen() {
         haptic(Haptics.NotificationFeedbackType.Success);
       }
     } catch (err: unknown) {
-      const e = err as { errors?: { message: string }[]; message?: string };
-      console.error("[SGI] signUp.verify error:", JSON.stringify(err));
-      Alert.alert("Errore", e.errors?.[0]?.message ?? e.message ?? "Verifica fallita");
+      const clerkErrs = extractClerkErrors(err);
+      // session_exists durante verifica: l'utente è già autenticato
+      if (clerkErrs.some((e) => e.code === "session_exists")) {
+        router.replace("/");
+        return;
+      }
+      setErrors(clerkErrs);
     } finally {
       setLoading(false);
     }
   }
+
+  const hasEmailError = !!fieldErrors.email;
+  const hasPasswordError = !!fieldErrors.password;
+  const hasCodeError = !!fieldErrors.code;
 
   return (
     <View style={[s.root, { backgroundColor: colors.background }]}>
@@ -150,13 +235,13 @@ export default function LoginScreen() {
               <Text style={s.cardHint}>
                 Inserisci il codice inviato a {email}
               </Text>
-              <View style={s.inputWrap}>
+              <View style={[s.inputWrap, hasCodeError && s.inputWrapError]}>
                 <TextInput
                   style={s.input}
                   placeholder="Codice a 6 cifre"
                   placeholderTextColor={colors.mutedForeground}
                   value={code}
-                  onChangeText={setCode}
+                  onChangeText={(v) => { setCode(v); if (fieldErrors.code) setFieldErrors((p) => ({ ...p, code: undefined })); }}
                   keyboardType="number-pad"
                   maxLength={6}
                   textAlign="center"
@@ -164,6 +249,8 @@ export default function LoginScreen() {
                   onSubmitEditing={handleVerify}
                 />
               </View>
+              {fieldErrors.code ? <Text style={s.errorText}>{fieldErrors.code}</Text> : null}
+              {fieldErrors.general ? <Text style={s.errorText}>{fieldErrors.general}</Text> : null}
               <TouchableOpacity
                 style={[s.btn, loading && s.btnDisabled]}
                 onPress={handleVerify}
@@ -182,7 +269,7 @@ export default function LoginScreen() {
               <View style={s.modeTabs}>
                 <TouchableOpacity
                   style={[s.modeTab, mode === "signin" && s.modeTabActive]}
-                  onPress={() => setMode("signin")}
+                  onPress={() => { setMode("signin"); clearErrors(); }}
                 >
                   <Text style={[s.modeTabText, mode === "signin" && s.modeTabTextActive]}>
                     Accedi
@@ -190,7 +277,7 @@ export default function LoginScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[s.modeTab, mode === "signup" && s.modeTabActive]}
-                  onPress={() => setMode("signup")}
+                  onPress={() => { setMode("signup"); clearErrors(); }}
                 >
                   <Text style={[s.modeTabText, mode === "signup" && s.modeTabTextActive]}>
                     Registrati
@@ -198,14 +285,14 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
 
-              <View style={s.inputWrap}>
-                <Ionicons name="mail-outline" size={18} color={colors.mutedForeground} style={s.inputIcon} />
+              <View style={[s.inputWrap, hasEmailError && s.inputWrapError]}>
+                <Ionicons name="mail-outline" size={18} color={hasEmailError ? "#f87171" : colors.mutedForeground} style={s.inputIcon} />
                 <TextInput
                   style={s.input}
                   placeholder="Email"
                   placeholderTextColor={colors.mutedForeground}
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={(v) => { setEmail(v); if (fieldErrors.email) setFieldErrors((p) => ({ ...p, email: undefined })); }}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -213,16 +300,17 @@ export default function LoginScreen() {
                   onSubmitEditing={() => passwordRef.current?.focus()}
                 />
               </View>
+              {fieldErrors.email ? <Text style={s.errorText}>{fieldErrors.email}</Text> : null}
 
-              <View style={s.inputWrap}>
-                <Ionicons name="lock-closed-outline" size={18} color={colors.mutedForeground} style={s.inputIcon} />
+              <View style={[s.inputWrap, hasPasswordError && s.inputWrapError]}>
+                <Ionicons name="lock-closed-outline" size={18} color={hasPasswordError ? "#f87171" : colors.mutedForeground} style={s.inputIcon} />
                 <TextInput
                   ref={passwordRef}
                   style={[s.input, { flex: 1 }]}
                   placeholder="Password"
                   placeholderTextColor={colors.mutedForeground}
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(v) => { setPassword(v); if (fieldErrors.password) setFieldErrors((p) => ({ ...p, password: undefined })); }}
                   secureTextEntry={!showPassword}
                   returnKeyType={mode === "signup" ? "next" : "done"}
                   onSubmitEditing={() => {
@@ -238,23 +326,26 @@ export default function LoginScreen() {
                   />
                 </TouchableOpacity>
               </View>
+              {fieldErrors.password ? <Text style={s.errorText}>{fieldErrors.password}</Text> : null}
 
               {mode === "signup" && (
-                <View style={s.inputWrap}>
-                  <Ionicons name="lock-closed-outline" size={18} color={colors.mutedForeground} style={s.inputIcon} />
+                <View style={[s.inputWrap, hasPasswordError && s.inputWrapError]}>
+                  <Ionicons name="lock-closed-outline" size={18} color={hasPasswordError ? "#f87171" : colors.mutedForeground} style={s.inputIcon} />
                   <TextInput
                     ref={confirmRef}
                     style={s.input}
                     placeholder="Conferma password"
                     placeholderTextColor={colors.mutedForeground}
                     value={confirmPassword}
-                    onChangeText={setConfirmPassword}
+                    onChangeText={(v) => { setConfirmPassword(v); if (fieldErrors.password) setFieldErrors((p) => ({ ...p, password: undefined })); }}
                     secureTextEntry={!showPassword}
                     returnKeyType="done"
                     onSubmitEditing={handleSignUp}
                   />
                 </View>
               )}
+
+              {fieldErrors.general ? <Text style={s.errorText}>{fieldErrors.general}</Text> : null}
 
               <TouchableOpacity
                 style={[s.btn, (loading || !email || !password) && s.btnDisabled]}
@@ -321,7 +412,7 @@ function makeStyles(colors: ReturnType<typeof import("@/hooks/useColors").useCol
       borderWidth: 1,
       borderColor: colors.border,
       padding: 20,
-      gap: 12,
+      gap: 8,
     },
     cardTitle: {
       color: colors.foreground,
@@ -369,6 +460,9 @@ function makeStyles(colors: ReturnType<typeof import("@/hooks/useColors").useCol
       paddingHorizontal: 12,
       height: 48,
     },
+    inputWrapError: {
+      borderColor: "#f87171",
+    },
     inputIcon: {
       marginRight: 8,
     },
@@ -380,6 +474,13 @@ function makeStyles(colors: ReturnType<typeof import("@/hooks/useColors").useCol
     },
     eyeBtn: {
       padding: 4,
+    },
+    errorText: {
+      color: "#f87171",
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      marginTop: -4,
+      marginLeft: 4,
     },
     btn: {
       backgroundColor: colors.primary,

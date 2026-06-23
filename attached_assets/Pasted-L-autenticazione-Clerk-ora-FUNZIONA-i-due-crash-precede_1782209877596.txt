@@ -1,0 +1,49 @@
+L'autenticazione Clerk ora FUNZIONA (i due crash precedenti, Reanimated e
+Clerk null, sono risolti). Gli errori attuali in login.tsx NON sono bug di
+logica: sono messaggi di validazione corretti di Clerk (email già usata,
+password compromessa, password troppo corta, sessione già esistente). Il
+problema è che l'app li gestisce male — li butta come Console Error / Alert
+grezzo invece di mostrarli con eleganza all'utente. Sistema la GESTIONE
+ERRORI, senza indebolire le regole di sicurezza.
+
+Lavora in login.tsx (handleSignUp ~riga 91 e handleVerify ~riga 110).
+Spiega in italiano cosa cambi, non rifattorizzare file non collegati.
+
+1. GESTIONE ELEGANTE DEGLI ERRORI CLERK
+   - Negli handler di signUp.create e signUp.verify, intercetta gli errori
+     Clerk e mostra il messaggio all'utente DENTRO l'interfaccia (un testo
+     rosso sotto il campo interessato, o un messaggio inline), NON come
+     Console Error né come Alert di sistema grezzo.
+   - Mappa i codici errore Clerk più comuni in messaggi chiari e in italiano:
+     * form_identifier_exists → "Questa email è già registrata. Prova ad
+       accedere invece di registrarti."
+     * form_password_pwned → "Questa password è troppo diffusa o compromessa.
+       Scegline una più sicura."
+     * form_password_length_too_short → "La password deve avere almeno 8
+       caratteri."
+     * session_exists → vedi punto 2.
+     * fallback generico per codici non mappati → mostra e.errors?.[0]?.
+       message in modo pulito.
+   - Usa il campo paramName dell'errore (es. email_address, password) per
+     mostrare il messaggio accanto al campo giusto.
+   - Mantieni invariate le regole: NON disattivare il controllo password
+     compromesse né il minimo di 8 caratteri. Sono protezioni corrette.
+
+2. BUG SESSIONE GIÀ ESISTENTE (Log 4: session_exists)
+   - Se l'utente è già autenticato, non deve poter avviare signUp. Prima di
+     mostrare il form di registrazione, controlla lo stato auth di Clerk
+     (isSignedIn): se è già loggato, reindirizzalo alla schermata principale
+     dell'app invece di mostrargli registrazione/verifica.
+   - In handleVerify, se ricevi session_exists, tratta l'utente come già
+     loggato e portalo dentro l'app, senza mostrare un errore.
+
+3. PULIZIA UX
+   - Rimuovi gli Alert.alert grezzi sostituendoli con i messaggi inline.
+   - Tieni l'haptic feedback di errore solo come accompagnamento, non come
+     unico segnale.
+   - Verifica che dopo un errore l'utente possa correggere e ritentare senza
+     ricaricare l'app (campi non bloccati, loading resettato).
+
+Testa i quattro casi: email già usata, password debole/compromessa,
+password corta, utente già loggato. Ognuno deve mostrare un messaggio chiaro
+nell'interfaccia, niente schermate rosse di errore.
