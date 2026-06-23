@@ -1,2 +1,1 @@
-module.exports = null;
-module.exports.default = null;
+module.exports = { default: null };

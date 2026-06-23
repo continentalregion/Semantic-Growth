@@ -1,0 +1,53 @@
+Sto costruendo l'app mobile di SGI con Expo (React Native) e ho due errori
+di runtime che bloccano l'avvio. Risolvili. Lavora un errore alla volta,
+spiega in italiano cosa cambi e in quali file, e fermati dopo ciascuno.
+
+═══════════════════════════════════
+ERRORE 1 — Reanimated worklet (index.tsx:14)
+═══════════════════════════════════
+"[Worklets] Failed to create a worklet" — riferimento a
+react-native-reanimated, all'import di KeyboardAvoidingView in index.tsx:14.
+Questo è il classico problema di configurazione di Reanimated. Verifica e
+sistema TUTTO il setup:
+- Il plugin Babel di Reanimated DEVE essere l'ULTIMO della lista in
+  babel.config.js (per le versioni recenti è 'react-native-worklets/plugin';
+  per Reanimated 3.x è 'react-native-reanimated/plugin'). Controlla quale
+  versione di reanimated è installata in package.json e usa il plugin
+  corretto per QUELLA versione.
+- Conferma che la versione di react-native-reanimated sia compatibile con la
+  versione di Expo SDK del progetto (usa la versione che 'npx expo install
+  react-native-reanimated' impone, non una a caso).
+- Dopo la modifica al babel.config.js, pulisci la cache: ferma il bundler e
+  riavvia con 'npx expo start -c' (la cache vecchia è spesso la causa per cui
+  il fix non sembra funzionare).
+Mostrami il babel.config.js prima e dopo, e la versione di reanimated.
+
+═══════════════════════════════════
+ERRORE 2 — Clerk esporta null in nativo (NativeClerkModule.js)
+═══════════════════════════════════
+"Cannot set property 'default' of null" in NativeClerkModule, partendo da
+profile.tsx:14. Causa quasi certa: il progetto sta importando il pacchetto
+WEB di Clerk (@clerk/clerk-react) in ambiente React Native, dove non
+funziona. Serve il pacchetto nativo.
+- Verifica quali pacchetti Clerk sono in package.json. Per Expo/React Native
+  l'SDK corretto è @clerk/clerk-expo, NON @clerk/clerk-react.
+- Sostituisci gli import di Clerk nei file nativi (profile.tsx e ovunque
+  altro) con quelli di @clerk/clerk-expo, e configura il ClerkProvider con
+  il token cache adatto a Expo (expo-secure-store) come da documentazione
+  @clerk/clerk-expo.
+- Assicurati che la publishable key sia passata correttamente al provider
+  via variabile d'ambiente Expo (EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY).
+- Se il progetto condivide codice tra web e nativo, separa gli import
+  specifici per piattaforma così il web continua a usare clerk-react e il
+  nativo usa clerk-expo, senza che si mescolino.
+Mostrami quali pacchetti Clerk c'erano e cosa hai cambiato.
+
+═══════════════════════════════════
+DOPO I DUE FIX
+═══════════════════════════════════
+- Riavvia con cache pulita ('npx expo start -c') e conferma che l'app si
+  avvii senza i due Uncaught Error.
+- Se restano errori, mostrameli uno per uno con la stessa procedura.
+
+VINCOLI: non rimuovere funzionalità esistenti, non rifattorizzare file non
+collegati, fermati dopo ogni fix per mostrarmi il risultato.
