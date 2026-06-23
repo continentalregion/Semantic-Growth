@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { palette } from "@/constants/theme";
 
 export interface ShareCardData {
   total: number;
@@ -13,20 +14,24 @@ export interface ShareCardData {
 
 const CARD_W = 340;
 
+// Derived from palette tokens — no hardcoded hex values.
+// Alpha variants computed from base palette colours for glow/border effects.
 const C = {
-  bg: "#0d0d1e",
-  surface: "#161629",
-  border: "#2a2a4a",
-  primary: "#7c5cfc",
-  primaryGlow: "#7c5cfc22",
-  teal: "#2dd4bf",
-  tealGlow: "#2dd4bf22",
-  pink: "#ec4899",
-  pinkGlow: "#ec489922",
-  gold: "#f59e0b",
-  text: "#f0f0f8",
-  muted: "#7070a0",
-  white: "#ffffff",
+  bg:          palette.bg,
+  surface:     palette.surface1,
+  border:      palette.surface3,
+  primary:     palette.primary,
+  primaryGlow: palette.primary + "22",
+  teal:        palette.teal,
+  tealGlow:    palette.teal + "22",
+  pink:        palette.pink,
+  pinkGlow:    palette.pink + "22",
+  gold:        palette.gold,
+  goldGlow:    palette.gold + "18",
+  goldBorder:  palette.gold + "33",
+  text:        palette.textPrimary,
+  muted:       palette.textSecondary,
+  white:       palette.white,
 };
 
 function MetricCell({
@@ -98,9 +103,9 @@ export function ShareableBattleCard({ data }: { data: ShareCardData }) {
 
       {/* 3 metrics */}
       <View style={s.metricsRow}>
-        <MetricCell value={data.density}     label="Densità"     icon="layers-outline"      color={C.teal}    glow={C.tealGlow} />
-        <MetricCell value={data.connections} label="Connessioni" icon="git-network-outline"  color={C.primary} glow={C.primaryGlow} />
-        <MetricCell value={data.depth}       label="Profondità"  icon="telescope-outline"    color={C.pink}    glow={C.pinkGlow} />
+        <MetricCell value={data.density}     label="Densità"     icon="layers-outline"     color={C.teal}    glow={C.tealGlow} />
+        <MetricCell value={data.connections} label="Connessioni" icon="git-network-outline" color={C.primary} glow={C.primaryGlow} />
+        <MetricCell value={data.depth}       label="Profondità"  icon="telescope-outline"   color={C.pink}    glow={C.pinkGlow} />
       </View>
 
       {/* Question */}
@@ -164,9 +169,9 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: C.gold + "18",
+    backgroundColor: C.goldGlow,
     borderWidth: 1,
-    borderColor: C.gold + "33",
+    borderColor: C.goldBorder,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -179,7 +184,6 @@ const s = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: C.border,
-    marginHorizontal: 0,
   },
   heroWrap: {
     alignItems: "center",
