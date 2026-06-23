@@ -23,6 +23,7 @@ const IT = {
     battles: "Battaglie",
     threads: "Thread Aperti",
     disconnect: "Disconnetti",
+    explore: "Esplora",
   },
   dashboard: {
     title: "Telemetria Hub",
@@ -343,6 +344,15 @@ const IT = {
     retryBtn: "Riprova",
     homeBtn: "Torna alla Home",
   },
+  explore: {
+    hubSubtitle: "Analisi avanzata e gamification",
+    rankDesc: "La tua posizione nella classifica mondiale SGI",
+    mapDesc: "Visualizza la rete dei domini che esplori",
+    predictionsDesc: "Proiezioni di crescita basate sul tuo profilo semantico",
+    growthDesc: "Il piano personalizzato per migliorare il tuo SGI",
+    progressDesc: "Badge, livelli XP e traguardi raggiunti",
+    comingSoon: "In arrivo",
+  },
 };
 
 // ─── English ──────────────────────────────────────────────────────────────────
@@ -360,6 +370,7 @@ const EN: typeof IT = {
     battles: "Battles",
     threads: "Open Threads",
     disconnect: "Sign Out",
+    explore: "Explore",
   },
   dashboard: {
     title: "Telemetry Hub",
@@ -680,6 +691,15 @@ const EN: typeof IT = {
     retryBtn: "Retry",
     homeBtn: "Go Home",
   },
+  explore: {
+    hubSubtitle: "Advanced analytics and gamification",
+    rankDesc: "Your position in the global SGI leaderboard",
+    mapDesc: "Visualize the network of domains you explore",
+    predictionsDesc: "Growth projections based on your semantic profile",
+    growthDesc: "Your personalized plan to improve your SGI",
+    progressDesc: "Badges, XP levels, and achievements unlocked",
+    comingSoon: "Coming soon",
+  },
 };
 
 // ─── Spanish ──────────────────────────────────────────────────────────────────
@@ -697,6 +717,7 @@ const ES: typeof IT = {
     battles: "Batallas",
     threads: "Hilos Abiertos",
     disconnect: "Salir",
+    explore: "Explorar",
   },
   dashboard: {
     title: "Centro de Telemetría",
@@ -1016,6 +1037,15 @@ const ES: typeof IT = {
     errorDesc: "Reintenta o vuelve al inicio.",
     retryBtn: "Reintentar",
     homeBtn: "Ir al Inicio",
+  },
+  explore: {
+    hubSubtitle: "Análisis avanzado y gamificación",
+    rankDesc: "Tu posición en el ranking mundial de SGI",
+    mapDesc: "Visualiza la red de dominios que exploras",
+    predictionsDesc: "Proyecciones de crecimiento basadas en tu perfil semántico",
+    growthDesc: "Tu plan personalizado para mejorar tu SGI",
+    progressDesc: "Insignias, niveles XP y logros desbloqueados",
+    comingSoon: "Próximamente",
   },
 };
 

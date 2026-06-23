@@ -48,22 +48,7 @@ export default function TabLayout() {
         },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: t("nav.chat"),
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView
-                name="bubble.left.and.bubble.right"
-                tintColor={color}
-                size={22}
-              />
-            ) : (
-              <Ionicons name="chatbubble-ellipses-outline" size={22} color={color} />
-            ),
-        }}
-      />
+      {/* ── Visible tabs (order = left→right in tab bar) ── */}
       <Tabs.Screen
         name="dashboard"
         options={{
@@ -73,6 +58,18 @@ export default function TabLayout() {
               <SymbolView name="chart.line.uptrend.xyaxis" tintColor={color} size={22} />
             ) : (
               <Ionicons name="analytics-outline" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: t("nav.chat"),
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="bubble.left.and.bubble.right" tintColor={color} size={22} />
+            ) : (
+              <Ionicons name="chatbubble-ellipses-outline" size={22} color={color} />
             ),
         }}
       />
@@ -89,20 +86,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="recommendations"
+        name="explore"
         options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="leaderboard"
-        options={{
-          title: t("nav.rank"),
+          title: t("nav.explore"),
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="trophy" tintColor={color} size={22} />
+              <SymbolView name="square.grid.2x2" tintColor={color} size={22} />
             ) : (
-              <Ionicons name="trophy-outline" size={22} color={color} />
+              <Ionicons name="compass-outline" size={22} color={color} />
             ),
         }}
       />
@@ -118,6 +109,10 @@ export default function TabLayout() {
             ),
         }}
       />
+
+      {/* ── Hidden routes (still routable, not shown in tab bar) ── */}
+      <Tabs.Screen name="leaderboard" options={{ href: null }} />
+      <Tabs.Screen name="recommendations" options={{ href: null }} />
     </Tabs>
   );
 }

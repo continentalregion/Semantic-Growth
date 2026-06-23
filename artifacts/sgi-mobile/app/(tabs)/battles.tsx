@@ -14,6 +14,7 @@ import {
   Platform,
   Dimensions,
   KeyboardAvoidingView,
+  ActivityIndicator,
 } from "react-native";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
@@ -394,7 +395,7 @@ export default function BattlesScreen() {
   const [publicCards, setPublicCards] = useState<BattleCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [tab, setTab] = useState<"arena" | "risultati">("arena");
+  const [tab, setTab] = useState<"arena" | "risultati" | "threads">("arena");
 
   const [activeThread, setActiveThread] = useState<Thread | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -504,14 +505,14 @@ export default function BattlesScreen() {
 
         {/* Tabs */}
         <View style={[styles.tabRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          {(["arena", "risultati"] as const).map(tabKey => (
+          {(["arena", "risultati", "threads"] as const).map(tabKey => (
             <Pressable
               key={tabKey}
               style={[styles.tabBtn, tab === tabKey && { backgroundColor: colors.primary }]}
               onPress={() => setTab(tabKey)}
             >
               <Text style={[styles.tabBtnText, { color: tab === tabKey ? colors.palette.white : colors.mutedForeground }]}>
-                {tabKey === "arena" ? t("battles.tabArena") : t("battles.tabResults")}
+                {tabKey === "arena" ? t("battles.tabArena") : tabKey === "risultati" ? t("battles.tabResults") : t("nav.threads")}
               </Text>
             </Pressable>
           ))}
@@ -574,7 +575,7 @@ export default function BattlesScreen() {
             );
           }}
         />
-      ) : (
+      ) : tab === "risultati" ? (
         <FlatList
           data={publicCards}
           keyExtractor={(_, i) => String(i)}
@@ -682,6 +683,12 @@ export default function BattlesScreen() {
             );
           }}
         />
+      ) : (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: colors.spacing.lg }}>
+          <Ionicons name="chatbubble-ellipses-outline" size={52} color={colors.primary} style={{ opacity: 0.25 }} />
+          <Text style={{ color: colors.foreground, fontFamily: "Inter_600SemiBold", fontSize: 16 }}>{t("nav.threads")}</Text>
+          <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13, textAlign: "center" }}>{t("explore.comingSoon")}</Text>
+        </View>
       )}
 
       {/* Off-screen card per condivisione storico */}

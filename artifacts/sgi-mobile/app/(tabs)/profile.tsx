@@ -6,7 +6,9 @@ import {
   StyleSheet,
   RefreshControl,
   Platform,
+  Pressable,
 } from "react-native";
+import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
@@ -77,10 +79,15 @@ export default function ProfileScreen() {
         },
       ]}>
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>{t("nav.profile")}</Text>
-        <View style={[styles.planBadge, { borderColor: planColor + "44", backgroundColor: planColor + "18" }]}>
-          <Text style={{ color: planColor, fontSize: colors.font.size.xs, fontFamily: colors.font.family.semibold }}>
-            {planLabel}
-          </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={[styles.planBadge, { borderColor: planColor + "44", backgroundColor: planColor + "18" }]}>
+            <Text style={{ color: planColor, fontSize: colors.font.size.xs, fontFamily: colors.font.family.semibold }}>
+              {planLabel}
+            </Text>
+          </View>
+          <Pressable onPress={() => router.push("/settings")} hitSlop={8}>
+            <Ionicons name="settings-outline" size={20} color={colors.mutedForeground} />
+          </Pressable>
         </View>
       </View>
 
