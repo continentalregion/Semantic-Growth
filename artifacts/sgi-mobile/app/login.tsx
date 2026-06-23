@@ -11,7 +11,7 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { useSignIn, useSignUp, useClerk, useAuth } from "@clerk/expo";
+import { useSignIn, useSignUp, useClerk } from "@clerk/expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -22,20 +22,23 @@ export default function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { setActive } = useClerk();
-  const { isLoaded: authLoaded } = useAuth();
-  // @clerk/expo v3 with React 19 signals — cast to access legacy resource API at runtime
-  const { signIn } = useSignIn() as unknown as { signIn: {
-    create: (params: { identifier: string; password: string }) => Promise<{ status: string; createdSessionId: string | null }>;
-    status?: string;
-    createdSessionId?: string | null;
-  }};
-  const { signUp } = useSignUp() as unknown as { signUp: {
-    create: (params: { emailAddress: string; password: string }) => Promise<void>;
-    prepareEmailAddressVerification: (params: { strategy: string }) => Promise<void>;
-    attemptEmailAddressVerification: (params: { code: string }) => Promise<{ status: string; createdSessionId: string | null }>;
-  }};
-  const signInLoaded = authLoaded;
-  const signUpLoaded = authLoaded;
+  // Use isLoaded from the specific hooks — authLoaded alone doesn't mean signUp/signIn are ready
+  const { signIn, isLoaded: signInLoaded } = useSignIn() as unknown as {
+    signIn: {
+      create: (params: { identifier: string; password: string }) => Promise<{ status: string; createdSessionId: string | null }>;
+      status?: string;
+      createdSessionId?: string | null;
+    } | null | undefined;
+    isLoaded: boolean;
+  };
+  const { signUp, isLoaded: signUpLoaded } = useSignUp() as unknown as {
+    signUp: {
+      create: (params: { emailAddress: string; password: string }) => Promise<void>;
+      prepareEmailAddressVerification: (params: { strategy: string }) => Promise<void>;
+      attemptEmailAddressVerification: (params: { code: string }) => Promise<{ status: string; createdSessionId: string | null }>;
+    } | null | undefined;
+    isLoaded: boolean;
+  };
 
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -50,26 +53,30 @@ export default function LoginScreen() {
 
   const s = makeStyles(colors, insets);
 
+  const haptic = (type: Haptics.NotificationFeedbackType) =>
+    Haptics.notificationAsync(type).catch(() => {});
+
   async function handleSignIn() {
-    if (!signInLoaded) return;
+    if (!signInLoaded || !signIn) return;
     setLoading(true);
     try {
       const result = await signIn.create({ identifier: email, password });
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        haptic(Haptics.NotificationFeedbackType.Success);
       }
     } catch (err: unknown) {
-      const e = err as { errors?: { message: string }[] };
-      Alert.alert("Errore", e.errors?.[0]?.message ?? "Accesso fallito");
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const e = err as { errors?: { message: string }[]; message?: string };
+      console.error("[SGI] signIn.create error:", JSON.stringify(err));
+      Alert.alert("Errore", e.errors?.[0]?.message ?? e.message ?? "Accesso fallito");
+      haptic(Haptics.NotificationFeedbackType.Error);
     } finally {
       setLoading(false);
     }
   }
 
   async function handleSignUp() {
-    if (!signUpLoaded) return;
+    if (!signUpLoaded || !signUp) return;
     if (password !== confirmPassword) {
       Alert.alert("Errore", "Le password non coincidono");
       return;
@@ -80,26 +87,28 @@ export default function LoginScreen() {
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setPendingVerification(true);
     } catch (err: unknown) {
-      const e = err as { errors?: { message: string }[] };
-      Alert.alert("Errore", e.errors?.[0]?.message ?? "Registrazione fallita");
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const e = err as { errors?: { message: string }[]; message?: string };
+      console.error("[SGI] signUp.create error:", JSON.stringify(err));
+      Alert.alert("Errore", e.errors?.[0]?.message ?? e.message ?? "Registrazione fallita");
+      haptic(Haptics.NotificationFeedbackType.Error);
     } finally {
       setLoading(false);
     }
   }
 
   async function handleVerify() {
-    if (!signUpLoaded) return;
+    if (!signUpLoaded || !signUp) return;
     setLoading(true);
     try {
       const result = await signUp.attemptEmailAddressVerification({ code });
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        haptic(Haptics.NotificationFeedbackType.Success);
       }
     } catch (err: unknown) {
-      const e = err as { errors?: { message: string }[] };
-      Alert.alert("Errore", e.errors?.[0]?.message ?? "Verifica fallita");
+      const e = err as { errors?: { message: string }[]; message?: string };
+      console.error("[SGI] signUp.verify error:", JSON.stringify(err));
+      Alert.alert("Errore", e.errors?.[0]?.message ?? e.message ?? "Verifica fallita");
     } finally {
       setLoading(false);
     }
