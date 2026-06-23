@@ -6,15 +6,28 @@ const projectRoot = __dirname;
 
 const config = getDefaultConfig(projectRoot);
 
-// In a pnpm monorepo, expo-router (and other packages) are symlinked from
-// node_modules/ to the pnpm virtual store at workspaceRoot/node_modules/.pnpm/.
-// Metro must watch the entire workspace root so it can resolve and serve files
-// from the pnpm store when following those symlinks.
 config.watchFolders = [workspaceRoot];
 
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, "node_modules"),
   path.resolve(workspaceRoot, "node_modules"),
 ];
+
+const originalResolveRequest = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (
+    moduleName.endsWith("NativeClerkModule") ||
+    moduleName.endsWith("specs/NativeClerkModule")
+  ) {
+    return {
+      type: "sourceFile",
+      filePath: path.resolve(__dirname, "mocks/NativeClerkModule.js"),
+    };
+  }
+  if (originalResolveRequest) {
+    return originalResolveRequest(context, moduleName, platform);
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
 
 module.exports = config;

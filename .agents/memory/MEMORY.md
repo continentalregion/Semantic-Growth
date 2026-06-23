@@ -7,3 +7,4 @@
 - [SGI scoring model](sgi-scoring-model.md) — gpt-5-nano truncates scoring JSON at 512 tokens; use gpt-4o-mini + json_object mode
 - [Expo workflow port fix](expo-replit-port-fix.md) — Expo DIDNT_OPEN_A_PORT despite Metro running; fix is adding localPort to .replit [[ports]] via verifyAndReplaceDotReplit
 - [Expo 54 + pnpm Metro bundle fix](expo-pnpm-metro-bundle.md) — deployment bundle 404: watchFolders must include workspaceRoot; bundle URL must be workspaceRoot-relative
+- [Clerk Expo v3 + Expo Go NativeClerkModule fix](clerk-expo-native-module.md) — @clerk/expo v3 crashes Expo Go with top-level require of NativeClerkModule; fix via Metro resolveRequest mock

@@ -10,7 +10,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@clerk/expo": "^3.5.2"
+    "@clerk/expo": "^3.5.2",
+    "expo-secure-store": "^15.0.8"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
