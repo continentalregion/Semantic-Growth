@@ -1,0 +1,30 @@
+Procedi con FASE 3 — VISUALIZZAZIONE CRESCITA SEMANTICA. È il cuore del prodotto: i dati esistono GIÀ tutti negli endpoint (/api/users/me e /api/users/me/sgi-history), vanno solo visualizzati bene. Usa react-native-svg (già installato) per i grafici e reanimated per le animazioni. Lavora su dashboard.tsx. Non inventare metriche: usa esattamente i campi degli endpoint.
+
+BLOCCO A — Score "da hero":
+sgiScore come numero grande, count-up animato al caricamento (reanimated). Accanto, i tre delta (sgiDailyDelta / sgiWeeklyDelta / sgiMonthlyDelta) con segno esplicito e colore di stato (verde success se >0, rosso error se <0, neutro se 0). Mostra anche globalRank e percentile in modo leggibile ("Top 6%" da percentile, non il numero grezzo).
+
+BLOCCO B — Trend temporale:
+line chart dello score nel tempo da /sgi-history?days=30 (campo score + timestamp), reso con react-native-svg. Asse temporale leggibile, punto finale evidenziato. Animazione di disegno della linea al mount.
+
+BLOCCO C — 4 macro-dimensioni (da macroDimensions, scala 0–10):
+radar chart OPPURE barre orizzontali (scegli e motiva). Etichette umane + 1 riga di spiegazione ciascuna:
+- profondita → "Profondità" — "Quanto vai a fondo: complessità dei concetti e lunghezza del ragionamento."
+- connettivita → "Connettività" — "Quanto colleghi ambiti diversi e varî i campi semantici."
+- precisione → "Precisione" — "Densità di informazione e ricchezza del lessico."
+- revisione → "Revisione" — "Quanto rivedi e raffini ciò che scrivi."
+
+BLOCCO D — 7 metriche raw (dall'ultimo snapshot di /sgi-history, scala 0–10):
+lista leggibile con label umana + spiegazione, NON i nomi tecnici nudi:
+- conceptualComplexity → "Complessità concettuale" — "Quanti concetti distinti e non banali introduci."
+- semanticVariety → "Varietà semantica" — "Ampiezza dei campi di significato che tocchi."
+- interdisciplinaryScore → "Interdisciplinarità" — "Ponti tra domini diversi (es. fisica e filosofia)."
+- reasoningDepth → "Profondità di ragionamento" — "Quanto è lunga e articolata la catena logica."
+- originality → "Originalità" — "Quanto ti allontani dal modo ovvio di inquadrare le cose."
+- stability → "Stabilità" — "Coerenza interna, assenza di contraddizioni."
+- continuity → "Continuità" — "Quanto costruisci sul contesto precedente."
+Ogni metrica con barra di livello 0–10 colorata dai token.
+
+BLOCCO E — solo premium/pro:
+se plan è premium o pro, integra /semantic-map (grafo domini) e /predictions (proiezioni 30/90/180gg, mostra la realistic come principale). Se plan è free, mostra uno stato "blocco premium" curato al loro posto, senza rompere il layout.
+
+Criterio di accettazione: l'utente capisce in <5 secondi se sta crescendo e in cosa. Niente nomi tecnici nudi visibili. Mantieni l'app avviabile su Expo Go. Al termine riportami cosa hai toccato e uno screenshot/descrizione del risultato della dashboard.
