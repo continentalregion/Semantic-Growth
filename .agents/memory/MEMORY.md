@@ -5,6 +5,7 @@
 - [Clerk proxy JWT issuer alignment](clerk-proxy-jwt-issuer.md) — clerkMiddleware must include proxyUrl in prod or Bearer token verification fails despite cookies working
 - [req.auth is a function in @clerk/express v2](clerk-req-auth-function.md) — req.auth?.userId is ALWAYS undefined; use getAuth(req).userId from @clerk/express
 - [SGI scoring model](sgi-scoring-model.md) — gpt-5-nano truncates scoring JSON at 512 tokens; use gpt-4o-mini + json_object mode
+- [SGI mobile keyboard in pageSheet modal](sgi-mobile-keyboard-modal.md) — KeyboardAvoidingView fails in iOS pageSheet; track keyboard height manually (iOS only) + paddingBottom
 - [Expo workflow port fix](expo-replit-port-fix.md) — Expo DIDNT_OPEN_A_PORT despite Metro running; fix is adding localPort to .replit [[ports]] via verifyAndReplaceDotReplit
 - [Expo 54 + pnpm Metro bundle fix](expo-pnpm-metro-bundle.md) — deployment bundle 404: watchFolders must include workspaceRoot; bundle URL must be workspaceRoot-relative
 - [Clerk Expo v3 + Expo Go NativeClerkModule mock](clerk-expo-native-module.md) — mock must export full no-op object (configure/getClientToken/syncClientStateFromJs/addListener), NOT null; null causes isClerkExpoModule()=false → requireNativeModule("ClerkExpo") is called → Expo Go proxy throws "Calling..." on every method call

@@ -13,7 +13,7 @@ import {
   Share,
   Platform,
   Dimensions,
-  KeyboardAvoidingView,
+  Keyboard,
   ActivityIndicator,
 } from "react-native";
 import { captureRef } from "react-native-view-shot";
@@ -114,6 +114,22 @@ function BattleSessionModal({
   const flatListRef = useRef<FlatList<Message>>(null);
   const shareCardRef = useRef<View>(null);
   const [sharing, setSharing] = useState(false);
+  const insets = useSafeAreaInsets();
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    if (Platform.OS !== "ios") return;
+    const showSub = Keyboard.addListener("keyboardWillShow", (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener("keyboardWillHide", () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!visible) {
@@ -126,6 +142,7 @@ function BattleSessionModal({
       setCompleting(false);
       setScore(null);
       setBattleCardId(null);
+      setKeyboardHeight(0);
       if (timerRef.current) clearInterval(timerRef.current);
     }
   }, [visible]);
@@ -181,6 +198,7 @@ function BattleSessionModal({
       return;
     }
     setCompleting(true);
+    Keyboard.dismiss();
     if (timerRef.current) clearInterval(timerRef.current);
     const token = await getToken();
     try {
@@ -228,12 +246,7 @@ function BattleSessionModal({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => !timerActive && onClose()}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={0}
-      >
-      <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={{ flex: 1, backgroundColor: colors.background, paddingBottom: keyboardHeight }}>
         {/* Off-screen shareable card — catturata da captureRef */}
         {completed && score && (
           <View
@@ -347,7 +360,7 @@ function BattleSessionModal({
             />
 
             {/* Input */}
-            <View style={[styles.inputRow, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
+            <View style={[styles.inputRow, { borderTopColor: colors.border, backgroundColor: colors.background, paddingBottom: 12 + (keyboardHeight > 0 ? 0 : insets.bottom) }]}>
               <TextInput
                 style={[styles.input, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]}
                 value={input}
@@ -378,7 +391,6 @@ function BattleSessionModal({
           </>
         )}
       </View>
-      </KeyboardAvoidingView>
     </Modal>
   );
 }
