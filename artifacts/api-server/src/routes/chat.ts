@@ -1,5 +1,6 @@
 import { getAuth } from "@clerk/express";
 import { Router } from "express";
+import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { db } from "@workspace/db";
 import { users, conversations, messages, sgiSnapshots, gamification, semanticDomains, blockedAttempts, threads } from "@workspace/db";
 import { eq, desc, and, sql, gte, ilike } from "drizzle-orm";
@@ -65,8 +66,8 @@ router.get("/openai/conversations", async (req, res) => {
   try {
     const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const user = await getOrCreateUser(clerkId);
+    if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
 
     await resetMonthlyIfNeeded(user.id, user);
 
@@ -92,8 +93,8 @@ router.get("/openai/usage", async (req, res) => {
   try {
     const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const user = await getOrCreateUser(clerkId);
+    if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
 
     const currentUsed = await resetMonthlyIfNeeded(user.id, user);
     const limit = MONTHLY_LIMITS[user.plan] ?? MONTHLY_LIMITS.free;
@@ -123,8 +124,8 @@ router.post("/openai/conversations", async (req, res) => {
   try {
     const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const user = await getOrCreateUser(clerkId);
+    if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
 
     const title = req.body?.title ?? "New Conversation";
     const requestedModel = req.body?.model ?? "claude-opus-4-8";
@@ -143,8 +144,8 @@ router.get("/openai/conversations/:id", async (req, res) => {
   try {
     const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const user = await getOrCreateUser(clerkId);
+    if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
 
     const convoId = parseInt(req.params.id!, 10);
     const [convo] = await db.select().from(conversations)
@@ -180,8 +181,8 @@ router.delete("/openai/conversations/:id", async (req, res) => {
   try {
     const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const user = await getOrCreateUser(clerkId);
+    if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
 
     const convoId = parseInt(req.params.id!, 10);
     const [convo] = await db.select().from(conversations)
@@ -200,8 +201,8 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
   try {
     const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const user = await getOrCreateUser(clerkId);
+    if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
 
     const convoId = parseInt(req.params.id!, 10);
     const [convo] = await db.select().from(conversations)

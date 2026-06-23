@@ -75,15 +75,21 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="recommendations"
+        name="battles"
         options={{
-          title: "Crescita",
+          title: "Battaglie",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="lightbulb" tintColor={color} size={22} />
+              <SymbolView name="bolt.fill" tintColor={color} size={22} />
             ) : (
-              <Ionicons name="bulb-outline" size={22} color={color} />
+              <Ionicons name="flash-outline" size={22} color={color} />
             ),
+        }}
+      />
+      <Tabs.Screen
+        name="recommendations"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen

@@ -5,6 +5,7 @@ import { users, sgiSnapshots, leaderboardEntries, gamification, badges, missions
 import { eq, desc, gte, and, asc, sql } from "drizzle-orm";
 import { SyncUserBody } from "@workspace/api-zod";
 import { computeLevel, xpToNextLevel as xpToNext, levelProgress as lvlProgress, BADGE_DEFINITIONS, computeMacroDimensions } from "../lib/sgiScoring";
+import { getOrCreateUser } from "../lib/getOrCreateUser";
 
 const router = Router();
 
@@ -57,21 +58,11 @@ router.get("/users/me", async (req, res) => {
   try {
     const clerkId = getAuth(req).userId;
     if (!clerkId) {
-      const cookie = req.headers["cookie"] ?? "(none)";
-      const authHeader = req.headers["authorization"] ?? "(none)";
-      req.log?.info({
-        event: "users-me-401",
-        hasCookie: cookie !== "(none)",
-        cookieNames: cookie === "(none)" ? [] : cookie.split(";").map((c: string) => c.trim().split("=")[0]),
-        hasAuthHeader: authHeader !== "(none)",
-        host: req.headers["host"],
-        xForwardedHost: req.headers["x-forwarded-host"],
-      }, "GET /users/me → 401 debug");
       res.status(401).json({ error: "Unauthorized" }); return;
     }
 
-    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const user = await getOrCreateUser(clerkId);
+    if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
 
     const profile = await buildUserProfile(user.id);
     res.json(profile);
@@ -86,8 +77,8 @@ router.get("/users/me/sgi-history", async (req, res) => {
     const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const user = await getOrCreateUser(clerkId);
+    if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
 
     const FREE_TIER_MAX_DAYS = 7;
     const requestedDays = parseInt(String(req.query.days ?? "30"), 10);
@@ -111,8 +102,8 @@ router.get("/users/me/semantic-map", async (req, res) => {
     const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const user = await getOrCreateUser(clerkId);
+    if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
 
     if (user.plan === "free") {
       res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" });
@@ -148,8 +139,8 @@ router.get("/users/me/domain-strengths", async (req, res) => {
     const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const user = await getOrCreateUser(clerkId);
+    if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
 
     if (user.plan === "free") {
       res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" });
@@ -181,8 +172,8 @@ router.get("/users/me/predictions", async (req, res) => {
     const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const user = await getOrCreateUser(clerkId);
+    if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
 
     if (user.plan === "free") {
       res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" });
@@ -420,8 +411,8 @@ router.get("/users/:clerkId", async (req, res) => {
   if (!requireOwner(req, res, req.params.clerkId!)) return;
   const clerkId = getAuth(req).userId;
   if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  const user = await getOrCreateUser(clerkId);
+  if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
   const profile = await buildUserProfile(user.id);
   res.json(profile);
 });
@@ -430,8 +421,8 @@ router.get("/users/:clerkId/sgi-history", async (req, res) => {
   if (!requireOwner(req, res, req.params.clerkId!)) return;
   const clerkId = getAuth(req).userId;
   if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  const user = await getOrCreateUser(clerkId);
+  if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
   const FREE_TIER_MAX_DAYS = 7;
   const requestedDays = parseInt(String(req.query.days ?? "30"), 10);
   const days = user.plan !== "free" ? requestedDays : Math.min(requestedDays, FREE_TIER_MAX_DAYS);
@@ -446,8 +437,8 @@ router.get("/users/:clerkId/semantic-map", async (req, res) => {
   if (!requireOwner(req, res, req.params.clerkId!)) return;
   const clerkId = getAuth(req).userId;
   if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  const user = await getOrCreateUser(clerkId);
+  if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
   if (user.plan === "free") { res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" }); return; }
   const domains = await db.select().from(semanticDomains).where(eq(semanticDomains.userId, user.id)).orderBy(desc(semanticDomains.explorationScore));
   const nodes = domains.map(d => ({ id: d.domain, domain: d.domain, explorationScore: d.explorationScore, messageCount: d.messageCount }));
@@ -467,8 +458,8 @@ router.get("/users/:clerkId/domain-strengths", async (req, res) => {
   if (!requireOwner(req, res, req.params.clerkId!)) return;
   const clerkId = getAuth(req).userId;
   if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  const user = await getOrCreateUser(clerkId);
+  if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
   if (user.plan === "free") { res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" }); return; }
   const domains = await db.select().from(semanticDomains).where(eq(semanticDomains.userId, user.id)).orderBy(desc(semanticDomains.explorationScore));
   const ALL_DOMAINS = ["philosophy", "mathematics", "biology", "economics", "psychology", "physics", "linguistics", "technology", "history", "art", "literature", "ethics", "logic", "computer_science"];
@@ -486,8 +477,8 @@ router.get("/users/:clerkId/predictions", async (req, res) => {
   if (!requireOwner(req, res, req.params.clerkId!)) return;
   const clerkId = getAuth(req).userId;
   if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  const user = await getOrCreateUser(clerkId);
+  if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
   if (user.plan === "free") { res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" }); return; }
   const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const snapshots = await db.select().from(sgiSnapshots)

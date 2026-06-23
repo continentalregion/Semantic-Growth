@@ -62,7 +62,7 @@ export default function LeaderboardScreen() {
       ) : (
         <FlatList
           data={entries}
-          keyExtractor={(e, i) => (e.userId ? String(e.userId) : `rank-${e.rank ?? i}`)}
+          keyExtractor={(_e, i) => String(i)}
           scrollEnabled={entries.length > 0}
           contentContainerStyle={{ paddingBottom: (Platform.OS === "web" ? 34 : tabBarHeight) + 16 }}
           refreshControl={

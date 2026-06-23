@@ -3,6 +3,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { users, recommendations } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
+import { getOrCreateUser } from "../lib/getOrCreateUser";
 
 const router = Router();
 
@@ -11,8 +12,8 @@ router.get("/recommendations/me", async (req, res) => {
     const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const user = await getOrCreateUser(clerkId);
+    if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
 
     if (user.plan === "free") {
       res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" });

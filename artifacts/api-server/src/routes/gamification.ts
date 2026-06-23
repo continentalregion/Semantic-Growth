@@ -1,5 +1,6 @@
 import { getAuth } from "@clerk/express";
 import { Router } from "express";
+import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { db } from "@workspace/db";
 import { users, gamification, badges, missions } from "@workspace/db";
 import { eq, and, lt } from "drizzle-orm";
@@ -122,8 +123,8 @@ router.get("/gamification/me", async (req, res) => {
     const clerkId = getAuth(req).userId;
     if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const user = await getOrCreateUser(clerkId);
+    if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
 
     const [gam] = await db.select().from(gamification).where(eq(gamification.userId, user.id)).limit(1);
     const xp = gam?.xp ?? 0;
