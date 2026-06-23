@@ -1,0 +1,81 @@
+Sto ultimando SGI per andare live coi pagamenti reali. Stripe Business live
+arriva tra pochi giorni; voglio costruire e collaudare tutto ADESSO in test
+mode, così quando arrivano le chiavi live faccio solo lo swap.
+
+Lavora UNA FASE ALLA VOLTA. Dopo ogni fase fermati, mostrami cosa hai
+cambiato e in quali file, e aspetta il mio ok. Spiega in italiano. Dove
+qualcosa non funziona dimmelo, niente rassicurazioni generiche.
+Vincoli globali: non rimuovere funzioni esistenti (limiti, blocchi pre-chiamata,
+routing modelli, caching, valvola globale, scoring deterministico), non
+rifattorizzare file non collegati.
+
+═══════════════════════════════════
+FASE 1 — STRIPE END-TO-END (in test mode) — BLOCCANTE
+═══════════════════════════════════
+Attualmente non c'è una sola riga di Stripe: il pulsante "Attiva Piano" apre
+solo un modale statico. Implementa il flusso completo in TEST MODE:
+- Crea i prodotti/prezzi: Premium €9.99/mese, Pro €19.99/mese.
+- Variabili d'ambiente server-side: STRIPE_SECRET_KEY (test), STRIPE_WEBHOOK_SECRET.
+- Endpoint POST /api/stripe/create-checkout-session (server) e collega il
+  pulsante del frontend al checkout reale (redirect a Stripe).
+- Pagina di ritorno dopo pagamento riuscito e dopo annullato.
+- Endpoint POST /api/stripe/webhook (server) CON verifica firma:
+  * checkout.session.completed → aggiorna il campo plan dell'utente nel DB.
+  * customer.subscription.deleted e invoice.payment_failed → retrocede a free.
+  * charge.refunded → retrocede a free.
+- Gestisci il caso webhook fallito/in ritardo: l'utente non deve restare
+  pagante-ma-senza-premium. Logga ogni evento Stripe ricevuto.
+- Alla fine dammi la LISTA PRECISA di cosa devo fare io per passare da test a
+  live (quali chiavi sostituire, dove, quali impostazioni Stripe).
+Testa un pagamento di prova end-to-end con le carte di test Stripe e
+mostrami che il piano si aggiorna nel DB e torna a free su rimborso.
+
+═══════════════════════════════════
+FASE 2 — FIX DI SOSTENIBILITÀ COSTI — BLOCCANTE
+═══════════════════════════════════
+- Limite lunghezza input lato server PRIMA della chiamata AI: se
+  userContent.length > 8000 → res.status(400) con messaggio chiaro. Senza
+  questo un singolo messaggio può costare 10× e sfondare il budget.
+- Verifica che il default resti Haiku e che Sonnet non possa diventare il
+  modello di default silenziosamente (con Sonnet a pieno uso un Premium
+  supererebbe il budget di €5.81). Mostrami dove è impostato il default.
+
+═══════════════════════════════════
+FASE 3 — PULIZIA E CHIAREZZA PRE-LANCIO — BLOCCANTE
+═══════════════════════════════════
+- Nel DB ci sono 7 utenti premium e 6 pro impostati a mano. Identificali e
+  dammi un modo per azzerarli/convertirli a free, così la dashboard parte
+  pulita per i clienti reali. Non cancellare account, solo resettare il piano
+  dove sono utenti di test.
+- Aggiungi nel prodotto una riga di spiegazione visibile all'utente sul
+  punteggio: "Il tuo punteggio SGI cresce anche quando rivedi e aggiorni il
+  tuo pensiero nel corso della conversazione" — perché il revisionSignal vale
+  il 20% ed è a zero al primo messaggio, e senza spiegazione l'utente non
+  capisce perché resta intorno a 80.
+
+>>> FERMATI QUI. Le fasi 4-6 (rifiniture) le facciamo solo dopo che i
+bloccanti sopra sono risolti e testati. <
+
+═══════════════════════════════════
+FASE 4 — CHAT PIÙ VIVA (presentazione, non logica)
+═══════════════════════════════════
+- Risposta in STREAMING (parola per parola, non blocco unico).
+- Indicatore "sta scrivendo". Auto-scroll fluido. Formattazione pulita
+  (paragrafi, grassetti, elenchi). Gestione errori elegante.
+NON toccare scoring, limiti, blocchi. NON aggiungere upload di file/foto.
+
+═══════════════════════════════════
+FASE 5 — MOMENTO-WOW (la parte di valore)
+═══════════════════════════════════
+- Traiettoria del punteggio nel tempo come grafico ANIMATO (linea che si
+  disegna).
+- Punteggio SGI che si aggiorna con animazione (conteggio che sale).
+- Posizione in classifica mostrata in modo che INVITI a migliorare ("hai
+  superato il tuo record" / "top X%"), senza demoralizzare chi è in basso.
+- Aree di miglioramento chiare e azionabili.
+
+═══════════════════════════════════
+FASE 6 — CONDIVISIBILITÀ (motore del passaparola)
+═══════════════════════════════════
+- Bottone "Condividi" che genera un'immagine pulita con punteggio SGI,
+  mini-grafico della traiettoria, nome/logo SGI. Pronta per Instagram/X.
