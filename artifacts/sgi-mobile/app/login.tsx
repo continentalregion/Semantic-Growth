@@ -10,7 +10,11 @@ import {
   KeyboardAvoidingView,
   ScrollView,
 } from "react-native";
-import { useClerk, useAuth } from "@clerk/expo";
+// @clerk/expo/legacy esporta useSignIn/useSignUp con la forma legacy:
+//   { signIn, isLoaded, setActive }  — identica a @clerk/react/legacy
+// È un pacchetto locale (sgi-mobile/node_modules/@clerk/expo), Metro lo trova.
+import { useSignIn, useSignUp } from "@clerk/expo/legacy";
+import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -73,21 +77,24 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const clerk = useClerk() as unknown as {
-    loaded: boolean;
+  // Legacy hooks: { signIn/signUp resource, isLoaded: boolean, setActive }
+  // @clerk/expo/legacy è un pacchetto locale — Metro lo risolve correttamente.
+  const { signIn, isLoaded: signInLoaded, setActive } = useSignIn() as {
+    signIn: {
+      create: (params: { identifier: string; password: string }) => Promise<{ status: string; createdSessionId: string | null }>;
+    } | undefined;
+    isLoaded: boolean;
     setActive: (params: { session: string | null }) => Promise<void>;
-    client: {
-      signUp: {
-        create: (params: { emailAddress: string; password: string }) => Promise<void>;
-        prepareEmailAddressVerification: (params: { strategy: string }) => Promise<void>;
-        attemptEmailAddressVerification: (params: { code: string }) => Promise<{ status: string; createdSessionId: string | null }>;
-      };
-      signIn: {
-        create: (params: { identifier: string; password: string }) => Promise<{ status: string; createdSessionId: string | null }>;
-      };
-      activeSessions?: { id: string }[];
-    };
   };
+  const { signUp, isLoaded: signUpLoaded } = useSignUp() as {
+    signUp: {
+      create: (params: { emailAddress: string; password: string }) => Promise<void>;
+      prepareEmailAddressVerification: (params: { strategy: string }) => Promise<void>;
+      attemptEmailAddressVerification: (params: { code: string }) => Promise<{ status: string; createdSessionId: string | null }>;
+    } | undefined;
+    isLoaded: boolean;
+  };
+
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
 
   // Se già autenticato, vai direttamente alla schermata principale
@@ -121,6 +128,17 @@ export default function LoginScreen() {
     setDebugLog(null);
   }
 
+  function showDebug(data: unknown) {
+    try {
+      const str = typeof data === "string"
+        ? data
+        : JSON.stringify(data, Object.getOwnPropertyNames(data as object), 2);
+      setDebugLog(str);
+    } catch {
+      setDebugLog(String(data));
+    }
+  }
+
   function setErrors(errs: ClerkErrorItem[], rawErr: unknown) {
     const next: FieldErrors = {};
     for (const e of errs) {
@@ -128,24 +146,26 @@ export default function LoginScreen() {
       if (!next[field]) next[field] = message;
     }
     setFieldErrors(next);
-    // Banner di debug: mostra il JSON grezzo dell'errore per diagnostica
-    try {
-      setDebugLog(JSON.stringify(rawErr, Object.getOwnPropertyNames(rawErr as object), 2));
-    } catch {
-      setDebugLog(String(rawErr));
-    }
+    showDebug(rawErr);
     haptic(Haptics.NotificationFeedbackType.Error);
   }
 
   async function handleSignIn() {
-    if (!authLoaded || !clerk.client) return;
+    // Mostra sempre lo stato corrente nel banner debug al tap
+    const state = { signInLoaded, signUpLoaded, authLoaded, isSignedIn, hasSignIn: !!signIn };
+    if (!signInLoaded || !signIn) {
+      showDebug({ guard: "signIn not ready", ...state });
+      return;
+    }
     clearErrors();
     setLoading(true);
     try {
-      const result = await clerk.client.signIn.create({ identifier: email, password });
+      const result = await signIn.create({ identifier: email, password });
       if (result.status === "complete") {
-        await clerk.setActive({ session: result.createdSessionId });
+        await setActive({ session: result.createdSessionId });
         haptic(Haptics.NotificationFeedbackType.Success);
+      } else {
+        showDebug({ status: result.status, result });
       }
     } catch (err: unknown) {
       setErrors(extractClerkErrors(err), err);
@@ -155,7 +175,11 @@ export default function LoginScreen() {
   }
 
   async function handleSignUp() {
-    if (!authLoaded || !clerk.client) return;
+    const state = { signInLoaded, signUpLoaded, authLoaded, isSignedIn, hasSignUp: !!signUp };
+    if (!signUpLoaded || !signUp) {
+      showDebug({ guard: "signUp not ready", ...state });
+      return;
+    }
     clearErrors();
     if (password !== confirmPassword) {
       setFieldErrors({ password: "Le password non coincidono." });
@@ -164,8 +188,8 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      await clerk.client.signUp.create({ emailAddress: email, password });
-      await clerk.client.signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      await signUp.create({ emailAddress: email, password });
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setPendingVerification(true);
     } catch (err: unknown) {
       const clerkErrs = extractClerkErrors(err);
@@ -180,14 +204,20 @@ export default function LoginScreen() {
   }
 
   async function handleVerify() {
-    if (!authLoaded || !clerk.client) return;
+    const state = { signUpLoaded, authLoaded, hasSignUp: !!signUp };
+    if (!signUpLoaded || !signUp) {
+      showDebug({ guard: "signUp not ready for verify", ...state });
+      return;
+    }
     clearErrors();
     setLoading(true);
     try {
-      const result = await clerk.client.signUp.attemptEmailAddressVerification({ code });
+      const result = await signUp.attemptEmailAddressVerification({ code });
       if (result.status === "complete") {
-        await clerk.setActive({ session: result.createdSessionId });
+        await setActive({ session: result.createdSessionId });
         haptic(Haptics.NotificationFeedbackType.Success);
+      } else {
+        showDebug({ status: result.status, result });
       }
     } catch (err: unknown) {
       const clerkErrs = extractClerkErrors(err);
