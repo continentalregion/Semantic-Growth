@@ -11,10 +11,7 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { useClerk } from "@clerk/expo";
-// @clerk/react v6 exports signal-based useSignUp/useSignIn (no isLoaded).
-// Use the legacy path that returns { signUp/signIn resource, isLoaded: boolean }.
-import { useSignIn, useSignUp } from "@clerk/react/legacy";
+import { useClerk, useAuth } from "@clerk/expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -24,24 +21,24 @@ import { LinearGradient } from "expo-linear-gradient";
 export default function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { setActive } = useClerk();
-  // Use isLoaded from the specific hooks — authLoaded alone doesn't mean signUp/signIn are ready
-  const { signIn, isLoaded: signInLoaded } = useSignIn() as unknown as {
-    signIn: {
-      create: (params: { identifier: string; password: string }) => Promise<{ status: string; createdSessionId: string | null }>;
-      status?: string;
-      createdSessionId?: string | null;
-    } | null | undefined;
-    isLoaded: boolean;
+  // useClerk() from @clerk/expo is the confirmed-working path.
+  // clerk.client.signUp / clerk.client.signIn are the live resource objects.
+  // clerk.loaded tells us if Clerk is ready.
+  const clerk = useClerk() as unknown as {
+    loaded: boolean;
+    setActive: (params: { session: string | null }) => Promise<void>;
+    client: {
+      signUp: {
+        create: (params: { emailAddress: string; password: string }) => Promise<void>;
+        prepareEmailAddressVerification: (params: { strategy: string }) => Promise<void>;
+        attemptEmailAddressVerification: (params: { code: string }) => Promise<{ status: string; createdSessionId: string | null }>;
+      };
+      signIn: {
+        create: (params: { identifier: string; password: string }) => Promise<{ status: string; createdSessionId: string | null }>;
+      };
+    };
   };
-  const { signUp, isLoaded: signUpLoaded } = useSignUp() as unknown as {
-    signUp: {
-      create: (params: { emailAddress: string; password: string }) => Promise<void>;
-      prepareEmailAddressVerification: (params: { strategy: string }) => Promise<void>;
-      attemptEmailAddressVerification: (params: { code: string }) => Promise<{ status: string; createdSessionId: string | null }>;
-    } | null | undefined;
-    isLoaded: boolean;
-  };
+  const { isLoaded: authLoaded } = useAuth();
 
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -60,12 +57,12 @@ export default function LoginScreen() {
     Haptics.notificationAsync(type).catch(() => {});
 
   async function handleSignIn() {
-    if (!signInLoaded || !signIn) return;
+    if (!authLoaded || !clerk.client) return;
     setLoading(true);
     try {
-      const result = await signIn.create({ identifier: email, password });
+      const result = await clerk.client.signIn.create({ identifier: email, password });
       if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
+        await clerk.setActive({ session: result.createdSessionId });
         haptic(Haptics.NotificationFeedbackType.Success);
       }
     } catch (err: unknown) {
@@ -79,15 +76,15 @@ export default function LoginScreen() {
   }
 
   async function handleSignUp() {
-    if (!signUpLoaded || !signUp) return;
+    if (!authLoaded || !clerk.client) return;
     if (password !== confirmPassword) {
       Alert.alert("Errore", "Le password non coincidono");
       return;
     }
     setLoading(true);
     try {
-      await signUp.create({ emailAddress: email, password });
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      await clerk.client.signUp.create({ emailAddress: email, password });
+      await clerk.client.signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setPendingVerification(true);
     } catch (err: unknown) {
       const e = err as { errors?: { message: string }[]; message?: string };
@@ -100,12 +97,12 @@ export default function LoginScreen() {
   }
 
   async function handleVerify() {
-    if (!signUpLoaded || !signUp) return;
+    if (!authLoaded || !clerk.client) return;
     setLoading(true);
     try {
-      const result = await signUp.attemptEmailAddressVerification({ code });
+      const result = await clerk.client.signUp.attemptEmailAddressVerification({ code });
       if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
+        await clerk.setActive({ session: result.createdSessionId });
         haptic(Haptics.NotificationFeedbackType.Success);
       }
     } catch (err: unknown) {
