@@ -1,0 +1,18 @@
+SGI — Refactor completo UX, visualizzazione semantica, Social & Battle (app Expo Go)
+
+FASE 0 — AUDIT OBBLIGATORIO (prima di scrivere QUALSIASI codice, poi fermati e aspetta mia conferma):
+Mostrami: 1) package.json (versioni Expo, React Native, navigation/router); 2) struttura cartelle; 3) dove vive lo state globale; 4) endpoint e shape JSON con cui arrivano le 11 metriche linguistiche dal backend; 5) dove sono Social e Battle oggi e quali bug concreti danno (errori console inclusi). NON procedere senza mia conferma.
+
+PRINCIPIO GUIDA: l'app funziona ma sembra "AI primi tempi" — rigida, poco fluida, il dato non racconta nulla. Obiettivo: far PERCEPIRE qualità e valore in ciò che già c'è, non aggiungere feature. Non rifare da zero ciò che già funziona: rifattorizza. Se una modifica rompe qualcosa di funzionante, fermati e segnalalo. Mantieni l'app sempre avviabile su Expo Go dopo ogni fase. Lavora UNA FASE ALLA VOLTA, fermandoti per mia conferma tra una e l'altra. Non introdurre dipendenze senza dirmelo.
+
+FASE 1 — DESIGN SYSTEM (fondamenta, prima di tutto): crea un file token centralizzato (theme.ts) con palette coerente (primario, accento, scala grigi semantica, stati success/warning/error), tipografia a 4-5 livelli, spacing a step fissi (4-8-12-16-24-32), border radius/ombre coerenti, durate animazioni standard (150/250/400ms con easing). Criterio: ogni schermata legge SOLO dai token, zero valori hardcoded.
+
+FASE 2 — FLUIDITÀ: con react-native-reanimated (installalo se manca) aggiungi transizioni morbide tra schermate, feedback al tap (Pressable con scale/opacity, non TouchableOpacity nudo), comparsa progressiva dei contenuti (fade/slide-in, staggered nelle liste), skeleton loader al posto degli spinner. Criterio: niente appare "di colpo", ogni interazione ha feedback entro 100ms.
+
+FASE 3 — CRESCITA SEMANTICA (il cuore del prodotto, oggi il punto più debole): renderla la schermata più forte. Grafico trend temporale dello score (victory-native o react-native-svg+d3, motiva la scelta); breakdown delle 11 metriche in radar o barre orizzontali con confronto vs periodo precedente; delta esplicito per ogni metrica (segno + colore di stato); narrazione del dato (label umana + 1 riga di spiegazione, niente nomi tecnici nudi); score finale "da hero" (numero grande, count-up animato, delta accanto). Criterio: l'utente capisce in <5 secondi se sta crescendo e in cosa.
+
+FASE 4 — SOCIAL (rifai il flusso, non solo la grafica): prima riportami cosa fa oggi e qual è l'azione principale che l'utente dovrebbe fare qui; poi PROPONI (senza implementare finché non confermo) un flusso pulito con un'azione principale chiara per schermata ed empty state curati.
+
+FASE 5 — BATTLE (fix funzionale prima dell'estetica): riportami il flusso completo (come inizia, come si confrontano gli score, come finisce) e i bug concreti con errori console; sistemiamo prima la logica rotta, poi design system e animazioni. Stati chiari: in attesa / in corso / conclusa, con esito leggibile.
+
+Inizia ORA solo dalla Fase 0.
