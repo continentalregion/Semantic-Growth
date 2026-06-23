@@ -14,7 +14,7 @@ import {
 //   { signIn, isLoaded, setActive }  — identica a @clerk/react/legacy
 // È un pacchetto locale (sgi-mobile/node_modules/@clerk/expo), Metro lo trova.
 import { useSignIn, useSignUp } from "@clerk/expo/legacy";
-import { useAuth } from "@clerk/expo";
+import { useAuth, getClerkInstance } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -104,6 +104,20 @@ export default function LoginScreen() {
     }
   }, [authLoaded, isSignedIn]);
 
+  // Pre-inizializza il client Clerk dalla FAPI al mount.
+  // In Expo Go (senza native module reale), refreshJsClientFromServer viene
+  // chiamato dal mock solo DOPO che configure() ha restituito il placeholder.
+  // Questo useEffect forza un reload aggiuntivo per assicurarsi che il client
+  // JS sia pronto prima del primo tentativo di login.
+  useEffect(() => {
+    const clerk = getClerkInstance();
+    const reload = (clerk as unknown as { __internal_reloadInitialResources?: () => Promise<void> })
+      .__internal_reloadInitialResources;
+    if (typeof reload === "function") {
+      reload.call(clerk).catch(() => {});
+    }
+  }, []);
+
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -113,7 +127,6 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [debugLog, setDebugLog] = useState<string | null>(null);
 
   const passwordRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
@@ -125,36 +138,21 @@ export default function LoginScreen() {
 
   function clearErrors() {
     setFieldErrors({});
-    setDebugLog(null);
   }
 
-  function showDebug(data: unknown) {
-    try {
-      const str = typeof data === "string"
-        ? data
-        : JSON.stringify(data, Object.getOwnPropertyNames(data as object), 2);
-      setDebugLog(str);
-    } catch {
-      setDebugLog(String(data));
-    }
-  }
-
-  function setErrors(errs: ClerkErrorItem[], rawErr: unknown) {
+  function setErrors(errs: ClerkErrorItem[], _rawErr?: unknown) {
     const next: FieldErrors = {};
     for (const e of errs) {
       const { field, message } = mapClerkError(e);
       if (!next[field]) next[field] = message;
     }
     setFieldErrors(next);
-    showDebug(rawErr);
     haptic(Haptics.NotificationFeedbackType.Error);
   }
 
   async function handleSignIn() {
-    // Mostra sempre lo stato corrente nel banner debug al tap
-    const state = { signInLoaded, signUpLoaded, authLoaded, isSignedIn, hasSignIn: !!signIn };
     if (!signInLoaded || !signIn) {
-      showDebug({ guard: "signIn not ready", ...state });
+      setFieldErrors({ general: "Autenticazione non pronta. Attendi un momento e riprova." });
       return;
     }
     clearErrors();
@@ -164,8 +162,33 @@ export default function LoginScreen() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         haptic(Haptics.NotificationFeedbackType.Success);
+      } else if ((result as { status: string }).status === "needs_client_trust") {
+        // Il client Clerk non è ancora inizializzato (tipico in Expo Go senza
+        // native module). Forziamo un reload dal FAPI e riproviamo una volta.
+        try {
+          const clerk = getClerkInstance();
+          const reload = (clerk as unknown as { __internal_reloadInitialResources?: () => Promise<void> })
+            .__internal_reloadInitialResources;
+          if (typeof reload === "function") {
+            await reload.call(clerk);
+          }
+          await new Promise((r) => setTimeout(r, 600));
+          const retry = await signIn.create({ identifier: email, password });
+          if (retry.status === "complete") {
+            await setActive({ session: retry.createdSessionId });
+            haptic(Haptics.NotificationFeedbackType.Success);
+          } else {
+            setFieldErrors({
+              general: "Inizializzazione in corso. Attendi 2-3 secondi e riprova.",
+            });
+            haptic(Haptics.NotificationFeedbackType.Error);
+          }
+        } catch (retryErr: unknown) {
+          setErrors(extractClerkErrors(retryErr), retryErr);
+        }
       } else {
-        showDebug({ status: result.status, result });
+        setFieldErrors({ general: "Accesso non completato. Riprova." });
+        haptic(Haptics.NotificationFeedbackType.Error);
       }
     } catch (err: unknown) {
       setErrors(extractClerkErrors(err), err);
@@ -175,9 +198,8 @@ export default function LoginScreen() {
   }
 
   async function handleSignUp() {
-    const state = { signInLoaded, signUpLoaded, authLoaded, isSignedIn, hasSignUp: !!signUp };
     if (!signUpLoaded || !signUp) {
-      showDebug({ guard: "signUp not ready", ...state });
+      setFieldErrors({ general: "Autenticazione non pronta. Attendi un momento e riprova." });
       return;
     }
     clearErrors();
@@ -204,9 +226,8 @@ export default function LoginScreen() {
   }
 
   async function handleVerify() {
-    const state = { signUpLoaded, authLoaded, hasSignUp: !!signUp };
     if (!signUpLoaded || !signUp) {
-      showDebug({ guard: "signUp not ready for verify", ...state });
+      setFieldErrors({ general: "Autenticazione non pronta. Attendi un momento e riprova." });
       return;
     }
     clearErrors();
@@ -217,7 +238,8 @@ export default function LoginScreen() {
         await setActive({ session: result.createdSessionId });
         haptic(Haptics.NotificationFeedbackType.Success);
       } else {
-        showDebug({ status: result.status, result });
+        setFieldErrors({ code: "Verifica non completata. Riprova." });
+        haptic(Haptics.NotificationFeedbackType.Error);
       }
     } catch (err: unknown) {
       const clerkErrs = extractClerkErrors(err);
@@ -402,19 +424,6 @@ export default function LoginScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {debugLog ? (
-        <View style={s.debugBanner}>
-          <View style={s.debugHeader}>
-            <Text style={s.debugTitle}>⚠ Debug errore (tocca × per chiudere)</Text>
-            <TouchableOpacity onPress={() => setDebugLog(null)} style={s.debugClose}>
-              <Text style={s.debugCloseText}>×</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView style={s.debugScroll} showsVerticalScrollIndicator>
-            <Text style={s.debugText} selectable>{debugLog}</Text>
-          </ScrollView>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -547,52 +556,6 @@ function makeStyles(colors: ReturnType<typeof import("@/hooks/useColors").useCol
       color: "#fff",
       fontSize: 15,
       fontFamily: "Inter_600SemiBold",
-    },
-    debugBanner: {
-      position: "absolute",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      maxHeight: 220,
-      backgroundColor: "#1a0a0a",
-      borderTopWidth: 1,
-      borderTopColor: "#f87171",
-      paddingBottom: Platform.OS === "ios" ? 20 : 8,
-    },
-    debugHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderBottomWidth: 1,
-      borderBottomColor: "#f8717144",
-    },
-    debugTitle: {
-      color: "#f87171",
-      fontSize: 11,
-      fontFamily: "Inter_600SemiBold",
-      flex: 1,
-    },
-    debugClose: {
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-    },
-    debugCloseText: {
-      color: "#f87171",
-      fontSize: 18,
-      fontFamily: "Inter_700Bold",
-    },
-    debugScroll: {
-      maxHeight: 160,
-      paddingHorizontal: 12,
-      paddingTop: 6,
-    },
-    debugText: {
-      color: "#fca5a5",
-      fontSize: 10,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      lineHeight: 15,
     },
   });
 }
