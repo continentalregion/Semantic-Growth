@@ -172,17 +172,57 @@ function BattleSessionModal({
     const token = await getToken();
     const userMsg: Message = { role: "user", content };
     setMessages(prev => [...prev, userMsg]);
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
 
     try {
       const r = await fetch(`${BASE}/api/threads/${thread.id}/sessions/${sessionId}/chat`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
+        headers: {
+          Authorization: `Bearer ${token ?? ""}`,
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+        },
+        body: JSON.stringify({ message: content }),
       });
-      const data = await r.json() as { content?: string };
-      if (data.content) {
-        setMessages(prev => [...prev, { role: "assistant", content: data.content! }]);
-        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+
+      if (!r.ok || !r.body) throw new Error("bad response");
+
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let fullResponse = "";
+      let assistantAdded = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6).trim();
+          if (!raw || raw === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(raw) as { type?: string; text?: string };
+            if (parsed.type === "content" && parsed.text) {
+              fullResponse += parsed.text;
+              const captured = fullResponse;
+              if (!assistantAdded) {
+                assistantAdded = true;
+                setMessages(prev => [...prev, { role: "assistant", content: captured }]);
+              } else {
+                setMessages(prev => prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: captured } : m)));
+              }
+              setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+            }
+          } catch { /* ignore malformed SSE line */ }
+        }
+      }
+
+      if (!assistantAdded) {
+        setMessages(prev => [...prev, { role: "assistant", content: fullResponse || t("battles.connError") }]);
       }
     } catch {
       setMessages(prev => [...prev, { role: "assistant", content: t("battles.connError") }]);
@@ -207,10 +247,20 @@ function BattleSessionModal({
         headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
       });
       const data = await r.json() as {
-        score?: { density: number; connections: number; depth: number; total: number; explanation: string };
+        scoreTotal?: number;
+        scoreDensity?: number;
+        scoreConnections?: number;
+        scoreDepth?: number;
+        scoreExplanation?: string;
         battleCardId?: string;
       };
-      if (data.score) setScore(data.score);
+      setScore({
+        density: data.scoreDensity ?? 0,
+        connections: data.scoreConnections ?? 0,
+        depth: data.scoreDepth ?? 0,
+        total: data.scoreTotal ?? 0,
+        explanation: data.scoreExplanation ?? "",
+      });
       if (data.battleCardId) setBattleCardId(data.battleCardId);
       setCompleted(true);
     } catch {
