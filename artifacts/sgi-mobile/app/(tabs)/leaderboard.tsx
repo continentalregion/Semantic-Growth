@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useGetLeaderboard } from "@workspace/api-client-react";
+import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { StaggeredItem } from "@/components/ui/StaggeredItem";
@@ -38,6 +39,7 @@ function RankBadge({ rank, colors }: { rank: number; colors: ReturnType<typeof u
 
 export default function LeaderboardScreen() {
   const colors = useColors();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const { data, isLoading, refetch, isRefetching } = useGetLeaderboard({ limit: 100, offset: 0 });
@@ -54,7 +56,7 @@ export default function LeaderboardScreen() {
         },
       ]}>
         <Ionicons name="trophy" size={20} color={colors.gold} />
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Classifica</Text>
+        <Text style={[styles.headerTitle, { color: colors.foreground }]}>{t("nav.rank")}</Text>
       </View>
 
       {isLoading ? (
@@ -74,7 +76,7 @@ export default function LeaderboardScreen() {
             entries.length > 0 ? (
               <View style={[styles.summaryRow, { borderBottomColor: colors.border }]}>
                 <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>
-                  {data?.total ?? entries.length} utenti in classifica
+                  {t("leaderboard.usersInRanking", { count: data?.total ?? entries.length })}
                 </Text>
               </View>
             ) : null
@@ -83,7 +85,7 @@ export default function LeaderboardScreen() {
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 80, gap: colors.spacing.md }}>
               <Ionicons name="trophy-outline" size={48} color={colors.border} />
               <Text style={{ color: colors.mutedForeground, fontFamily: colors.font.family.regular }}>
-                Nessun dato disponibile
+                {t("leaderboard.noData")}
               </Text>
             </View>
           }
@@ -107,7 +109,7 @@ export default function LeaderboardScreen() {
                     </Text>
                     {item.isCurrentUser && (
                       <View style={[styles.youBadge, { backgroundColor: colors.primary + "25", borderColor: colors.primary + "40" }]}>
-                        <Text style={{ color: colors.primary, fontSize: colors.font.size.xs, fontFamily: colors.font.family.semibold }}>TU</Text>
+                        <Text style={{ color: colors.primary, fontSize: colors.font.size.xs, fontFamily: colors.font.family.semibold }}>{t("leaderboard.you")}</Text>
                       </View>
                     )}
                   </View>

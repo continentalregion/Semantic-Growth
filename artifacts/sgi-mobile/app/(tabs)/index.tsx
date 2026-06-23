@@ -36,6 +36,7 @@ import {
   getListOpenaiConversationsQueryKey,
   getGetOpenaiConversationQueryKey,
 } from "@workspace/api-client-react";
+import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
 import { LinearGradient } from "expo-linear-gradient";
@@ -44,9 +45,9 @@ import { PressableScale } from "@/components/ui/PressableScale";
 const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
 
 const MODELS = [
-  { id: "claude-haiku-4-5", label: "Haiku", badge: "Veloce" },
-  { id: "claude-sonnet-4-6", label: "Sonnet", badge: "Bilanciato" },
-  { id: "gpt-4o-mini", label: "GPT-4o Mini", badge: "Veloce" },
+  { id: "claude-haiku-4-5", label: "Haiku", badgeKey: "chat.modelFast" },
+  { id: "claude-sonnet-4-6", label: "Sonnet", badgeKey: "chat.modelBalanced" },
+  { id: "gpt-4o-mini", label: "GPT-4o Mini", badgeKey: "chat.modelFast" },
 ] as const;
 type ModelId = (typeof MODELS)[number]["id"];
 
@@ -88,6 +89,7 @@ function TypingIndicator() {
 
 export default function ChatScreen() {
   const colors = useColors();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const { getToken } = useAuth();
@@ -166,7 +168,7 @@ export default function ChatScreen() {
     if (!convoId) {
       convoId = await createConversation(content);
       if (!convoId) {
-        setErrorMsg("Impossibile creare la conversazione.");
+        setErrorMsg(t("chat.failedCreate"));
         setMessages(prev => prev.filter(m => m.id !== userMsg.id));
         return;
       }
@@ -194,13 +196,13 @@ export default function ChatScreen() {
       if (resp.status === 429) {
         const data = await resp.json() as { used?: number; limit?: number; plan?: string };
         setUsageRemaining(0);
-        setErrorMsg(`Limite messaggi raggiunto (${data.used ?? "?"}/${data.limit ?? "?"}). Aggiorna il piano.`);
+        setErrorMsg(t("chat.limitMsg", { used: data.used ?? "?", limit: data.limit ?? "?" }));
         setMessages(prev => prev.filter(m => m.id !== userMsg.id));
         return;
       }
 
       if (!resp.ok || !resp.body) {
-        setErrorMsg("Errore del server. Riprova.");
+        setErrorMsg(t("chat.serverError"));
         setMessages(prev => prev.filter(m => m.id !== userMsg.id));
         return;
       }
@@ -262,13 +264,13 @@ export default function ChatScreen() {
               qc.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
             }
             if (parsed.streamError) {
-              setErrorMsg(parsed.message ?? "Errore streaming");
+              setErrorMsg(parsed.message ?? t("chat.serverError"));
             }
           } catch {}
         }
       }
     } catch {
-      setErrorMsg("Connessione persa. Riprova.");
+      setErrorMsg(t("chat.connLost"));
       setMessages(prev => prev.filter(m => m.id !== userMsg.id));
     } finally {
       setIsStreaming(false);
@@ -307,7 +309,7 @@ export default function ChatScreen() {
         >
           <Ionicons name="list" size={22} color={colors.foreground} />
         </PressableScale>
-        <Text style={s.headerTitle}>SGI Chat</Text>
+        <Text style={s.headerTitle}>{t("nav.chat")}</Text>
         <PressableScale
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setModelModal(true); }}
           style={s.modelBadge}
@@ -327,7 +329,7 @@ export default function ChatScreen() {
 
       {usageRemaining !== null && (
         <View style={s.usageBadge}>
-          <Text style={s.usageText}>{usageRemaining} msg rimasti</Text>
+          <Text style={s.usageText}>{t("chat.msgLeft", { n: usageRemaining })}</Text>
         </View>
       )}
 
@@ -353,8 +355,8 @@ export default function ChatScreen() {
           ListEmptyComponent={
             <View style={s.empty}>
               <Ionicons name="chatbubbles-outline" size={48} color={colors.border} />
-              <Text style={s.emptyTitle}>Inizia a chattare</Text>
-              <Text style={s.emptyHint}>Il tuo punteggio SGI cresce ad ogni conversazione</Text>
+              <Text style={s.emptyTitle}>{t("chat.startTitle")}</Text>
+              <Text style={s.emptyHint}>{t("chat.startHint")}</Text>
             </View>
           }
           renderItem={({ item }) => <MessageBubble msg={item} colors={colors} />}
@@ -378,7 +380,7 @@ export default function ChatScreen() {
           <TextInput
             ref={inputRef}
             style={s.textInput}
-            placeholder="Scrivi un messaggio..."
+            placeholder={t("chat.inputPlaceholder")}
             placeholderTextColor={colors.mutedForeground}
             value={input}
             onChangeText={setInput}
@@ -417,7 +419,7 @@ export default function ChatScreen() {
       <Modal visible={modelModal} animationType="fade" transparent onRequestClose={() => setModelModal(false)}>
         <Pressable style={s.overlay} onPress={() => setModelModal(false)}>
           <View style={[s.modelSheet, { paddingBottom: insets.bottom + 16 }]}>
-            <Text style={s.modelSheetTitle}>Modello AI</Text>
+            <Text style={s.modelSheetTitle}>{t("chat.modelTitle")}</Text>
             {MODELS.map(m => (
               <PressableScale
                 key={m.id}
@@ -426,7 +428,7 @@ export default function ChatScreen() {
               >
                 <View>
                   <Text style={s.modelRowLabel}>{m.label}</Text>
-                  <Text style={s.modelRowBadge}>{m.badge}</Text>
+                  <Text style={s.modelRowBadge}>{t(m.badgeKey)}</Text>
                 </View>
                 {m.id === selectedModel && (
                   <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
@@ -699,6 +701,7 @@ function ConvoModal({
   onClose: () => void;
   colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
 }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -713,7 +716,7 @@ function ConvoModal({
         justifyContent: "space-between",
       }}>
         <Text style={{ color: colors.foreground, fontSize: 18, fontFamily: "Inter_600SemiBold" }}>
-          Conversazioni
+          {t("chat.conversations")}
         </Text>
         <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
           <PressableScale
@@ -721,7 +724,7 @@ function ConvoModal({
             style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.primary + "20", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
           >
             <Ionicons name="add" size={16} color={colors.primary} />
-            <Text style={{ color: colors.primary, fontFamily: "Inter_500Medium", fontSize: 13 }}>Nuova</Text>
+            <Text style={{ color: colors.primary, fontFamily: "Inter_500Medium", fontSize: 13 }}>{t("chat.new")}</Text>
           </PressableScale>
           <PressableScale onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} haptic={false}>
             <Ionicons name="close" size={24} color={colors.mutedForeground} />
@@ -735,7 +738,7 @@ function ConvoModal({
       ) : conversations.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 8 }}>
           <Ionicons name="chatbubbles-outline" size={40} color={colors.border} />
-          <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular" }}>Nessuna conversazione</Text>
+          <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular" }}>{t("chat.noConversations")}</Text>
         </View>
       ) : (
         <FlatList

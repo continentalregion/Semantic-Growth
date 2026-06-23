@@ -36,6 +36,7 @@ import {
   useGetPredictions,
   useGetSemanticMap,
 } from "@workspace/api-client-react";
+import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
@@ -45,75 +46,20 @@ const AnimatedTextInput = createAnimatedComponent(TextInput);
 const AnimatedRect = createAnimatedComponent(SvgRect);
 
 const MACRO_DIMS = [
-  {
-    key: "profondita" as const,
-    label: "Profondità",
-    desc: "Quanto vai a fondo: complessità dei concetti e lunghezza del ragionamento.",
-    color: palette.primary,
-  },
-  {
-    key: "connettivita" as const,
-    label: "Connettività",
-    desc: "Quanto colleghi ambiti diversi e vari i campi semantici.",
-    color: palette.cyan,
-  },
-  {
-    key: "precisione" as const,
-    label: "Precisione",
-    desc: "Densità di informazione e ricchezza del lessico.",
-    color: palette.violet,
-  },
-  {
-    key: "revisione" as const,
-    label: "Revisione",
-    desc: "Quanto rivedi e raffini ciò che scrivi.",
-    color: palette.teal,
-  },
+  { key: "profondita" as const, labelKey: "dashboard.dimProfondita", descKey: "dashboard.dimProfonditaDesc", color: palette.primary },
+  { key: "connettivita" as const, labelKey: "dashboard.dimConnettivita", descKey: "dashboard.dimConnettivitaDesc", color: palette.cyan },
+  { key: "precisione" as const, labelKey: "dashboard.dimPrecisione", descKey: "dashboard.dimPrecizioneDesc", color: palette.violet },
+  { key: "revisione" as const, labelKey: "dashboard.dimRevisione", descKey: "dashboard.dimRevisioneDesc", color: palette.teal },
 ] as const;
 
 const RAW_METRICS = [
-  {
-    key: "conceptualComplexity" as const,
-    label: "Complessità concettuale",
-    desc: "Quanti concetti distinti e non banali introduci.",
-    color: palette.primary,
-  },
-  {
-    key: "semanticVariety" as const,
-    label: "Varietà semantica",
-    desc: "Ampiezza dei campi di significato che tocchi.",
-    color: palette.cyan,
-  },
-  {
-    key: "interdisciplinaryScore" as const,
-    label: "Interdisciplinarità",
-    desc: "Ponti tra domini diversi (es. fisica e filosofia).",
-    color: palette.violet,
-  },
-  {
-    key: "reasoningDepth" as const,
-    label: "Profondità di ragionamento",
-    desc: "Quanto è lunga e articolata la catena logica.",
-    color: palette.teal,
-  },
-  {
-    key: "originality" as const,
-    label: "Originalità",
-    desc: "Quanto ti allontani dal modo ovvio di inquadrare le cose.",
-    color: palette.gold,
-  },
-  {
-    key: "stability" as const,
-    label: "Stabilità",
-    desc: "Coerenza interna, assenza di contraddizioni.",
-    color: palette.success,
-  },
-  {
-    key: "continuity" as const,
-    label: "Continuità",
-    desc: "Quanto costruisci sul contesto precedente.",
-    color: palette.secondary,
-  },
+  { key: "conceptualComplexity" as const, labelKey: "dashboard.metricConceptual", descKey: "dashboard.metricConceptualDesc", color: palette.primary },
+  { key: "semanticVariety" as const, labelKey: "dashboard.metricSemanticVariety", descKey: "dashboard.metricSemanticVarietyDesc", color: palette.cyan },
+  { key: "interdisciplinaryScore" as const, labelKey: "dashboard.metricInterdisciplinary", descKey: "dashboard.metricInterdisciplinaryDesc", color: palette.violet },
+  { key: "reasoningDepth" as const, labelKey: "dashboard.metricReasoningDepth", descKey: "dashboard.metricReasoningDepthDesc", color: palette.teal },
+  { key: "originality" as const, labelKey: "dashboard.metricOriginality", descKey: "dashboard.metricOriginalityDesc", color: palette.gold },
+  { key: "stability" as const, labelKey: "dashboard.metricStability", descKey: "dashboard.metricStabilityDesc", color: palette.success },
+  { key: "continuity" as const, labelKey: "dashboard.metricContinuity", descKey: "dashboard.metricContinuityDesc", color: palette.secondary },
 ] as const;
 
 function AnimatedCounter({
@@ -313,6 +259,7 @@ function PremiumGateCard({
   icon: string;
   colors: ReturnType<typeof useColors>;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={[gSt.root, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={[gSt.iconWrap, { backgroundColor: colors.muted }]}>
@@ -323,7 +270,7 @@ function PremiumGateCard({
       <View style={[gSt.badge, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "33" }]}>
         <Ionicons name="lock-closed" size={12} color={colors.primary} />
         <Text style={{ color: colors.primary, fontSize: 12, fontFamily: "Inter_600SemiBold", marginLeft: 4 }}>
-          Premium o Pro
+          {t("dashboard.premiumOrPro")}
         </Text>
       </View>
     </View>
@@ -360,6 +307,7 @@ const gSt = StyleSheet.create({
 });
 
 export default function DashboardScreen() {
+  const { t } = useTranslation();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
@@ -441,7 +389,7 @@ export default function DashboardScreen() {
         ]}
       >
         <Ionicons name="analytics" size={20} color={colors.primary} />
-        <Text style={[st.headerTitle, { color: colors.foreground }]}>Dashboard</Text>
+        <Text style={[st.headerTitle, { color: colors.foreground }]}>{t("nav.dashboard")}</Text>
         <View
           style={[
             st.planChip,
@@ -519,7 +467,7 @@ export default function DashboardScreen() {
             ]}
           >
             <Text style={[st.sectionMicro, { color: colors.mutedForeground }]}>
-              SGI SCORE
+              {t("dashboard.sgiScoreLabel")}
             </Text>
 
             <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 12 }}>
@@ -537,9 +485,9 @@ export default function DashboardScreen() {
                   gap: 6,
                 }}
               >
-                <DeltaChip label="oggi" value={profile?.sgiDailyDelta} colors={colors} />
-                <DeltaChip label="settimana" value={profile?.sgiWeeklyDelta} colors={colors} />
-                <DeltaChip label="mese" value={profile?.sgiMonthlyDelta} colors={colors} />
+                <DeltaChip label={t("dashboard.today")} value={profile?.sgiDailyDelta} colors={colors} />
+                <DeltaChip label={t("dashboard.week")} value={profile?.sgiWeeklyDelta} colors={colors} />
+                <DeltaChip label={t("dashboard.month")} value={profile?.sgiMonthlyDelta} colors={colors} />
               </View>
             </View>
 
@@ -563,7 +511,7 @@ export default function DashboardScreen() {
                       </Text>
                     </View>
                     <Text style={[st.miniStatLbl, { color: colors.mutedForeground }]}>
-                      Posizione globale
+                      {t("dashboard.globalPosition")}
                     </Text>
                   </View>
                 )}
@@ -576,7 +524,7 @@ export default function DashboardScreen() {
                       </Text>
                     </View>
                     <Text style={[st.miniStatLbl, { color: colors.mutedForeground }]}>
-                      Tra tutti gli utenti
+                      {t("dashboard.allUsers")}
                     </Text>
                   </View>
                 )}
@@ -589,7 +537,7 @@ export default function DashboardScreen() {
                       </Text>
                     </View>
                     <Text style={[st.miniStatLbl, { color: colors.mutedForeground }]}>
-                      Utenti totali
+                      {t("dashboard.totalUsers")}
                     </Text>
                   </View>
                 )}
@@ -607,7 +555,7 @@ export default function DashboardScreen() {
             >
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                 <Text style={[st.sectionTitle, { color: colors.foreground }]}>
-                  Trend (30 giorni)
+                  {t("dashboard.trend30")}
                 </Text>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                   <Text style={{ color: colors.mutedForeground, fontSize: 11, fontFamily: "Inter_400Regular" }}>
@@ -633,7 +581,7 @@ export default function DashboardScreen() {
               ]}
             >
               <Text style={[st.sectionTitle, { color: colors.foreground }]}>
-                Dimensioni semantiche
+                {t("dashboard.semanticDimensions")}
               </Text>
               {MACRO_DIMS.map(dim => {
                 const val = macro[dim.key] ?? 0;
@@ -647,7 +595,7 @@ export default function DashboardScreen() {
                           fontSize: 13,
                         }}
                       >
-                        {dim.label}
+                        {t(dim.labelKey)}
                       </Text>
                       <Text
                         style={{
@@ -667,7 +615,7 @@ export default function DashboardScreen() {
                         lineHeight: 16,
                       }}
                     >
-                      {dim.desc}
+                      {t(dim.descKey)}
                     </Text>
                     <AnimatedBar value={val} max={10} color={dim.color} bg={colors.muted} height={7} />
                   </View>
@@ -686,7 +634,7 @@ export default function DashboardScreen() {
             >
               <View>
                 <Text style={[st.sectionTitle, { color: colors.foreground }]}>
-                  Metriche dettagliate
+                  {t("dashboard.detailedMetrics")}
                 </Text>
                 <Text
                   style={{
@@ -696,7 +644,7 @@ export default function DashboardScreen() {
                     marginTop: 2,
                   }}
                 >
-                  Dall'ultima sessione
+                  {t("dashboard.lastSession")}
                 </Text>
               </View>
               {RAW_METRICS.map(m => {
@@ -713,7 +661,7 @@ export default function DashboardScreen() {
                           marginRight: 8,
                         }}
                       >
-                        {m.label}
+                        {t(m.labelKey)}
                       </Text>
                       <Text
                         style={{
@@ -733,7 +681,7 @@ export default function DashboardScreen() {
                         lineHeight: 14,
                       }}
                     >
-                      {m.desc}
+                      {t(m.descKey)}
                     </Text>
                     <AnimatedBar value={val} max={10} color={m.color} bg={colors.muted} height={5} />
                   </View>
@@ -755,7 +703,7 @@ export default function DashboardScreen() {
                 >
                   <View>
                     <Text style={[st.sectionTitle, { color: colors.foreground }]}>
-                      Proiezioni future
+                      {t("dashboard.futureProjections")}
                     </Text>
                     <Text
                       style={{
@@ -765,14 +713,14 @@ export default function DashboardScreen() {
                         marginTop: 2,
                       }}
                     >
-                      Scenario realistico al tuo ritmo attuale
+                      {t("dashboard.realisticScenario")}
                     </Text>
                   </View>
                   <View style={{ flexDirection: "row", gap: 8 }}>
                     {[
-                      { label: "30 giorni", sgi: predictions.realistic.sgi30d, rank: predictions.realistic.rank30d },
-                      { label: "90 giorni", sgi: predictions.realistic.sgi90d, rank: predictions.realistic.rank90d },
-                      { label: "180 giorni", sgi: predictions.realistic.sgi180d, rank: predictions.realistic.rank180d },
+                      { label: t("dashboard.days30"), sgi: predictions.realistic.sgi30d, rank: predictions.realistic.rank30d },
+                      { label: t("dashboard.days90"), sgi: predictions.realistic.sgi90d, rank: predictions.realistic.rank90d },
+                      { label: t("dashboard.days180"), sgi: predictions.realistic.sgi180d, rank: predictions.realistic.rank180d },
                     ].map(p => (
                       <View
                         key={p.label}
@@ -808,7 +756,7 @@ export default function DashboardScreen() {
                             marginTop: 2,
                           }}
                         >
-                          #{p.rank} globale
+                          {t("dashboard.rankGlobal", { rank: p.rank })}
                         </Text>
                       </View>
                     ))}
@@ -825,7 +773,7 @@ export default function DashboardScreen() {
                   ]}
                 >
                   <Text style={[st.sectionTitle, { color: colors.foreground }]}>
-                    Mappa semantica
+                    {t("map.title")}
                   </Text>
                   <Text
                     style={{
@@ -835,7 +783,7 @@ export default function DashboardScreen() {
                       marginTop: -4,
                     }}
                   >
-                    I domini che esplori di più
+                    {t("dashboard.topDomains")}
                   </Text>
                   <View style={{ gap: 8 }}>
                     {topDomains.map((node, idx) => (
@@ -903,14 +851,14 @@ export default function DashboardScreen() {
           ) : (
             <>
               <PremiumGateCard
-                title="Proiezioni future"
-                desc="Vedi dove arriverai in 30, 90 e 180 giorni se mantieni il ritmo attuale."
+                title={t("dashboard.premiumGatePredTitle")}
+                desc={t("dashboard.premiumGatePredDesc")}
                 icon="🔮"
                 colors={colors}
               />
               <PremiumGateCard
-                title="Mappa semantica"
-                desc="Esplora i domini del sapere che stai sviluppando e scopri dove sei più forte."
+                title={t("dashboard.premiumGateMapTitle")}
+                desc={t("dashboard.premiumGateMapDesc")}
                 icon="🗺️"
                 colors={colors}
               />

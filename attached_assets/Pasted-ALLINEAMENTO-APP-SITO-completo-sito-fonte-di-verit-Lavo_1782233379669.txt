@@ -1,0 +1,19 @@
+ALLINEAMENTO APP ↔ SITO completo (sito = fonte di verità). Lavora in QUESTO ordine, fermandoti per mia conferma dove indicato. Mantieni l'app avviabile su Expo Go dopo ogni step. Riusa sempre il codice/traduzioni del frontend web (artifacts/sgi-app/src/) come specifica, non reinventare.
+
+STEP 1 — NAMING (fai e prosegui, no stop):
+Rinomina le label visibili dell'app ai nomi del sito (lascia invariati file e route tecniche):
+- "Chat" → "Chat Semantica" (index.tsx)
+- "Classifica" → "Rank Globale" (leaderboard.tsx)
+- "Raccomandazioni" → "Percorso di Crescita" (recommendations.tsx)
+NON separare la tab "Battaglie" (la fusione threads+battles si affronta nello step 3, non ora). "Dashboard" e "Profilo" restano.
+
+STEP 2 — i18n IT/EN/ES (fai e prosegui, no stop):
+Imposta i18next + react-i18next nell'app (stessa libreria del sito). RIUSA le traduzioni esistenti in src/i18n.ts del sito invece di ricrearle: importa/adatta gli oggetti IT/EN/ES. Estrai TUTTE le stringhe hardcoded dell'app nelle chiavi di traduzione (incluse le label rinominate allo step 1). Default = lingua di sistema, fallback inglese. Se i18next non è installato nell'app, segnalamelo PRIMA di installare.
+
+STEP 3 — ARCHITETTURA NAVIGAZIONE (QUI FERMATI e aspetta mia conferma):
+L'app ha 5 tab in fondo; il sito ha 11 sezioni in 3 gruppi (Core/Esplora/Gioco). Non entrano tutte nella tab bar. PROPONIMI (senza implementare) come strutturare la navigazione dell'app per ospitare le 5 sezioni mancanti — Thread Aperti separato da Feed Battaglie, Mappa Semantica, Predizioni, Progressi/gamification, Impostazioni — riproducendo i 3 gruppi del sito (es. tab bar ridotta + menu/drawer, oppure tab + sezioni annidate). Aspetta che scelga prima di toccare la navigazione.
+
+STEP 4 — SEZIONI MANCANTI (dopo mia conferma dello step 3, UNA alla volta, fermandoti tra una e l'altra):
+Porta dal web all'app, riusando endpoint già esistenti e replicando struttura/naming del sito: (a) Mappa Semantica /map → /semantic-map; (b) Predizioni /predictions; (c) Progressi /gamification; (d) Thread Aperti /threads separato da Feed Battaglie; (e) Impostazioni /settings (qui vive il selettore lingua dello step 2). Per ciascuna: prima dimmi cosa fa la versione web leggendo il suo codice, poi implementala nell'app, poi fermati prima della successiva.
+
+Inizia dallo STEP 1.

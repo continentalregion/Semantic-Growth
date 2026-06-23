@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useGetMyRecommendations } from "@workspace/api-client-react";
+import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
@@ -40,7 +41,11 @@ function RecCard({
   item: { id: number; category: string; title: string; description: string; priority?: number; createdAt: string };
   colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
 }) {
+  const { t } = useTranslation();
   const cat = getCat(item.category);
+  const catLabel = CATEGORY_CONFIG[item.category as Category]
+    ? t(`recommendations.categories.${item.category}`)
+    : t("recommendations.defaultCat");
   return (
     <View style={[cardStyles.root, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={cardStyles.top}>
@@ -50,11 +55,11 @@ function RecCard({
         <View style={{ flex: 1, gap: 4 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <View style={[cardStyles.catBadge, { backgroundColor: cat.color + "18", borderColor: cat.color + "33" }]}>
-              <Text style={[cardStyles.catText, { color: cat.color }]}>{cat.label}</Text>
+              <Text style={[cardStyles.catText, { color: cat.color }]}>{catLabel}</Text>
             </View>
             {item.priority != null && item.priority >= 8 && (
               <View style={[cardStyles.catBadge, { backgroundColor: palette.pink + "18", borderColor: palette.pink + "33" }]}>
-                <Text style={[cardStyles.catText, { color: palette.pink }]}>Alta priorità</Text>
+                <Text style={[cardStyles.catText, { color: palette.pink }]}>{t("recommendations.highPriority")}</Text>
               </View>
             )}
           </View>
@@ -112,6 +117,7 @@ const cardStyles = StyleSheet.create({
 
 export default function RecommendationsScreen() {
   const colors = useColors();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
 
@@ -125,7 +131,7 @@ export default function RecommendationsScreen() {
     <AnimatedScreen style={{ backgroundColor: colors.background }}>
       <View style={[styles.header, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>
         <Ionicons name="bulb" size={20} color={palette.warning} />
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Raccomandazioni</Text>
+        <Text style={[styles.headerTitle, { color: colors.foreground }]}>{t("nav.growthPath")}</Text>
         {recs && recs.length > 0 && (
           <View style={[styles.countBadge, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "33" }]}>
             <Text style={{ color: colors.primary, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
@@ -147,10 +153,10 @@ export default function RecommendationsScreen() {
             <Ionicons name="lock-closed" size={28} color={colors.primary} />
           </View>
           <Text style={{ color: colors.foreground, fontFamily: "Inter_700Bold", fontSize: 20, textAlign: "center" }}>
-            Funzione Premium
+            {t("recommendations.premiumFeature")}
           </Text>
           <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center", lineHeight: 20 }}>
-            Le raccomandazioni personalizzate per la crescita semantica sono disponibili con il piano Premium o Pro.
+            {t("recommendations.premiumDesc")}
           </Text>
           <View
             style={{
@@ -162,7 +168,7 @@ export default function RecommendationsScreen() {
             }}
           >
             <Text style={{ color: palette.primaryFg, fontFamily: "Inter_600SemiBold", fontSize: 15 }}>
-              Aggiorna il piano →
+              {t("recommendations.upgradePremium")}
             </Text>
           </View>
         </View>
@@ -170,10 +176,10 @@ export default function RecommendationsScreen() {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12 }}>
           <Ionicons name="bulb-outline" size={48} color={colors.border} />
           <Text style={{ color: colors.foreground, fontFamily: "Inter_600SemiBold", fontSize: 18 }}>
-            Nessuna raccomandazione
+            {t("recommendations.noRecsTitle")}
           </Text>
           <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center", paddingHorizontal: 40 }}>
-            Chatta di più per ricevere suggerimenti personalizzati sulla tua crescita semantica
+            {t("recommendations.noRecs")}
           </Text>
         </View>
       ) : (
@@ -191,7 +197,7 @@ export default function RecommendationsScreen() {
           }
           ListHeaderComponent={
             <Text style={[styles.listHeader, { color: colors.mutedForeground }]}>
-              Percorso di crescita personalizzato · {recs.length} suggeriment{recs.length === 1 ? "o" : "i"}
+              {t("recommendations.pathHeader", { count: recs.length })}
             </Text>
           }
           renderItem={({ item, index }) => (

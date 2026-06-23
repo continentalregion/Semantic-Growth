@@ -5,11 +5,13 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 
 export default function TabLayout() {
   const colors = useColors();
   const colorScheme = useColorScheme();
+  const { t } = useTranslation();
   const isDark = colorScheme !== "light";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
@@ -49,7 +51,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Chat",
+          title: t("nav.chat"),
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView
@@ -65,7 +67,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: "Dashboard",
+          title: t("nav.dashboard"),
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="chart.line.uptrend.xyaxis" tintColor={color} size={22} />
@@ -77,7 +79,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="battles"
         options={{
-          title: "Battaglie",
+          title: t("nav.battles"),
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="bolt.fill" tintColor={color} size={22} />
@@ -95,7 +97,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="leaderboard"
         options={{
-          title: "Classifica",
+          title: t("nav.rank"),
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="trophy" tintColor={color} size={22} />
@@ -107,7 +109,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profilo",
+          title: t("nav.profile"),
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="person" tintColor={color} size={22} />

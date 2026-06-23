@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
+import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
@@ -32,14 +33,14 @@ import { fetch } from "expo/fetch";
 const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
 const BATTLE_DURATION = 4 * 60;
 
-const CATEGORY_META: Record<string, { label: string; color: string; icon: string }> = {
-  philosophy:    { label: "Filosofia",   color: palette.primary,      icon: "telescope-outline" },
-  science:       { label: "Scienza",     color: palette.teal,         icon: "flask-outline" },
-  ethics:        { label: "Etica",       color: palette.pink,         icon: "heart-outline" },
-  technology:    { label: "Tecnologia",  color: palette.primaryLight, icon: "hardware-chip-outline" },
-  society:       { label: "Società",     color: palette.warning,      icon: "people-outline" },
-  knowledge:     { label: "Conoscenza",  color: palette.teal,         icon: "library-outline" },
-  consciousness: { label: "Coscienza",   color: palette.primary,      icon: "infinite-outline" },
+const CATEGORY_META: Record<string, { labelKey: string; color: string; icon: string }> = {
+  philosophy:    { labelKey: "battles.categoryPhilosophy",    color: palette.primary,      icon: "telescope-outline" },
+  science:       { labelKey: "battles.categoryScience",       color: palette.teal,         icon: "flask-outline" },
+  ethics:        { labelKey: "battles.categoryEthics",        color: palette.pink,         icon: "heart-outline" },
+  technology:    { labelKey: "battles.categoryTechnology",    color: palette.primaryLight, icon: "hardware-chip-outline" },
+  society:       { labelKey: "battles.categorySociety",       color: palette.warning,      icon: "people-outline" },
+  knowledge:     { labelKey: "battles.categoryKnowledge",     color: palette.teal,         icon: "library-outline" },
+  consciousness: { labelKey: "battles.categoryConsciousness", color: palette.primary,      icon: "infinite-outline" },
 };
 
 interface Thread {
@@ -80,12 +81,12 @@ function formatDuration(s: number) {
   return `${m}m ${sec}s`;
 }
 
-function timeAgo(dateStr: string) {
+function timeAgo(dateStr: string, t: (key: string, opts?: object) => string) {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (diff < 60) return `${diff}s fa`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m fa`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h fa`;
-  return `${Math.floor(diff / 86400)}g fa`;
+  if (diff < 60) return t("battles.timeAgoSec", { n: diff });
+  if (diff < 3600) return t("battles.timeAgoMin", { n: Math.floor(diff / 60) });
+  if (diff < 86400) return t("battles.timeAgoHour", { n: Math.floor(diff / 3600) });
+  return t("battles.timeAgoDays", { n: Math.floor(diff / 86400) });
 }
 
 // ─── Battle Session Modal ─────────────────────────────────────────────────────
@@ -97,6 +98,7 @@ function BattleSessionModal({
   colors: ReturnType<typeof useColors>;
   getToken: () => Promise<string | null>;
 }) {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -164,7 +166,7 @@ function BattleSessionModal({
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       }
     } catch {
-      setMessages(prev => [...prev, { role: "assistant", content: "Errore di connessione." }]);
+      setMessages(prev => [...prev, { role: "assistant", content: t("battles.connError") }]);
     } finally {
       setSending(false);
     }
@@ -173,7 +175,7 @@ function BattleSessionModal({
   async function handleComplete() {
     if (completing || completed || !thread || !sessionId) return;
     if (messages.filter(m => m.role === "user").length === 0) {
-      Alert.alert("Nessun messaggio", "Scrivi almeno un messaggio prima di completare la battaglia.");
+      Alert.alert(t("battles.noMsgTitle"), t("battles.noMsgBody"));
       return;
     }
     setCompleting(true);
@@ -192,7 +194,7 @@ function BattleSessionModal({
       if (data.battleCardId) setBattleCardId(data.battleCardId);
       setCompleted(true);
     } catch {
-      Alert.alert("Errore", "Impossibile completare la battaglia.");
+      Alert.alert(t("battles.errorTitle"), t("battles.errorComplete"));
     } finally {
       setCompleting(false);
     }
@@ -206,11 +208,11 @@ function BattleSessionModal({
       const uri = await captureRef(shareCardRef, { format: "png", quality: 1.0, result: "tmpfile" });
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
-        await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: "Condividi il tuo risultato" });
+        await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: t("battles.shareDialogTitle") });
       } else {
         const url = battleCardId ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/battle-cards/${battleCardId}` : "";
         await Share.share({
-          message: `Ho completato una Battaglia AI SGI con ${score.total} punti!\n🧠 ${score.density} · 🔗 ${score.connections} · 📐 ${score.depth}${url ? `\n${url}` : ""}`,
+          message: t("battles.shareSessionMsg", { total: score.total, density: score.density, connections: score.connections, depth: score.depth }) + (url ? `\n${url}` : ""),
         });
       }
     } catch {
@@ -248,9 +250,9 @@ function BattleSessionModal({
         <View style={[styles.sessionHeader, { borderBottomColor: colors.border }]}>
           <Pressable onPress={() => {
             if (!timerActive || completed) { onClose(battleCardId ?? undefined); return; }
-            Alert.alert("Uscire dalla battaglia?", "Il progresso andrà perso.", [
-              { text: "Annulla" },
-              { text: "Esci", style: "destructive", onPress: () => { if (timerRef.current) clearInterval(timerRef.current); onClose(); } },
+            Alert.alert(t("battles.leaveTitle"), t("battles.leaveMsg"), [
+              { text: t("battles.leaveCancel") },
+              { text: t("battles.leaveConfirm"), style: "destructive", onPress: () => { if (timerRef.current) clearInterval(timerRef.current); onClose(); } },
             ]);
           }}>
             <Ionicons name="close" size={22} color={colors.mutedForeground} />
@@ -273,14 +275,14 @@ function BattleSessionModal({
           <ScrollView contentContainerStyle={styles.completedContainer}>
             <View style={[styles.scoreCircle, { borderColor: colors.primary + "40", backgroundColor: colors.primary + "10" }]}>
               <Text style={[styles.scoreCircleNum, { color: colors.primary }]}>{score.total}</Text>
-              <Text style={[styles.scoreCircleLabel, { color: colors.mutedForeground }]}>punti</Text>
+              <Text style={[styles.scoreCircleLabel, { color: colors.mutedForeground }]}>{t("battles.sessionPoints")}</Text>
             </View>
 
             <View style={styles.scoreGrid}>
               {[
-                { label: "Densità", value: score.density, color: colors.teal, icon: "layers-outline" },
-                { label: "Connessioni", value: score.connections, color: colors.primary, icon: "git-network-outline" },
-                { label: "Profondità", value: score.depth, color: colors.pink, icon: "telescope-outline" },
+                { label: t("battles.sessionDensity"), value: score.density, color: colors.teal, icon: "layers-outline" },
+                { label: t("battles.sessionConnections"), value: score.connections, color: colors.primary, icon: "git-network-outline" },
+                { label: t("battles.sessionDepth"), value: score.depth, color: colors.pink, icon: "telescope-outline" },
               ].map(item => (
                 <View key={item.label} style={[styles.scoreCard, { backgroundColor: item.color + "10", borderColor: item.color + "25" }]}>
                   <Ionicons name={item.icon as never} size={18} color={item.color} />
@@ -299,12 +301,12 @@ function BattleSessionModal({
                 disabled={sharing}
               >
                 <Ionicons name={sharing ? "hourglass-outline" : "share-outline"} size={18} color={palette.white} />
-                <Text style={styles.shareBtnText}>{sharing ? "Preparando…" : "Condividi Risultato"}</Text>
+                <Text style={styles.shareBtnText}>{sharing ? t("battles.preparing") : t("battles.shareResult")}</Text>
               </Pressable>
             )}
 
             <Pressable style={[styles.closeBtn, { borderColor: colors.border }]} onPress={() => onClose(battleCardId ?? undefined)}>
-              <Text style={[styles.closeBtnText, { color: colors.mutedForeground }]}>Chiudi</Text>
+              <Text style={[styles.closeBtnText, { color: colors.mutedForeground }]}>{t("battles.sessionClose")}</Text>
             </Pressable>
           </ScrollView>
         ) : (
@@ -319,7 +321,7 @@ function BattleSessionModal({
                 <View style={styles.emptySession}>
                   <Ionicons name="flash-outline" size={40} color={colors.primary} style={{ opacity: 0.5 }} />
                   <Text style={[styles.emptySessionText, { color: colors.mutedForeground }]}>
-                    Scrivi il tuo primo messaggio per iniziare la battaglia!{"\n"}Il timer partirà con il primo invio.
+                    {t("battles.sessionEmptyMsg")}
                   </Text>
                 </View>
               }
@@ -341,7 +343,7 @@ function BattleSessionModal({
                 style={[styles.input, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]}
                 value={input}
                 onChangeText={setInput}
-                placeholder="Scrivi il tuo argomento…"
+                placeholder={t("battles.sessionPlaceholder")}
                 placeholderTextColor={colors.mutedForeground}
                 multiline
                 maxLength={600}
@@ -373,6 +375,7 @@ function BattleSessionModal({
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function BattlesScreen() {
+  const { t } = useTranslation();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
@@ -419,7 +422,7 @@ export default function BattlesScreen() {
       const r = await fetch(`${BASE}/api/threads/${thread.id}/sessions`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ username: "Tu" }),
+        body: JSON.stringify({ username: t("battles.myUsername") }),
       });
       if (!r.ok) throw new Error("start failed");
       const data = await r.json() as { sessionId: string };
@@ -427,7 +430,7 @@ export default function BattlesScreen() {
       setActiveSessionId(data.sessionId);
       setSessionVisible(true);
     } catch {
-      Alert.alert("Errore", "Impossibile avviare la battaglia. Riprova.");
+      Alert.alert(t("battles.errorTitle"), t("battles.errorStart"));
     }
     setStartingThreadId(null);
   }
@@ -485,21 +488,21 @@ export default function BattlesScreen() {
       >
         <View style={styles.headerRow}>
           <View>
-            <Text style={[styles.headerTitle, { color: colors.foreground }]}>⚔️ Battaglie AI</Text>
-            <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>4 minuti · confronto semantico</Text>
+            <Text style={[styles.headerTitle, { color: colors.foreground }]}>{t("battles.screenTitle")}</Text>
+            <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>{t("battles.screenSubtitle")}</Text>
           </View>
         </View>
 
         {/* Tabs */}
         <View style={[styles.tabRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          {(["arena", "risultati"] as const).map(t => (
+          {(["arena", "risultati"] as const).map(tabKey => (
             <Pressable
-              key={t}
-              style={[styles.tabBtn, tab === t && { backgroundColor: colors.primary }]}
-              onPress={() => setTab(t)}
+              key={tabKey}
+              style={[styles.tabBtn, tab === tabKey && { backgroundColor: colors.primary }]}
+              onPress={() => setTab(tabKey)}
             >
-              <Text style={[styles.tabBtnText, { color: tab === t ? colors.palette.white : colors.mutedForeground }]}>
-                {t === "arena" ? "🗡️ Arena" : "🏆 Risultati"}
+              <Text style={[styles.tabBtnText, { color: tab === tabKey ? colors.palette.white : colors.mutedForeground }]}>
+                {tabKey === "arena" ? t("battles.tabArena") : t("battles.tabResults")}
               </Text>
             </Pressable>
           ))}
@@ -515,11 +518,11 @@ export default function BattlesScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="flash-outline" size={48} color={colors.primary} style={{ opacity: 0.3 }} />
-              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>Nessuna arena disponibile</Text>
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{t("battles.noArena")}</Text>
             </View>
           }
           renderItem={({ item: thread, index }) => {
-            const meta = CATEGORY_META[thread.category] ?? { label: thread.category, color: colors.mutedForeground, icon: "help-outline" };
+            const meta = CATEGORY_META[thread.category] ?? { labelKey: thread.category, color: colors.mutedForeground, icon: "help-outline" };
             const isStarting = startingThreadId === thread.id;
             return (
               <PressableScale
@@ -531,7 +534,7 @@ export default function BattlesScreen() {
                 <View style={styles.threadTop}>
                   <View style={[styles.catBadge, { backgroundColor: meta.color + "18", borderColor: meta.color + "30" }]}>
                     <Ionicons name={meta.icon as never} size={12} color={meta.color} />
-                    <Text style={[styles.catLabel, { color: meta.color }]}>{meta.label}</Text>
+                    <Text style={[styles.catLabel, { color: meta.color }]}>{t(meta.labelKey)}</Text>
                   </View>
                   <View style={styles.threadStats}>
                     <Ionicons name="people-outline" size={12} color={colors.mutedForeground} />
@@ -554,7 +557,7 @@ export default function BattlesScreen() {
                   ) : (
                     <>
                       <Ionicons name="flash" size={15} color={colors.primary} />
-                      <Text style={[styles.startBtnText, { color: colors.primary }]}>Inizia Battaglia</Text>
+                      <Text style={[styles.startBtnText, { color: colors.primary }]}>{t("battles.startBattle")}</Text>
                     </>
                   )}
                 </View>
@@ -572,12 +575,12 @@ export default function BattlesScreen() {
             <View style={styles.empty}>
               <Ionicons name="trophy-outline" size={48} color={colors.primary} style={{ opacity: 0.3 }} />
               <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-                Nessun risultato ancora.{"\n"}Completa la tua prima battaglia!
+                {t("battles.noResults")}
               </Text>
             </View>
           }
           renderItem={({ item: card }) => {
-            const meta = CATEGORY_META[card.thread.category] ?? { label: card.thread.category, color: colors.mutedForeground };
+            const meta = CATEGORY_META[card.thread.category] ?? { labelKey: card.thread.category, color: colors.mutedForeground };
             const winner = card.player1.isWinner ? card.player1 : card.player2;
             const loser = card.player1.isWinner ? card.player2 : card.player1;
 
@@ -597,10 +600,10 @@ export default function BattlesScreen() {
                 const uri = await captureRef(historyCardRef, { format: "png", quality: 1.0, result: "tmpfile" });
                 const canShare = await Sharing.isAvailableAsync();
                 if (canShare) {
-                  await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: "Condividi battaglia" });
+                  await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: t("battles.shareHistoryDialogTitle") });
                 } else {
                   await Share.share({
-                    message: `Battaglia SGI: ${winner.username} vince con ${winner.scoreTotal} pts!\n🧠 ${winner.scoreDensity} · 🔗 ${winner.scoreConnections} · 📐 ${winner.scoreDepth}`,
+                    message: t("battles.shareCardMsg", { username: winner.username, total: winner.scoreTotal, density: winner.scoreDensity, connections: winner.scoreConnections, depth: winner.scoreDepth }),
                   });
                 }
               } catch { /* cancelled or error */ } finally {
@@ -613,9 +616,9 @@ export default function BattlesScreen() {
               <View style={[styles.resultCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <View style={styles.resultHeader}>
                   <View style={[styles.catBadge, { backgroundColor: (meta.color ?? colors.mutedForeground) + "18", borderColor: (meta.color ?? colors.mutedForeground) + "30" }]}>
-                    <Text style={[styles.catLabel, { color: meta.color ?? colors.mutedForeground }]}>{meta.label}</Text>
+                    <Text style={[styles.catLabel, { color: meta.color ?? colors.mutedForeground }]}>{t(meta.labelKey)}</Text>
                   </View>
-                  <Text style={[styles.timeAgoText, { color: colors.mutedForeground }]}>{timeAgo(card.createdAt)}</Text>
+                  <Text style={[styles.timeAgoText, { color: colors.mutedForeground }]}>{timeAgo(card.createdAt, t)}</Text>
                 </View>
 
                 <Text style={[styles.resultQ, { color: colors.foreground }]} numberOfLines={2}>{card.thread.question}</Text>
@@ -625,7 +628,7 @@ export default function BattlesScreen() {
                   <View style={[styles.playerCol, { backgroundColor: colors.primary + "10", borderColor: colors.primary + "25" }]}>
                     <View style={styles.winnerBadge}>
                       <Ionicons name="trophy" size={12} color={colors.gold} />
-                      <Text style={[styles.winnerText, { color: colors.gold }]}>Vincitore</Text>
+                      <Text style={[styles.winnerText, { color: colors.gold }]}>{t("battles.winnerLabel")}</Text>
                     </View>
                     <Text style={[styles.playerName, { color: colors.foreground }]} numberOfLines={1}>{winner.username}</Text>
                     <Text style={[styles.playerScore, { color: colors.primary }]}>{winner.scoreTotal}</Text>
@@ -663,7 +666,7 @@ export default function BattlesScreen() {
                     color={colors.mutedForeground}
                   />
                   <Text style={[styles.shareCardText, { color: colors.mutedForeground }]}>
-                    {historySharing ? "Preparando…" : "Condividi"}
+                    {historySharing ? t("battles.preparing") : t("battles.share")}
                   </Text>
                 </Pressable>
               </View>

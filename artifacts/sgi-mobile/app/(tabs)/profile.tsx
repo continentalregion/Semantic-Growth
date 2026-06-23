@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useGetMyProfile, useGetMyGamification } from "@workspace/api-client-react";
 import * as Haptics from "expo-haptics";
+import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { PressableScale } from "@/components/ui/PressableScale";
@@ -49,6 +50,7 @@ function GamStat({ icon, label, value, colors }: {
 
 export default function ProfileScreen() {
   const colors = useColors();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const { signOut } = useAuth();
@@ -74,7 +76,7 @@ export default function ProfileScreen() {
           borderBottomColor: colors.border,
         },
       ]}>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Profilo</Text>
+        <Text style={[styles.headerTitle, { color: colors.foreground }]}>{t("nav.profile")}</Text>
         <View style={[styles.planBadge, { borderColor: planColor + "44", backgroundColor: planColor + "18" }]}>
           <Text style={{ color: planColor, fontSize: colors.font.size.xs, fontFamily: colors.font.family.semibold }}>
             {planLabel}
@@ -106,7 +108,7 @@ export default function ProfileScreen() {
         >
           {/* Score card */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.sgiLabel, { color: colors.mutedForeground }]}>SGI Score</Text>
+            <Text style={[styles.sgiLabel, { color: colors.mutedForeground }]}>{t("profile.sgiScore")}</Text>
             <View style={{ flexDirection: "row", alignItems: "flex-end", gap: colors.spacing.md }}>
               <Text style={[styles.sgiScore, { color: colors.primary }]}>
                 {(profile?.sgiScore ?? 0).toFixed(1)}
@@ -120,21 +122,21 @@ export default function ProfileScreen() {
                 <View style={styles.rankItem}>
                   <Ionicons name="trophy-outline" size={14} color={colors.mutedForeground} />
                   <Text style={[styles.rankText, { color: colors.foreground }]}>#{profile.globalRank}</Text>
-                  <Text style={[styles.rankLabel, { color: colors.mutedForeground }]}>rank</Text>
+                  <Text style={[styles.rankLabel, { color: colors.mutedForeground }]}>{t("profile.rank")}</Text>
                 </View>
               )}
               {profile?.percentile != null && (
                 <View style={styles.rankItem}>
                   <Ionicons name="stats-chart-outline" size={14} color={colors.mutedForeground} />
                   <Text style={[styles.rankText, { color: colors.foreground }]}>Top {(100 - profile.percentile).toFixed(0)}%</Text>
-                  <Text style={[styles.rankLabel, { color: colors.mutedForeground }]}>percentile</Text>
+                  <Text style={[styles.rankLabel, { color: colors.mutedForeground }]}>{t("profile.percentile")}</Text>
                 </View>
               )}
               {profile?.totalUsers != null && (
                 <View style={styles.rankItem}>
                   <Ionicons name="people-outline" size={14} color={colors.mutedForeground} />
                   <Text style={[styles.rankText, { color: colors.foreground }]}>{profile.totalUsers}</Text>
-                  <Text style={[styles.rankLabel, { color: colors.mutedForeground }]}>utenti</Text>
+                  <Text style={[styles.rankLabel, { color: colors.mutedForeground }]}>{t("profile.users")}</Text>
                 </View>
               )}
             </View>
@@ -143,17 +145,17 @@ export default function ProfileScreen() {
           {/* Gamification */}
           {gamification && (
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, gap: colors.spacing.md }]}>
-              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Progressi</Text>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t("profile.progress")}</Text>
               <View style={styles.gamRow}>
                 <GamStat icon="flash" label="XP" value={`${gamification.xp}`} colors={colors} />
-                <GamStat icon="star" label="Livello" value={`${gamification.level}`} colors={colors} />
-                <GamStat icon="flame" label="Streak" value={`${gamification.streak}d`} colors={colors} />
+                <GamStat icon="star" label={t("gamification.level")} value={`${gamification.level}`} colors={colors} />
+                <GamStat icon="flame" label={t("gamification.streak")} value={`${gamification.streak}d`} colors={colors} />
               </View>
               <View style={[styles.xpBar, { backgroundColor: colors.muted }]}>
                 <View style={[styles.xpFill, { width: `${Math.round(gamification.levelProgress * 100)}%` as `${number}%`, backgroundColor: colors.primary }]} />
               </View>
               <Text style={[styles.xpHint, { color: colors.mutedForeground }]}>
-                {gamification.xp} / {gamification.xp + gamification.xpToNextLevel} XP per il livello {gamification.level + 1}
+                {t("profile.xpProgress", { xp: gamification.xp, total: gamification.xp + gamification.xpToNextLevel, next: gamification.level + 1 })}
               </Text>
             </View>
           )}
@@ -161,7 +163,7 @@ export default function ProfileScreen() {
           {/* Badges */}
           {gamification && gamification.badges.length > 0 && (
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, gap: colors.spacing.md }]}>
-              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Badge</Text>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t("profile.badges")}</Text>
               <View style={styles.badgesWrap}>
                 {gamification.badges.map(b => (
                   <View key={b.id} style={[styles.badge, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "33" }]}>
@@ -175,7 +177,7 @@ export default function ProfileScreen() {
 
           {/* Account */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Account</Text>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t("profile.account")}</Text>
             <Text style={[styles.emailText, { color: colors.mutedForeground }]}>{profile?.email}</Text>
           </View>
 
@@ -186,7 +188,7 @@ export default function ProfileScreen() {
             haptic={false}
           >
             <Ionicons name="log-out-outline" size={18} color={colors.destructive} />
-            <Text style={[styles.signOutText, { color: colors.destructive }]}>Esci</Text>
+            <Text style={[styles.signOutText, { color: colors.destructive }]}>{t("profile.signOut")}</Text>
           </PressableScale>
         </ScrollView>
       )}
