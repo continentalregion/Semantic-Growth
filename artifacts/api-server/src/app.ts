@@ -44,6 +44,41 @@ app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Guard: intercept Clerk handshake 307 redirects for /api/* routes.
+// The handshake is designed for browser/cookie auth flows; native mobile clients
+// use Bearer tokens and cannot handle redirects. If clerkMiddleware tries to send
+// a 307 (handshake redirect to Clerk FAPI), we intercept it and return 401 JSON
+// so the mobile app gets a clean "Unauthorized" instead of following the redirect
+// and receiving Clerk's raw {"status":"needs_client_trust"} response.
+app.use(/^\/api\/(?!__clerk)/, (_req, res, next) => {
+  const originalEnd = res.end.bind(res) as typeof res.end;
+  (res.end as unknown) = function (
+    this: typeof res,
+    chunk?: unknown,
+    encodingOrCb?: unknown,
+    cb?: unknown,
+  ) {
+    if (res.statusCode === 307) {
+      res.statusCode = 401;
+      res.setHeader("content-type", "application/json; charset=utf-8");
+      res.removeHeader("location");
+      return originalEnd.call(
+        this,
+        JSON.stringify({ error: "Unauthorized" }),
+        "utf8" as BufferEncoding,
+        cb as (() => void) | undefined,
+      );
+    }
+    return originalEnd.call(
+      this,
+      chunk,
+      encodingOrCb as BufferEncoding | (() => void) | undefined,
+      cb as (() => void) | undefined,
+    );
+  };
+  next();
+});
+
 // Canonical clerkMiddleware — resolves publishable key from the request host
 app.use(
   clerkMiddleware((req) => ({
