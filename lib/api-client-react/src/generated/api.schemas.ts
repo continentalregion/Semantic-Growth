@@ -216,3 +216,34 @@ limit?: number;
 offset?: number;
 };
 
+export interface BadgeItem {
+  id: number;
+  badgeKey: string;
+  name: string;
+  description: string;
+  earnedAt: string;
+}
+
+export interface MissionItem {
+  id: number;
+  type: string;
+  title: string;
+  description: string;
+  progress: number;
+  target: number;
+  completed: boolean;
+  expiresAt: string;
+}
+
+export interface GamificationData {
+  xp: number;
+  level: number;
+  streak: number;
+  lastActiveDate: string | null;
+  badges: BadgeItem[];
+  missions: MissionItem[];
+  missionsLocked: boolean;
+  xpToNextLevel: number;
+  levelProgress: number;
+}
+

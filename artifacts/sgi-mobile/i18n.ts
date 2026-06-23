@@ -215,6 +215,8 @@ const IT = {
     optimisticDesc: "2× tasso di crescita attuale",
     trajectoryChart: "Proiezione della Traiettoria",
     disclaimer: "Le proiezioni si basano sullo smoothing esponenziale della tua attività recente.",
+    now: "Ora",
+    main: "Principale",
   },
   recommendations: {
     title: "Percorso di Crescita",
@@ -562,6 +564,8 @@ const EN: typeof IT = {
     optimisticDesc: "2× current growth rate",
     trajectoryChart: "Trajectory Projection",
     disclaimer: "Projections are based on exponential smoothing of your recent activity.",
+    now: "Now",
+    main: "Main",
   },
   recommendations: {
     title: "Growth Path",
@@ -909,6 +913,8 @@ const ES: typeof IT = {
     optimisticDesc: "2× tasa de crecimiento actual",
     trajectoryChart: "Proyección de Trayectoria",
     disclaimer: "Las proyecciones se basan en el suavizado exponencial de tu actividad reciente.",
+    now: "Ahora",
+    main: "Principal",
   },
   recommendations: {
     title: "Ruta de Crecimiento",
