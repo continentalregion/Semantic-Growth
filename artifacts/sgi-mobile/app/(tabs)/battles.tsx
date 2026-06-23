@@ -32,7 +32,7 @@ const CATEGORY_META: Record<string, { label: string; color: string; icon: string
   technology:    { label: "Tecnologia",  color: "#a89fff", icon: "hardware-chip-outline" },
   society:       { label: "Società",     color: "#ffd166", icon: "people-outline" },
   knowledge:     { label: "Conoscenza",  color: "#06d6a0", icon: "library-outline" },
-  consciousness: { label: "Coscienza",   color: "#7c6bff", icon: "brain-outline" },
+  consciousness: { label: "Coscienza",   color: "#7c6bff", icon: "infinite-outline" },
 };
 
 interface Thread {
