@@ -106,6 +106,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [debugLog, setDebugLog] = useState<string | null>(null);
 
   const passwordRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
@@ -117,15 +118,22 @@ export default function LoginScreen() {
 
   function clearErrors() {
     setFieldErrors({});
+    setDebugLog(null);
   }
 
-  function setErrors(errs: ClerkErrorItem[]) {
+  function setErrors(errs: ClerkErrorItem[], rawErr: unknown) {
     const next: FieldErrors = {};
     for (const e of errs) {
       const { field, message } = mapClerkError(e);
       if (!next[field]) next[field] = message;
     }
     setFieldErrors(next);
+    // Banner di debug: mostra il JSON grezzo dell'errore per diagnostica
+    try {
+      setDebugLog(JSON.stringify(rawErr, Object.getOwnPropertyNames(rawErr as object), 2));
+    } catch {
+      setDebugLog(String(rawErr));
+    }
     haptic(Haptics.NotificationFeedbackType.Error);
   }
 
@@ -140,7 +148,7 @@ export default function LoginScreen() {
         haptic(Haptics.NotificationFeedbackType.Success);
       }
     } catch (err: unknown) {
-      setErrors(extractClerkErrors(err));
+      setErrors(extractClerkErrors(err), err);
     } finally {
       setLoading(false);
     }
@@ -161,12 +169,11 @@ export default function LoginScreen() {
       setPendingVerification(true);
     } catch (err: unknown) {
       const clerkErrs = extractClerkErrors(err);
-      // session_exists: l'utente è già loggato, portalo dentro l'app
       if (clerkErrs.some((e) => e.code === "session_exists")) {
         router.replace("/");
         return;
       }
-      setErrors(clerkErrs);
+      setErrors(clerkErrs, err);
     } finally {
       setLoading(false);
     }
@@ -184,12 +191,11 @@ export default function LoginScreen() {
       }
     } catch (err: unknown) {
       const clerkErrs = extractClerkErrors(err);
-      // session_exists durante verifica: l'utente è già autenticato
       if (clerkErrs.some((e) => e.code === "session_exists")) {
         router.replace("/");
         return;
       }
-      setErrors(clerkErrs);
+      setErrors(clerkErrs, err);
     } finally {
       setLoading(false);
     }
@@ -365,6 +371,20 @@ export default function LoginScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {debugLog ? (
+        <View style={s.debugBanner}>
+          <View style={s.debugHeader}>
+            <Text style={s.debugTitle}>⚠ Debug errore (tocca × per chiudere)</Text>
+            <TouchableOpacity onPress={() => setDebugLog(null)} style={s.debugClose}>
+              <Text style={s.debugCloseText}>×</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={s.debugScroll} showsVerticalScrollIndicator>
+            <Text style={s.debugText} selectable>{debugLog}</Text>
+          </ScrollView>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -497,6 +517,52 @@ function makeStyles(colors: ReturnType<typeof import("@/hooks/useColors").useCol
       color: "#fff",
       fontSize: 15,
       fontFamily: "Inter_600SemiBold",
+    },
+    debugBanner: {
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      maxHeight: 220,
+      backgroundColor: "#1a0a0a",
+      borderTopWidth: 1,
+      borderTopColor: "#f87171",
+      paddingBottom: Platform.OS === "ios" ? 20 : 8,
+    },
+    debugHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderBottomWidth: 1,
+      borderBottomColor: "#f8717144",
+    },
+    debugTitle: {
+      color: "#f87171",
+      fontSize: 11,
+      fontFamily: "Inter_600SemiBold",
+      flex: 1,
+    },
+    debugClose: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+    },
+    debugCloseText: {
+      color: "#f87171",
+      fontSize: 18,
+      fontFamily: "Inter_700Bold",
+    },
+    debugScroll: {
+      maxHeight: 160,
+      paddingHorizontal: 12,
+      paddingTop: 6,
+    },
+    debugText: {
+      color: "#fca5a5",
+      fontSize: 10,
+      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+      lineHeight: 15,
     },
   });
 }
