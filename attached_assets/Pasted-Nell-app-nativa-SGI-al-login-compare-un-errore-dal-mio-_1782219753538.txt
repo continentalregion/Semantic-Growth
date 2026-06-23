@@ -1,0 +1,40 @@
+Nell'app nativa SGI, al login compare un errore dal mio BACKEND (non da
+Clerk): {"status": "needs_client_trust"}. La schermata di login funziona e
+Clerk è a posto; il problema è che una chiamata al mio server durante il
+login viene rifiutata perché il server non considera l'app nativa un client
+fidato/autorizzato. Diagnostica e risolvi. Spiega in italiano, una cosa
+alla volta.
+
+1. TROVA L'ORIGINE
+   - Cerca nel backend dove viene generato lo status "needs_client_trust".
+     In quale endpoint? Quale condizione lo fa scattare? Mostrami il codice.
+   - Spiegami ESATTAMENTE cosa controlla quel check: un token? una chiave
+     API? un'origine/header? la verifica del token di sessione Clerk?
+
+2. CONFRONTA WEB vs NATIVO
+   - La web app supera questo check e l'app nativa no. Cosa invia la web app
+     in quella richiesta (header, token, cookie) che l'app nativa NON sta
+     inviando o invia in modo diverso?
+   - Se il check verifica un token di sessione Clerk: l'app nativa usa
+     @clerk/clerk-expo — assicurati che il token venga recuperato
+     (getToken) e inviato nell'header Authorization della chiamata al
+     backend, esattamente come si aspetta il server.
+
+3. SISTEMA
+   - Allinea l'app nativa in modo che invii le credenziali/token attesi dal
+     backend in quella chiamata.
+   - Se il backend ha una lista di "trusted origins" o client autorizzati,
+     aggiungi l'app nativa (o gestisci il caso mobile) senza indebolire la
+     sicurezza per gli altri client.
+   - NON disabilitare il controllo di sicurezza per "far passare tutto":
+     fai in modo che l'app nativa si autentichi correttamente, non che il
+     server smetta di verificare.
+
+4. TESTA
+   - Login dall'app nativa fino all'ingresso nella dashboard, senza l'errore
+     needs_client_trust. Mostrami che la sessione viene riconosciuta dal
+     backend.
+
+Vincoli: non indebolire la sicurezza, non rifattorizzare file non
+collegati, fermati dopo la diagnosi (punto 1-2) per mostrarmi cosa hai
+trovato prima di modificare.
