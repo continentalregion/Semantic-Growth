@@ -12,6 +12,7 @@ import Layout from "@/components/layout";
 
 // Pages
 import Home from "@/pages/home";
+import HowItWorks from "@/pages/how-it-works";
 import Dashboard from "@/pages/dashboard";
 import Chat from "@/pages/chat";
 import Leaderboard from "@/pages/leaderboard";
@@ -378,6 +379,7 @@ function ClerkProviderWithRoutes() {
           <Route path="/" component={HomeRedirect} />
           <Route path="/sign-in/*?" component={SignInPage} />
           <Route path="/sign-up/*?" component={SignUpPage} />
+          <Route path="/how-it-works" component={HowItWorks} />
           <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
           <Route path="/chat" component={() => <ProtectedRoute component={Chat} />} />
           <Route path="/leaderboard" component={Leaderboard} />

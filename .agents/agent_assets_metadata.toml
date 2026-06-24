@@ -11,3 +11,15 @@ id = "jWQDFD7GsOLYea9TDItHy"
 uri = "file://docs/SGI-DOCUMENTAZIONE-TECNICA.md"
 type = "text"
 title = "SGI — Documentazione Tecnica (Fase 1)"
+
+[[outputs]]
+id = "Nsoj23TWxdXL8XkQyTnAy"
+uri = "file://social-cards/sgi-card-1080x1080.png"
+type = "image"
+title = "SGI — Card quadrata 1080×1080"
+
+[[outputs]]
+id = "NlnhLZY-Ku8E_jEZI2fnM"
+uri = "file://social-cards/sgi-card-1080x1920.png"
+type = "image"
+title = "SGI — Card storia 1080×1920"

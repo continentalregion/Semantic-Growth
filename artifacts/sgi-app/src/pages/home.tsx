@@ -30,12 +30,12 @@ export default function Home() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
       </div>
 
-      <header className="container mx-auto px-6 py-6 flex items-center justify-between relative z-10">
+      <header className="container mx-auto px-6 py-6 flex flex-wrap items-center justify-between gap-y-3 relative z-10">
         <div className="flex items-center gap-2">
           <Network className="w-8 h-8 text-primary" />
           <span className="text-xl font-bold tracking-tight">SGI</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
           {/* Language switcher */}
           <div className="flex items-center gap-1">
             {LANGS.map((l) => (
@@ -50,6 +50,9 @@ export default function Home() {
               </button>
             ))}
           </div>
+          <Button variant="ghost" asChild>
+            <Link href="/how-it-works">{t("howItWorks.badge")}</Link>
+          </Button>
           <Button variant="ghost" asChild>
             <Link href="/sign-in">{t("home.signIn")}</Link>
           </Button>
