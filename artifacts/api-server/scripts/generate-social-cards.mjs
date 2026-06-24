@@ -77,17 +77,29 @@ function grid(w, h) {
   return `<g opacity="0.035">${lines}</g>`;
 }
 
+// Mini brand logo tile (gradient rounded square + glyph) for inline lockups.
+function logoTileMini(x, y, s) {
+  const r = s * 0.26;
+  return `<g transform="translate(${x},${y})">
+    <rect width="${s}" height="${s}" rx="${r}" fill="url(#brand)"/>
+    ${glyph(s / 2, s / 2, s / 24 * 0.6)}
+  </g>`;
+}
+
+// "logo + sgindex.work" lockup inside a pill — present on every card.
 function domainPill(cx, cy, fontSize) {
-  const padX = 34;
-  const w = DOMAIN.length * fontSize * 0.56 + padX * 2 + 30;
-  const h = fontSize * 2.1;
+  const padX = 30;
+  const tile = fontSize * 1.5;
+  const gap = 18;
+  const textW = DOMAIN.length * fontSize * 0.56;
+  const w = padX * 2 + tile + gap + textW;
+  const h = Math.max(fontSize * 2.1, tile + 22);
   const x = cx - w / 2;
   const y = cy - h / 2;
-  const dotR = fontSize * 0.28;
   return `<g>
     <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}" fill="rgba(124,107,255,0.10)" stroke="rgba(124,107,255,0.32)" stroke-width="1.5"/>
-    <circle cx="${x + padX + dotR}" cy="${cy}" r="${dotR}" fill="url(#brandH)"/>
-    <text x="${x + padX + dotR * 2 + 16}" y="${cy}" dominant-baseline="central" font-family="${C.font}" font-size="${fontSize}" font-weight="700" letter-spacing="1" fill="${C.fg}">${DOMAIN}</text>
+    ${logoTileMini(x + padX, cy - tile / 2, tile)}
+    <text x="${x + padX + tile + gap}" y="${cy}" dominant-baseline="central" font-family="${C.font}" font-size="${fontSize}" font-weight="700" letter-spacing="1" fill="${C.fg}">${DOMAIN}</text>
   </g>`;
 }
 
