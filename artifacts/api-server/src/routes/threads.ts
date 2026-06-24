@@ -5,6 +5,7 @@ import { users, threads, threadSessions, battleCards } from "@workspace/db";
 import type { ThreadConnection, SessionMessage } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
+import { evaluateBattle } from "../lib/battleScoring";
 
 const router = Router();
 
@@ -649,6 +650,32 @@ router.get("/battle-cards/:id/og-image", async (req, res) => {
   } catch (err) {
     console.error("[threads] og-image error", err);
     res.status(500).send("Error generating image");
+  }
+});
+
+// ─── POST /threads/:id/battle/evaluate ───────────────────────────────────────
+// User-vs-AI battle: generate a strong AI answer to the thread question, score
+// BOTH the user answer and the AI answer with the same 11-metric engine (single
+// LLM call, temperature 0), and return the outcome + per-metric breakdown + XP.
+// Step 1: compute-and-return only — NOT persisted yet (persistence + applying XP
+// to gamification come in later steps).
+router.post("/threads/:id/battle/evaluate", async (req, res) => {
+  try {
+    const clerkId = getAuth(req).userId;
+    if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    const { id } = req.params;
+    const userAnswer = typeof req.body?.userAnswer === "string" ? req.body.userAnswer.trim() : "";
+    if (userAnswer.length < 10) { res.status(400).json({ error: "userAnswer too short (min 10 chars)" }); return; }
+
+    const [thread] = await db.select().from(threads).where(eq(threads.id, id)).limit(1);
+    if (!thread) { res.status(404).json({ error: "Thread not found" }); return; }
+
+    const evaluation = await evaluateBattle(thread.question, thread.category ?? "philosophy", userAnswer);
+    res.json(evaluation);
+  } catch (err) {
+    console.error("[threads] battle/evaluate error", err);
+    res.status(500).json({ error: "Battle evaluation failed" });
   }
 });
 

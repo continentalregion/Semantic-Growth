@@ -15,3 +15,10 @@ After ANY change to `artifacts/api-server/src/**`, you MUST run `pnpm run build`
 4. THEN click Publish
 
 This was discovered after 3 failed deploys where the production API server kept returning 404 for a newly added route and 401 for all auth-protected routes — all because the committed binary predated the code changes.
+
+## Related: the real build is esbuild, NOT tsc
+The api-server compiles via `node build.mjs` (esbuild, type-stripping — no type checking). Running `pnpm --filter @workspace/api-server run typecheck` (`tsc -p tsconfig.json --noEmit`) is **RED pre-existing** — it reports errors in unmodified files (e.g. `chat.ts` column/schema drift like `costCents`/`tokensUsed`, and `@workspace/db` "no exported member" from unbuilt TS project references).
+
+**Why:** these tsc errors are not produced by your changes and do not block the app. The app runs fine because esbuild ignores them.
+
+**How to apply:** to validate your own api-server changes, run the esbuild build (`pnpm --filter @workspace/api-server run build`) and restart the workflow — do NOT treat the pre-existing red `tsc --noEmit` as your regression. To confirm your files are clean, grep the typecheck output for your filenames.
