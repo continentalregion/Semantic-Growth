@@ -1,463 +1,450 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { useAuth } from "@clerk/react";
 import { toast } from "sonner";
-import { Send, Clock, Zap, Brain, Network, Target, AlertTriangle } from "lucide-react";
+import { Swords, Brain, Sparkles, Trophy, ArrowLeft, ChevronDown, Crown, Zap } from "lucide-react";
 import MarkdownMessage from "@/components/MarkdownMessage";
 
 const API_BASE = "/api";
-const BATTLE_DURATION = 4 * 60; // 4 minutes in seconds
-const WARNING_THRESHOLD = 60; // 1 minute left
+const MIN_CHARS = 10;
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
+interface MetricComparison {
+  key: string;
+  label: string;
+  user: number;
+  ai: number;
+  diff: number;
+  winner: "user" | "ai" | "tie";
 }
 
-interface Score {
-  density: number;
-  connections: number;
-  depth: number;
-  total: number;
-  explanation: string;
+interface AnswerScore {
+  dimensions: Record<string, number>;
+  macroDimensions: Record<string, number>;
+  domains: string[];
+  rawScore: number;
 }
 
-function ScoreBar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
+interface BattleResult {
+  question: string;
+  category: string;
+  userAnswer: string;
+  aiAnswer: string;
+  user: AnswerScore;
+  ai: AnswerScore;
+  outcome: {
+    winner: "user" | "ai" | "tie";
+    userRawScore: number;
+    aiRawScore: number;
+    margin: number;
+    metricComparison: MetricComparison[];
+    aiAdvantages: MetricComparison[];
+    userStrengths: MetricComparison[];
+  };
+  reward: { tier: "win" | "loss" | "tie"; xpAwarded: number; eligibleForWinBadge: boolean };
+  battleId: string | null;
+  xp: number | null;
+  level: number | null;
+  badgeAwarded: string | null;
+}
+
+const PURPLE = "#7c6bff";
+const TEAL = "#06d6a0";
+const PINK = "#f72585";
+const GOLD = "#ffd166";
+const MUTED = "#9090b8";
+
+function MetricRow({ m }: { m: MetricComparison }) {
+  const userColor = m.winner === "user" ? TEAL : PURPLE;
   return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] uppercase tracking-widest" style={{ color: "rgba(144,144,184,0.6)" }}>{label}</span>
-        <span className="text-xs font-bold" style={{ color }}>{value}/{max}</span>
+    <div className="py-2.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-xs font-medium" style={{ color: "#eeeeff" }}>{m.label}</span>
+        {m.winner === "tie" ? (
+          <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: MUTED }}>pari</span>
+        ) : (
+          <span
+            className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded font-semibold flex items-center gap-1"
+            style={{
+              background: m.winner === "user" ? "rgba(6,214,160,0.14)" : "rgba(247,37,133,0.14)",
+              color: m.winner === "user" ? TEAL : PINK,
+            }}
+          >
+            {m.winner === "user" ? "Tu" : "AI"} +{Math.abs(m.diff).toFixed(1)}
+          </span>
+        )}
       </div>
-      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
-        <div
-          className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${(value / max) * 100}%`, background: color }}
-        />
+      {/* User bar */}
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-[9px] w-7 flex-shrink-0" style={{ color: MUTED }}>Tu</span>
+        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${(m.user / 10) * 100}%`, background: userColor }} />
+        </div>
+        <span className="text-[10px] font-bold w-7 text-right flex-shrink-0" style={{ color: userColor }}>{m.user.toFixed(1)}</span>
+      </div>
+      {/* AI bar */}
+      <div className="flex items-center gap-2">
+        <span className="text-[9px] w-7 flex-shrink-0" style={{ color: MUTED }}>AI</span>
+        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${(m.ai / 10) * 100}%`, background: "rgba(247,37,133,0.55)" }} />
+        </div>
+        <span className="text-[10px] font-bold w-7 text-right flex-shrink-0" style={{ color: "rgba(247,37,133,0.85)" }}>{m.ai.toFixed(1)}</span>
       </div>
     </div>
   );
 }
 
+function Collapsible({ title, children, accent }: { title: string; children: React.ReactNode; accent: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full px-4 py-3 flex items-center justify-between"
+      >
+        <span className="text-sm font-semibold" style={{ color: accent }}>{title}</span>
+        <ChevronDown className="w-4 h-4 transition-transform" style={{ color: MUTED, transform: open ? "rotate(180deg)" : "none" }} />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 text-sm" style={{ color: "#cfcfe6", lineHeight: "1.7" }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function BattleSessionPage() {
-  const { id: threadId, sessionId } = useParams<{ id: string; sessionId: string }>();
+  const { id: threadId } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { getToken } = useAuth();
 
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [streamingContent, setStreamingContent] = useState("");
-  const [score, setScore] = useState<Score>({ density: 0, connections: 0, depth: 0, total: 0, explanation: "" });
-  const [timeLeft, setTimeLeft] = useState(BATTLE_DURATION);
-  const [timerActive, setTimerActive] = useState(false);
-  const [completed, setCompleted] = useState(false);
-  const [completing, setCompleting] = useState(false);
-  const [threadQuestion, setThreadQuestion] = useState("");
-  const [battleCardId, setBattleCardId] = useState<string | null>(null);
+  const [question, setQuestion] = useState("");
+  const [category, setCategory] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [phase, setPhase] = useState<"compose" | "evaluating" | "result">("compose");
+  const [result, setResult] = useState<BattleResult | null>(null);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Load thread info
   useEffect(() => {
     getToken().then(token => {
       fetch(`${API_BASE}/threads/${threadId}`, {
         headers: { Authorization: `Bearer ${token ?? ""}` },
-      }).then(r => r.json()).then(d => {
-        setThreadQuestion(d.question ?? "");
-      });
+      })
+        .then(r => r.json())
+        .then(d => {
+          setQuestion(d.question ?? "");
+          setCategory(d.category ?? "");
+        })
+        .catch(() => {});
     });
   }, [threadId]);
 
-  // Timer
-  useEffect(() => {
-    if (!timerActive || completed) return;
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current!);
-          handleComplete();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [timerActive, completed]);
-
-  // Start timer on first message
-  useEffect(() => {
-    if (messages.length > 0 && !timerActive && !completed) {
-      setTimerActive(true);
-    }
-  }, [messages.length]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingContent]);
-
-  const handleComplete = useCallback(async () => {
-    if (completed || completing) return;
-    setCompleting(true);
-    if (timerRef.current) clearInterval(timerRef.current);
-
+  async function handleSubmit() {
+    if (answer.trim().length < MIN_CHARS || phase === "evaluating") return;
+    setPhase("evaluating");
     try {
       const token = await getToken();
-      const r = await fetch(`${API_BASE}/threads/${threadId}/sessions/${sessionId}/complete`, {
+      const r = await fetch(`${API_BASE}/threads/${threadId}/battle`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token ?? ""}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` },
+        body: JSON.stringify({ userAnswer: answer.trim() }),
       });
-      const data = await r.json();
-      setCompleted(true);
-      setScore({
-        density: data.scoreDensity ?? 0,
-        connections: data.scoreConnections ?? 0,
-        depth: data.scoreDepth ?? 0,
-        total: data.scoreTotal ?? 0,
-        explanation: data.scoreExplanation ?? "",
-      });
-      if (data.battleCardId) setBattleCardId(data.battleCardId);
-    } catch (e) {
-      console.error("[battle] complete error", e);
-    } finally {
-      setCompleting(false);
-    }
-  }, [completed, completing, threadId, sessionId]);
-
-  const handleSend = async () => {
-    if (!input.trim() || isStreaming || completed) return;
-    const userMsg = input.trim();
-    setInput("");
-    setMessages(prev => [...prev, { role: "user", content: userMsg }]);
-    setIsStreaming(true);
-    setStreamingContent("");
-
-    try {
-      const token = await Promise.race([
-        getToken(),
-        new Promise<string>((_, rej) => setTimeout(() => rej(new Error("Token timeout")), 3000)),
-      ]);
-
-      const r = await fetch(`${API_BASE}/threads/${threadId}/sessions/${sessionId}/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token ?? ""}`,
-        },
-        body: JSON.stringify({ message: userMsg }),
-      });
-
-      if (!r.ok || !r.body) throw new Error("Errore nella risposta");
-
-      const reader = r.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let fullResponse = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const raw = line.slice(6).trim();
-          if (raw === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(raw);
-            if (parsed.type === "content") {
-              fullResponse += parsed.text;
-              setStreamingContent(fullResponse);
-            } else if (parsed.type === "score") {
-              setScore({
-                density: parsed.density ?? 0,
-                connections: parsed.connections ?? 0,
-                depth: parsed.depth ?? 0,
-                total: parsed.total ?? 0,
-                explanation: parsed.explanation ?? "",
-              });
-            }
-          } catch {}
-        }
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.error ?? "Valutazione fallita");
       }
-
-      setMessages(prev => [...prev, { role: "assistant", content: fullResponse }]);
-      setStreamingContent("");
+      const data: BattleResult = await r.json();
+      setResult(data);
+      setPhase("result");
     } catch (e: any) {
-      toast.error(e.message ?? "Errore nella comunicazione");
-      setMessages(prev => prev.slice(0, -1));
-    } finally {
-      setIsStreaming(false);
+      toast.error(e.message ?? "Errore nella valutazione");
+      setPhase("compose");
     }
-  };
+  }
 
-  const mins = Math.floor(timeLeft / 60);
-  const secs = timeLeft % 60;
-  const timeStr = `${mins}:${secs.toString().padStart(2, "0")}`;
-  const timePct = timeLeft / BATTLE_DURATION;
-  const isWarning = timeLeft <= WARNING_THRESHOLD && timeLeft > 0;
-  const timerColor = timeLeft === 0 ? "#f72585" : isWarning ? "#ffd166" : "#06d6a0";
+  function reset() {
+    setAnswer("");
+    setResult(null);
+    setPhase("compose");
+  }
 
-  return (
-    <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "#08090f" }}>
+  // ── Result phase ───────────────────────────────────────────────────────────
+  if (phase === "result" && result) {
+    const { outcome, reward } = result;
+    const isWin = outcome.winner === "user";
+    const isTie = outcome.winner === "tie";
+    const bannerColor = isWin ? TEAL : isTie ? GOLD : PINK;
+    const bannerLabel = isWin ? "Vittoria" : isTie ? "Pareggio" : "Sconfitta";
+    const bannerSub = isWin
+      ? "Hai battuto l'AI su questa domanda."
+      : isTie
+        ? "Testa a testa con l'AI."
+        : "L'AI ha avuto la meglio — ma hai comunque guadagnato XP.";
 
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-5 py-3 flex-shrink-0"
-        style={{ background: "rgba(10,11,24,0.95)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-      >
-        <div className="flex-1 min-w-0 mr-4">
-          <p className="text-[10px] uppercase tracking-widest mb-0.5 flex items-center gap-1" style={{ color: "#f72585" }}>
-            <Zap className="w-3 h-3" /> Slot Battaglia
-          </p>
-          <p className="text-sm font-semibold truncate" style={{ color: "#eeeeff" }}>{threadQuestion}</p>
-        </div>
+    return (
+      <div className="flex-1 overflow-y-auto" style={{ background: "#08090f" }}>
+        <div className="max-w-[760px] mx-auto px-6 py-8">
+          <button
+            onClick={() => setLocation(`/threads/${threadId}`)}
+            className="flex items-center gap-2 text-sm mb-6"
+            style={{ color: MUTED }}
+          >
+            <ArrowLeft className="w-4 h-4" /> Torna al Thread
+          </button>
 
-        {/* Timer */}
-        <div
-          className="flex items-center gap-2 px-4 py-2 rounded-xl flex-shrink-0"
-          style={{
-            background: `${timerColor}14`,
-            border: `1px solid ${timerColor}44`,
-          }}
-        >
-          <Clock className="w-3.5 h-3.5" style={{ color: timerColor }} />
-          <span className="text-lg font-bold font-mono" style={{ color: timerColor }}>{timeStr}</span>
-          {isWarning && <AlertTriangle className="w-3.5 h-3.5 animate-pulse" style={{ color: timerColor }} />}
-        </div>
-
-        {/* Score summary */}
-        <div
-          className="flex items-center gap-2 ml-4 px-4 py-2 rounded-xl flex-shrink-0"
-          style={{ background: "rgba(124,107,255,0.1)", border: "1px solid rgba(124,107,255,0.2)" }}
-        >
-          <span className="text-[10px] uppercase tracking-widest" style={{ color: "#9090b8" }}>SGI</span>
-          <span className="text-xl font-bold" style={{ color: "#a89fff" }}>{score.total}</span>
-        </div>
-      </div>
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* Chat area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-
-            {messages.length === 0 && !completed && (
-              <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-                  style={{ background: "linear-gradient(135deg, #f7258522, #b5179e22)", border: "1px solid rgba(247,37,133,0.2)" }}
-                >
-                  <Zap className="w-7 h-7" style={{ color: "#f72585" }} />
-                </div>
-                <h3 className="text-base font-bold mb-2 font-display" style={{ color: "#eeeeff" }}>
-                  Il timer parte al tuo primo messaggio
-                </h3>
-                <p className="text-sm max-w-sm" style={{ color: "#9090b8" }}>
-                  Hai 4 minuti per esplorare la domanda con l'AI. L'obiettivo è attraversare il maggior numero di concetti, collegandoli in modo logicamente coerente.
-                </p>
-                <div className="flex gap-4 mt-5 text-xs" style={{ color: "#9090b8" }}>
-                  <div className="flex items-center gap-1.5">
-                    <Brain className="w-3.5 h-3.5" style={{ color: "#7c6bff" }} />
-                    Densità concettuale
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Network className="w-3.5 h-3.5" style={{ color: "#06d6a0" }} />
-                    Qualità connessioni
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Target className="w-3.5 h-3.5" style={{ color: "#a89fff" }} />
-                    Profondità
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                {msg.role === "assistant" && (
-                  <div
-                    className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-1"
-                    style={{ background: "linear-gradient(135deg, #f72585, #b5179e)" }}
-                  >
-                    <Zap className="w-3.5 h-3.5 text-white" />
-                  </div>
-                )}
-                <div
-                  className="max-w-[76%] px-4 py-3 rounded-[14px] text-sm"
-                  style={
-                    msg.role === "user"
-                      ? { background: "linear-gradient(135deg, #7c6bff, #5b4de0)", color: "#fff", lineHeight: "1.7" }
-                      : { background: "rgba(21,23,40,1)", border: "1px solid rgba(255,255,255,0.07)", color: "#eeeeff" }
-                  }
-                >
-                  <MarkdownMessage content={msg.content} isUser={msg.role === "user"} />
-                </div>
-              </div>
-            ))}
-
-            {isStreaming && streamingContent && (
-              <div className="flex gap-3 justify-start">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-1" style={{ background: "linear-gradient(135deg, #f72585, #b5179e)" }}>
-                  <Zap className="w-3.5 h-3.5 text-white animate-pulse" />
-                </div>
-                <div className="max-w-[76%] px-4 py-3 rounded-[14px] text-sm" style={{ background: "rgba(21,23,40,1)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                  <MarkdownMessage content={streamingContent} />
-                  <span className="animate-pulse ml-0.5" style={{ color: "#f72585" }}>▍</span>
-                </div>
-              </div>
-            )}
-
-            {isStreaming && !streamingContent && (
-              <div className="flex gap-3 justify-start">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, #f72585, #b5179e)" }}>
-                  <Zap className="w-3.5 h-3.5 text-white animate-pulse" />
-                </div>
-                <div className="px-4 py-3 rounded-[14px] flex items-center gap-1.5" style={{ background: "rgba(21,23,40,1)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                  {[0, 1, 2].map(i => (
-                    <span key={i} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "#f72585", animationDelay: `${i * 0.15}s` }} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
+          {/* Winner banner */}
+          <div
+            className="rounded-2xl p-6 mb-5 text-center"
+            style={{ background: `${bannerColor}12`, border: `1px solid ${bannerColor}40` }}
+          >
+            <div className="flex items-center justify-center gap-2 mb-2">
+              {isWin ? <Crown className="w-6 h-6" style={{ color: bannerColor }} /> : <Swords className="w-6 h-6" style={{ color: bannerColor }} />}
+              <h1 className="text-2xl font-black font-display" style={{ color: bannerColor }}>{bannerLabel}</h1>
+            </div>
+            <p className="text-sm" style={{ color: MUTED }}>{bannerSub}</p>
           </div>
 
-          {/* Completed overlay */}
-          {completed && (
+          {/* Score duel */}
+          <div className="grid grid-cols-2 gap-3 mb-5">
             <div
-              className="mx-5 mb-4 p-5 rounded-2xl"
-              style={{ background: "rgba(6,214,160,0.07)", border: "1px solid rgba(6,214,160,0.25)" }}
+              className="rounded-2xl p-5 text-center relative"
+              style={{
+                background: isWin ? "rgba(6,214,160,0.08)" : "rgba(255,255,255,0.02)",
+                border: isWin ? "1px solid rgba(6,214,160,0.3)" : "1px solid rgba(255,255,255,0.07)",
+              }}
             >
-              <h3 className="font-bold text-base mb-1" style={{ color: "#06d6a0" }}>⚔ Battaglia completata!</h3>
-              <p className="text-sm mb-4" style={{ color: "#9090b8" }}>{score.explanation || "Sessione completata."}</p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setLocation(`/threads/${threadId}`)}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-semibold"
-                  style={{ background: "rgba(255,255,255,0.06)", color: "#9090b8", border: "1px solid rgba(255,255,255,0.08)" }}
-                >
-                  Torna al Thread
-                </button>
-                {battleCardId && (
-                  <button
-                    onClick={() => setLocation(`/battle-cards/${battleCardId}`)}
-                    className="flex-1 py-2.5 rounded-lg text-sm font-semibold"
-                    style={{ background: "linear-gradient(135deg, #ffd166, #f4a261)", color: "#0a0b18" }}
-                  >
-                    🏆 Vedi Battle Card
-                  </button>
+              {isWin && <Crown className="w-4 h-4 absolute top-3 right-3" style={{ color: GOLD }} />}
+              <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: MUTED }}>Tu</p>
+              <p className="text-4xl font-black font-display" style={{ color: isWin ? TEAL : "#eeeeff" }}>{outcome.userRawScore.toFixed(1)}</p>
+              <p className="text-[10px] mt-1" style={{ color: MUTED }}>/100 SGI</p>
+            </div>
+            <div
+              className="rounded-2xl p-5 text-center relative"
+              style={{
+                background: outcome.winner === "ai" ? "rgba(247,37,133,0.08)" : "rgba(255,255,255,0.02)",
+                border: outcome.winner === "ai" ? "1px solid rgba(247,37,133,0.3)" : "1px solid rgba(255,255,255,0.07)",
+              }}
+            >
+              {outcome.winner === "ai" && <Crown className="w-4 h-4 absolute top-3 right-3" style={{ color: GOLD }} />}
+              <p className="text-[10px] uppercase tracking-widest mb-1 flex items-center justify-center gap-1" style={{ color: MUTED }}>
+                <Sparkles className="w-3 h-3" /> SGI · AI
+              </p>
+              <p className="text-4xl font-black font-display" style={{ color: outcome.winner === "ai" ? PINK : "#eeeeff" }}>{outcome.aiRawScore.toFixed(1)}</p>
+              <p className="text-[10px] mt-1" style={{ color: MUTED }}>/100 SGI</p>
+            </div>
+          </div>
+
+          {/* Reward */}
+          <div
+            className="rounded-2xl p-4 mb-5 flex items-center justify-between flex-wrap gap-3"
+            style={{ background: "rgba(124,107,255,0.08)", border: "1px solid rgba(124,107,255,0.2)" }}
+          >
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5" style={{ color: GOLD }} />
+              <div>
+                <span className="text-lg font-black" style={{ color: GOLD }}>+{reward.xpAwarded} XP</span>
+                {result.level != null && (
+                  <span className="text-xs ml-2" style={{ color: MUTED }}>Livello {result.level}</span>
                 )}
               </div>
             </div>
-          )}
-
-          {/* Input */}
-          {!completed && (
-            <div
-              className="px-4 pb-4 flex-shrink-0"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
-            >
-              <div
-                className="flex items-end gap-3 p-3 rounded-xl mt-3"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
-              >
-                <textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
-                  }}
-                  placeholder={timeLeft === 0 ? "Tempo scaduto…" : "Ragiona ad alta voce…"}
-                  disabled={isStreaming || timeLeft === 0 || completing}
-                  className="flex-1 bg-transparent text-sm outline-none resize-none"
-                  style={{ color: "#eeeeff", maxHeight: 120, minHeight: 36 }}
-                  rows={1}
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={!input.trim() || isStreaming || timeLeft === 0 || completing}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all"
-                  style={{
-                    background: input.trim() && !isStreaming && timeLeft > 0 ? "linear-gradient(135deg, #f72585, #b5179e)" : "rgba(255,255,255,0.06)",
-                    opacity: input.trim() && !isStreaming && timeLeft > 0 ? 1 : 0.4,
-                  }}
-                >
-                  <Send className="w-3.5 h-3.5 text-white" />
-                </button>
+            {result.badgeAwarded === "battle_victor" && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: "rgba(255,209,102,0.14)", border: "1px solid rgba(255,209,102,0.3)" }}>
+                <Trophy className="w-4 h-4" style={{ color: GOLD }} />
+                <span className="text-xs font-bold" style={{ color: GOLD }}>Nuovo badge: Battle Victor</span>
               </div>
-              {!timerActive && (
-                <p className="text-center text-[10px] mt-2" style={{ color: "#9090b8" }}>
-                  Il timer parte automaticamente al tuo primo messaggio
-                </p>
+            )}
+          </div>
+
+          {/* Per-metric breakdown */}
+          <div
+            className="rounded-2xl p-5 mb-5"
+            style={{ background: "rgba(21,23,40,1)", border: "1px solid rgba(255,255,255,0.07)" }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Brain className="w-4 h-4" style={{ color: PURPLE }} />
+              <h2 className="text-sm font-bold" style={{ color: "#eeeeff" }}>Analisi per metrica</h2>
+              <span className="text-[10px]" style={{ color: MUTED }}>— stesso motore SGI per entrambe le risposte</span>
+            </div>
+            <div>
+              {outcome.metricComparison.map(m => <MetricRow key={m.key} m={m} />)}
+            </div>
+          </div>
+
+          {/* Strengths / weaknesses */}
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            <div className="rounded-2xl p-4" style={{ background: "rgba(6,214,160,0.06)", border: "1px solid rgba(6,214,160,0.18)" }}>
+              <p className="text-xs font-bold mb-2" style={{ color: TEAL }}>I tuoi punti di forza</p>
+              {outcome.userStrengths.length > 0 ? (
+                <ul className="space-y-1">
+                  {outcome.userStrengths.slice(0, 4).map(m => (
+                    <li key={m.key} className="text-[11px] flex items-center justify-between" style={{ color: "#cfcfe6" }}>
+                      <span>{m.label}</span>
+                      <span className="font-bold" style={{ color: TEAL }}>+{Math.abs(m.diff).toFixed(1)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[11px]" style={{ color: MUTED }}>L'AI ti ha superato in tutte le metriche stavolta.</p>
               )}
             </div>
-          )}
-        </div>
-
-        {/* Score sidebar */}
-        <div
-          className="w-[200px] flex-shrink-0 flex flex-col p-4 gap-4"
-          style={{ background: "rgba(10,11,24,0.8)", borderLeft: "1px solid rgba(255,255,255,0.06)" }}
-        >
-          <div>
-            <p className="text-[9px] uppercase tracking-widest mb-3" style={{ color: "rgba(144,144,184,0.5)" }}>
-              SGI Score Live
-            </p>
-            <div className="text-center py-3 rounded-xl mb-4" style={{ background: "rgba(124,107,255,0.08)", border: "1px solid rgba(124,107,255,0.15)" }}>
-              <span className="text-3xl font-bold font-display" style={{ color: "#a89fff" }}>{score.total}</span>
-              <span className="text-xs block mt-0.5" style={{ color: "rgba(144,144,184,0.5)" }}>/99</span>
-            </div>
-            <div className="space-y-3">
-              <ScoreBar label="Densità" value={score.density} max={33} color="#7c6bff" />
-              <ScoreBar label="Connessioni" value={score.connections} max={33} color="#06d6a0" />
-              <ScoreBar label="Profondità" value={score.depth} max={33} color="#f72585" />
+            <div className="rounded-2xl p-4" style={{ background: "rgba(247,37,133,0.06)", border: "1px solid rgba(247,37,133,0.18)" }}>
+              <p className="text-xs font-bold mb-2" style={{ color: PINK }}>Dove migliorare</p>
+              {outcome.aiAdvantages.length > 0 ? (
+                <ul className="space-y-1">
+                  {outcome.aiAdvantages.slice(0, 4).map(m => (
+                    <li key={m.key} className="text-[11px] flex items-center justify-between" style={{ color: "#cfcfe6" }}>
+                      <span>{m.label}</span>
+                      <span className="font-bold" style={{ color: PINK }}>+{Math.abs(m.diff).toFixed(1)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[11px]" style={{ color: MUTED }}>Hai battuto l'AI ovunque. Notevole.</p>
+              )}
             </div>
           </div>
 
-          {score.explanation && (
-            <div className="rounded-lg p-2.5 text-[10px] leading-relaxed" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", color: "#9090b8" }}>
-              {score.explanation}
-            </div>
-          )}
+          {/* Answers */}
+          <div className="space-y-3 mb-6">
+            <Collapsible title="Risposta dell'AI" accent={PINK}>
+              <MarkdownMessage content={result.aiAnswer} />
+            </Collapsible>
+            <Collapsible title="La tua risposta" accent={PURPLE}>
+              <MarkdownMessage content={result.userAnswer} />
+            </Collapsible>
+          </div>
 
-          {/* Timer arc */}
-          <div className="mt-auto flex flex-col items-center gap-2">
-            <div className="relative w-16 h-16">
-              <svg viewBox="0 0 64 64" className="w-full h-full -rotate-90">
-                <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="4"/>
-                <circle
-                  cx="32" cy="32" r="28"
-                  fill="none"
-                  stroke={timerColor}
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * 28}`}
-                  strokeDashoffset={`${2 * Math.PI * 28 * (1 - timePct)}`}
-                  style={{ transition: "stroke-dashoffset 1s linear, stroke 0.3s" }}
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-xs font-bold font-mono" style={{ color: timerColor }}>{timeStr}</span>
-              </div>
-            </div>
-            {!completed && messages.length > 0 && (
+          {/* Actions */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => setLocation(`/threads/${threadId}`)}
+              className="flex-1 py-2.5 rounded-lg text-sm font-semibold"
+              style={{ background: "rgba(255,255,255,0.06)", color: MUTED, border: "1px solid rgba(255,255,255,0.08)" }}
+            >
+              Torna al Thread
+            </button>
+            {isWin && (
               <button
-                onClick={handleComplete}
-                disabled={completing}
-                className="text-[10px] px-3 py-1.5 rounded-lg transition-colors"
-                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#9090b8" }}
+                onClick={() => setLocation("/battles")}
+                className="flex-1 py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2"
+                style={{ background: "rgba(255,209,102,0.14)", color: GOLD, border: "1px solid rgba(255,209,102,0.3)" }}
               >
-                {completing ? "…" : "Termina"}
+                <Trophy className="w-4 h-4" /> Vedi nel Feed
               </button>
             )}
+            <button
+              onClick={reset}
+              className="flex-1 py-2.5 rounded-lg text-sm font-semibold"
+              style={{ background: "linear-gradient(135deg, #7c6bff, #5b4de0)", color: "#fff" }}
+            >
+              Nuova sfida
+            </button>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // ── Compose / evaluating phase ───────────────────────────────────────────────
+  const evaluating = phase === "evaluating";
+  const chars = answer.trim().length;
+
+  return (
+    <div className="flex-1 overflow-y-auto" style={{ background: "#08090f" }}>
+      <div className="max-w-[760px] mx-auto px-6 py-8">
+        <button
+          onClick={() => setLocation(`/threads/${threadId}`)}
+          className="flex items-center gap-2 text-sm mb-6"
+          style={{ color: MUTED }}
+          disabled={evaluating}
+        >
+          <ArrowLeft className="w-4 h-4" /> Torna al Thread
+        </button>
+
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #f7258522, #b5179e22)", border: "1px solid rgba(247,37,133,0.25)" }}>
+            <Swords className="w-5 h-5" style={{ color: PINK }} />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold font-display" style={{ color: "#eeeeff" }}>Sfida l'AI</h1>
+            <p className="text-[11px]" style={{ color: MUTED }}>Tu contro l'AI sulla stessa domanda · niente timer</p>
+          </div>
+        </div>
+
+        {/* Question */}
+        <div
+          className="rounded-2xl p-6 mb-5"
+          style={{ background: "rgba(124,107,255,0.07)", border: "1px solid rgba(124,107,255,0.2)" }}
+        >
+          {category && (
+            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: PINK }}>{category}</span>
+          )}
+          <h2 className="text-xl font-bold font-display leading-snug mt-1" style={{ color: "#eeeeff" }}>
+            {question || "Caricamento…"}
+          </h2>
+        </div>
+
+        {/* Calm instructions */}
+        <div
+          className="rounded-xl p-4 mb-4 flex gap-3"
+          style={{ background: "rgba(6,214,160,0.05)", border: "1px solid rgba(6,214,160,0.15)" }}
+        >
+          <Brain className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: TEAL }} />
+          <p className="text-xs" style={{ color: "#cfcfe6", lineHeight: "1.7" }}>
+            Prenditi il tempo che ti serve — <strong style={{ color: TEAL }}>nessun cronometro</strong>. Scrivi la tua risposta più
+            profonda e originale. L'AI risponderà alla stessa domanda e un <strong style={{ color: "#eeeeff" }}>unico motore SGI</strong> valuterà
+            entrambe sulle stesse 11 metriche. Vinci e ottieni XP alti e un badge; anche perdendo guadagni XP.
+          </p>
+        </div>
+
+        {/* Answer composer */}
+        <div
+          className="rounded-2xl p-4 mb-4"
+          style={{ background: "rgba(21,23,40,1)", border: "1px solid rgba(255,255,255,0.08)" }}
+        >
+          <textarea
+            value={answer}
+            onChange={e => setAnswer(e.target.value)}
+            placeholder="Sviluppa il tuo ragionamento: collega concetti tra domini diversi, vai in profondità, sii originale…"
+            disabled={evaluating}
+            className="w-full bg-transparent text-sm outline-none resize-none"
+            style={{ color: "#eeeeff", minHeight: 220, lineHeight: "1.7" }}
+          />
+          <div className="flex items-center justify-between mt-2 pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+            <span className="text-[10px]" style={{ color: chars < MIN_CHARS ? PINK : MUTED }}>
+              {chars < MIN_CHARS ? `Almeno ${MIN_CHARS} caratteri` : `${chars} caratteri`}
+            </span>
+          </div>
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={chars < MIN_CHARS || evaluating}
+          className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+          style={{
+            background: chars >= MIN_CHARS && !evaluating ? "linear-gradient(135deg, #f72585, #b5179e)" : "rgba(255,255,255,0.06)",
+            color: chars >= MIN_CHARS && !evaluating ? "#fff" : MUTED,
+            opacity: chars >= MIN_CHARS && !evaluating ? 1 : 0.6,
+          }}
+        >
+          {evaluating ? (
+            <>
+              <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              L'AI sta rispondendo e il motore SGI sta valutando…
+            </>
+          ) : (
+            <>
+              <Swords className="w-4 h-4" /> Invia e affronta l'AI
+            </>
+          )}
+        </button>
+
+        {evaluating && (
+          <p className="text-center text-[11px] mt-3" style={{ color: MUTED }}>
+            Può richiedere qualche secondo — l'AI genera una risposta forte e poi entrambe vengono valutate insieme.
+          </p>
+        )}
       </div>
     </div>
   );

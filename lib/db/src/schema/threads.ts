@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, jsonb, timestamp, boolean } from "drizzle-orm/pg-core";
 
 export interface ThreadConnection {
   concept1: string;
@@ -56,3 +56,35 @@ export const battleCards = pgTable("battle_cards", {
 export type Thread = typeof threads.$inferSelect;
 export type ThreadSession = typeof threadSessions.$inferSelect;
 export type BattleCard = typeof battleCards.$inferSelect;
+
+// ─── USER vs AI battle (redesigned battle model) ─────────────────────────────
+// Self-contained record of one duel: the user's answer and a strong AI answer to
+// the same question, BOTH scored by the same 11-metric SGI engine. Stored once
+// the battle is committed. Public-feed visibility (winner only, marked "vs AI")
+// is controlled by isPublic.
+export interface BattleAnswerScore {
+  dimensions: Record<string, number>;      // 11 SGI metrics, each 0–10
+  macroDimensions: Record<string, number>; // 4 macro dimensions
+  domains: string[];
+  rawScore: number;                         // 0–100
+}
+
+export const aiBattles = pgTable("ai_battles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  threadId: uuid("thread_id").notNull().references(() => threads.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull(),          // clerk id
+  username: text("username"),
+  question: text("question").notNull(),        // snapshot at battle time
+  category: text("category").default("philosophy"),
+  userAnswer: text("user_answer").notNull(),
+  aiAnswer: text("ai_answer").notNull(),
+  userScore: jsonb("user_score").$type<BattleAnswerScore>().notNull(),
+  aiScore: jsonb("ai_score").$type<BattleAnswerScore>().notNull(),
+  winner: text("winner").notNull(),            // 'user' | 'ai' | 'tie'
+  xpAwarded: integer("xp_awarded").notNull().default(0),
+  isPublic: boolean("is_public").notNull().default(false), // win → public feed, loss → private
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type AiBattle = typeof aiBattles.$inferSelect;
+export type NewAiBattle = typeof aiBattles.$inferInsert;

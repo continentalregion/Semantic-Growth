@@ -33,7 +33,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { fetch } from "expo/fetch";
 
 const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
-const BATTLE_DURATION = 4 * 60;
+const MIN_CHARS = 10;
 
 const CATEGORY_META: Record<string, { labelKey: string; color: string; icon: string }> = {
   philosophy:    { labelKey: "battles.categoryPhilosophy",    color: palette.primary,      icon: "telescope-outline" },
@@ -67,14 +67,35 @@ interface BattleCard {
     username: string; scoreTotal: number; scoreDensity: number;
     scoreConnections: number; scoreDepth: number; durationSeconds: number; isWinner: boolean;
   };
+  isVsAi?: boolean;
 }
 
-interface Message { role: "user" | "assistant"; content: string }
+interface MetricComparison {
+  key: string; label: string; user: number; ai: number; diff: number;
+  winner: "user" | "ai" | "tie";
+}
 
-function formatTime(s: number) {
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m}:${sec.toString().padStart(2, "0")}`;
+interface BattleResult {
+  question: string;
+  category: string;
+  userAnswer: string;
+  aiAnswer: string;
+  user: { rawScore: number };
+  ai: { rawScore: number };
+  outcome: {
+    winner: "user" | "ai" | "tie";
+    userRawScore: number;
+    aiRawScore: number;
+    margin: number;
+    metricComparison: MetricComparison[];
+    aiAdvantages: MetricComparison[];
+    userStrengths: MetricComparison[];
+  };
+  reward: { tier: string; xpAwarded: number; eligibleForWinBadge: boolean };
+  battleId: string | null;
+  xp: number | null;
+  level: number | null;
+  badgeAwarded: string | null;
 }
 
 function formatDuration(s: number) {
@@ -91,354 +112,309 @@ function timeAgo(dateStr: string, t: (key: string, opts?: object) => string) {
   return t("battles.timeAgoDays", { n: Math.floor(diff / 86400) });
 }
 
-// ─── Battle Session Modal ─────────────────────────────────────────────────────
+// ─── Per-metric comparison row ────────────────────────────────────────────────
+function MetricRow({ m, colors }: { m: MetricComparison; colors: ReturnType<typeof useColors> }) {
+  const userColor = m.winner === "user" ? colors.teal : colors.primary;
+  const aiColor = colors.pink;
+  return (
+    <View style={[styles.metricRow, { borderBottomColor: colors.border }]}>
+      <View style={styles.metricHead}>
+        <Text style={[styles.metricLabel, { color: colors.foreground }]}>{m.label}</Text>
+        {m.winner === "tie" ? (
+          <Text style={[styles.metricChip, { backgroundColor: colors.muted, color: colors.mutedForeground }]}>pari</Text>
+        ) : (
+          <Text
+            style={[styles.metricChip, {
+              backgroundColor: (m.winner === "user" ? colors.teal : colors.pink) + "22",
+              color: m.winner === "user" ? colors.teal : colors.pink,
+            }]}
+          >
+            {m.winner === "user" ? "Tu" : "AI"} +{Math.abs(m.diff).toFixed(1)}
+          </Text>
+        )}
+      </View>
+      <View style={styles.barRow}>
+        <Text style={[styles.barTag, { color: colors.mutedForeground }]}>Tu</Text>
+        <View style={[styles.barTrack, { backgroundColor: colors.muted }]}>
+          <View style={[styles.barFill, { width: `${(m.user / 10) * 100}%`, backgroundColor: userColor }]} />
+        </View>
+        <Text style={[styles.barVal, { color: userColor }]}>{m.user.toFixed(1)}</Text>
+      </View>
+      <View style={styles.barRow}>
+        <Text style={[styles.barTag, { color: colors.mutedForeground }]}>AI</Text>
+        <View style={[styles.barTrack, { backgroundColor: colors.muted }]}>
+          <View style={[styles.barFill, { width: `${(m.ai / 10) * 100}%`, backgroundColor: aiColor + "99" }]} />
+        </View>
+        <Text style={[styles.barVal, { color: aiColor }]}>{m.ai.toFixed(1)}</Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Battle Session Modal (USER vs AI, single answer, no timer) ───────────────
 function BattleSessionModal({
-  visible, thread, sessionId, onClose, colors, getToken,
+  visible, thread, onClose, colors, getToken,
 }: {
-  visible: boolean; thread: Thread | null; sessionId: string | null;
-  onClose: (battleCardId?: string) => void;
+  visible: boolean; thread: Thread | null;
+  onClose: (didWin?: boolean) => void;
   colors: ReturnType<typeof useColors>;
   getToken: () => Promise<string | null>;
 }) {
   const { t } = useTranslation();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(BATTLE_DURATION);
-  const [timerActive, setTimerActive] = useState(false);
-  const [completed, setCompleted] = useState(false);
-  const [completing, setCompleting] = useState(false);
-  const [score, setScore] = useState<{ density: number; connections: number; depth: number; total: number; explanation: string } | null>(null);
-  const [battleCardId, setBattleCardId] = useState<string | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const flatListRef = useRef<FlatList<Message>>(null);
-  const shareCardRef = useRef<View>(null);
-  const [sharing, setSharing] = useState(false);
   const insets = useSafeAreaInsets();
+  const [answer, setAnswer] = useState("");
+  const [phase, setPhase] = useState<"compose" | "evaluating" | "result">("compose");
+  const [result, setResult] = useState<BattleResult | null>(null);
+  const [showAi, setShowAi] = useState(false);
+  const [showMine, setShowMine] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
-    if (Platform.OS !== "ios") return;
-    const showSub = Keyboard.addListener("keyboardWillShow", (e) => {
-      setKeyboardHeight(e.endCoordinates.height);
-    });
-    const hideSub = Keyboard.addListener("keyboardWillHide", () => {
-      setKeyboardHeight(0);
-    });
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
-
-  useEffect(() => {
     if (!visible) {
-      setMessages([]);
-      setInput("");
-      setSending(false);
-      setTimeLeft(BATTLE_DURATION);
-      setTimerActive(false);
-      setCompleted(false);
-      setCompleting(false);
-      setScore(null);
-      setBattleCardId(null);
+      setAnswer("");
+      setPhase("compose");
+      setResult(null);
+      setShowAi(false);
+      setShowMine(false);
       setKeyboardHeight(0);
-      if (timerRef.current) clearInterval(timerRef.current);
     }
   }, [visible]);
 
+  // iOS pageSheet modals don't lay out like a root view, so KeyboardAvoidingView
+  // mis-computes the offset and hides the input. Track the keyboard manually and
+  // shrink the content with paddingBottom. Android's adjustResize handles itself.
   useEffect(() => {
-    if (!timerActive || completed) return;
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current!);
-          handleComplete();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [timerActive, completed]);
+    if (Platform.OS !== "ios") return;
+    const show = Keyboard.addListener("keyboardWillShow", (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener("keyboardWillHide", () => setKeyboardHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
-  async function sendMessage() {
-    if (!input.trim() || sending || completed || !thread || !sessionId) return;
-    const content = input.trim();
-    setInput("");
-    setSending(true);
-    if (!timerActive) setTimerActive(true);
-
-    const token = await getToken();
-    const userMsg: Message = { role: "user", content };
-    setMessages(prev => [...prev, userMsg]);
-    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
-
-    try {
-      const r = await fetch(`${BASE}/api/threads/${thread.id}/sessions/${sessionId}/chat`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token ?? ""}`,
-          "Content-Type": "application/json",
-          Accept: "text/event-stream",
-        },
-        body: JSON.stringify({ message: content }),
-      });
-
-      if (!r.ok || !r.body) throw new Error("bad response");
-
-      const reader = r.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let fullResponse = "";
-      let assistantAdded = false;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const raw = line.slice(6).trim();
-          if (!raw || raw === "[DONE]") continue;
-          try {
-            const parsed = JSON.parse(raw) as { type?: string; text?: string };
-            if (parsed.type === "content" && parsed.text) {
-              fullResponse += parsed.text;
-              const captured = fullResponse;
-              if (!assistantAdded) {
-                assistantAdded = true;
-                setMessages(prev => [...prev, { role: "assistant", content: captured }]);
-              } else {
-                setMessages(prev => prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: captured } : m)));
-              }
-              setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
-            }
-          } catch { /* ignore malformed SSE line */ }
-        }
-      }
-
-      if (!assistantAdded) {
-        setMessages(prev => [...prev, { role: "assistant", content: fullResponse || t("battles.connError") }]);
-      }
-    } catch {
-      setMessages(prev => [...prev, { role: "assistant", content: t("battles.connError") }]);
-    } finally {
-      setSending(false);
-    }
-  }
-
-  async function handleComplete() {
-    if (completing || completed || !thread || !sessionId) return;
-    if (messages.filter(m => m.role === "user").length === 0) {
-      Alert.alert(t("battles.noMsgTitle"), t("battles.noMsgBody"));
-      return;
-    }
-    setCompleting(true);
+  async function submit() {
+    if (answer.trim().length < MIN_CHARS || phase === "evaluating" || !thread) return;
     Keyboard.dismiss();
-    if (timerRef.current) clearInterval(timerRef.current);
-    const token = await getToken();
+    setPhase("evaluating");
     try {
-      const r = await fetch(`${BASE}/api/threads/${thread.id}/sessions/${sessionId}/complete`, {
+      const token = await getToken();
+      const r = await fetch(`${BASE}/api/threads/${thread.id}/battle`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ userAnswer: answer.trim() }),
       });
-      const data = await r.json() as {
-        scoreTotal?: number;
-        scoreDensity?: number;
-        scoreConnections?: number;
-        scoreDepth?: number;
-        scoreExplanation?: string;
-        battleCardId?: string;
-      };
-      setScore({
-        density: data.scoreDensity ?? 0,
-        connections: data.scoreConnections ?? 0,
-        depth: data.scoreDepth ?? 0,
-        total: data.scoreTotal ?? 0,
-        explanation: data.scoreExplanation ?? "",
-      });
-      if (data.battleCardId) setBattleCardId(data.battleCardId);
-      setCompleted(true);
+      if (!r.ok) throw new Error("eval failed");
+      const data = await r.json() as BattleResult;
+      setResult(data);
+      setPhase("result");
     } catch {
       Alert.alert(t("battles.errorTitle"), t("battles.errorComplete"));
-    } finally {
-      setCompleting(false);
+      setPhase("compose");
     }
   }
 
-  async function handleShare() {
-    if (!score) return;
-    setSharing(true);
-    try {
-      await new Promise(r => setTimeout(r, 200));
-      const uri = await captureRef(shareCardRef, { format: "png", quality: 1.0, result: "tmpfile" });
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: t("battles.shareDialogTitle") });
-      } else {
-        const url = battleCardId ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/battle-cards/${battleCardId}` : "";
-        await Share.share({
-          message: t("battles.shareSessionMsg", { total: score.total, density: score.density, connections: score.connections, depth: score.depth }) + (url ? `\n${url}` : ""),
-        });
-      }
-    } catch {
-      /* user cancelled or error — silent fallback */
-    } finally {
-      setSharing(false);
-    }
-  }
+  const meta = thread ? (CATEGORY_META[thread.category] ?? null) : null;
+  const chars = answer.trim().length;
+  const isResult = phase === "result" && result != null;
+  const win = isResult && result!.outcome.winner === "user";
 
-  const timerColor = timeLeft > 60 ? colors.primary : colors.pink;
+  function requestClose() {
+    if (phase === "evaluating") return;
+    onClose(phase === "result" ? result?.outcome.winner === "user" : false);
+  }
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => !timerActive && onClose()}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={requestClose}>
       <View style={{ flex: 1, backgroundColor: colors.background, paddingBottom: keyboardHeight }}>
-        {/* Off-screen shareable card — catturata da captureRef */}
-        {completed && score && (
-          <View
-            ref={shareCardRef}
-            collapsable={false}
-            style={{ position: "absolute", left: -Dimensions.get("window").width * 2, top: 0 }}
-            pointerEvents="none"
-          >
-            <ShareableBattleCard
-              data={{
-                total: score.total,
-                density: score.density,
-                connections: score.connections,
-                depth: score.depth,
-                question: thread?.question ?? "",
-              }}
-            />
-          </View>
-        )}
         {/* Header */}
         <View style={[styles.sessionHeader, { borderBottomColor: colors.border }]}>
-          <Pressable onPress={() => {
-            if (!timerActive || completed) { onClose(battleCardId ?? undefined); return; }
-            Alert.alert(t("battles.leaveTitle"), t("battles.leaveMsg"), [
-              { text: t("battles.leaveCancel") },
-              { text: t("battles.leaveConfirm"), style: "destructive", onPress: () => { if (timerRef.current) clearInterval(timerRef.current); onClose(); } },
-            ]);
-          }}>
+          <Pressable onPress={requestClose} disabled={phase === "evaluating"}>
             <Ionicons name="close" size={22} color={colors.mutedForeground} />
           </Pressable>
           <Text style={[styles.sessionTitle, { color: colors.foreground }]} numberOfLines={2}>
-            {thread?.question ?? ""}
+            {isResult ? t("battles.vsAiResultTitle", "Risultato · Tu vs AI") : t("battles.vsAiTitle", "Sfida l'AI")}
           </Text>
-          {!completed ? (
-            <View style={[styles.timerBadge, { backgroundColor: timerColor + "18", borderColor: timerColor + "40" }]}>
-              <Ionicons name="timer-outline" size={14} color={timerColor} />
-              <Text style={[styles.timerText, { color: timerColor }]}>{formatTime(timeLeft)}</Text>
-            </View>
-          ) : (
-            <Ionicons name="checkmark-circle" size={22} color={colors.teal} />
-          )}
+          <View style={[styles.vsAiPill, { backgroundColor: colors.pink + "18", borderColor: colors.pink + "40" }]}>
+            <Ionicons name="sparkles-outline" size={12} color={colors.pink} />
+            <Text style={[styles.vsAiPillText, { color: colors.pink }]}>vs AI</Text>
+          </View>
         </View>
 
-        {/* Completed state */}
-        {completed && score ? (
-          <ScrollView contentContainerStyle={styles.completedContainer}>
-            <View style={[styles.scoreCircle, { borderColor: colors.primary + "40", backgroundColor: colors.primary + "10" }]}>
-              <Text style={[styles.scoreCircleNum, { color: colors.primary }]}>{score.total}</Text>
-              <Text style={[styles.scoreCircleLabel, { color: colors.mutedForeground }]}>{t("battles.sessionPoints")}</Text>
+        {/* ── Result phase ── */}
+        {isResult ? (
+          <ScrollView contentContainerStyle={{ padding: colors.spacing.lg, paddingBottom: insets.bottom + 32, gap: 14 }}>
+            {/* Banner */}
+            <View style={[styles.banner, {
+              backgroundColor: (win ? colors.teal : result!.outcome.winner === "tie" ? colors.gold : colors.pink) + "14",
+              borderColor: (win ? colors.teal : result!.outcome.winner === "tie" ? colors.gold : colors.pink) + "40",
+            }]}>
+              <Ionicons
+                name={win ? "trophy" : result!.outcome.winner === "tie" ? "swap-horizontal" : "flash"}
+                size={26}
+                color={win ? colors.teal : result!.outcome.winner === "tie" ? colors.gold : colors.pink}
+              />
+              <Text style={[styles.bannerTitle, { color: win ? colors.teal : result!.outcome.winner === "tie" ? colors.gold : colors.pink }]}>
+                {win ? "Vittoria" : result!.outcome.winner === "tie" ? "Pareggio" : "Sconfitta"}
+              </Text>
+              <Text style={[styles.bannerSub, { color: colors.mutedForeground }]}>
+                {win ? "Hai battuto l'AI su questa domanda." : result!.outcome.winner === "tie" ? "Testa a testa con l'AI." : "L'AI ha avuto la meglio — ma hai guadagnato XP."}
+              </Text>
             </View>
 
-            <View style={styles.scoreGrid}>
-              {[
-                { label: t("battles.sessionDensity"), value: score.density, color: colors.teal, icon: "layers-outline" },
-                { label: t("battles.sessionConnections"), value: score.connections, color: colors.primary, icon: "git-network-outline" },
-                { label: t("battles.sessionDepth"), value: score.depth, color: colors.pink, icon: "telescope-outline" },
-              ].map(item => (
-                <View key={item.label} style={[styles.scoreCard, { backgroundColor: item.color + "10", borderColor: item.color + "25" }]}>
-                  <Ionicons name={item.icon as never} size={18} color={item.color} />
-                  <Text style={[styles.scoreCardNum, { color: item.color }]}>{item.value}</Text>
-                  <Text style={[styles.scoreCardLabel, { color: colors.mutedForeground }]}>{item.label}</Text>
+            {/* Score duel */}
+            <View style={styles.scoreRow}>
+              <View style={[styles.scoreCol, {
+                backgroundColor: win ? colors.teal + "12" : colors.card,
+                borderColor: win ? colors.teal + "40" : colors.border,
+              }]}>
+                <Text style={[styles.scoreColLabel, { color: colors.mutedForeground }]}>Tu</Text>
+                <Text style={[styles.scoreColNum, { color: win ? colors.teal : colors.foreground }]}>{result!.outcome.userRawScore.toFixed(1)}</Text>
+                <Text style={[styles.scoreColUnit, { color: colors.mutedForeground }]}>/100 SGI</Text>
+              </View>
+              <View style={[styles.scoreCol, {
+                backgroundColor: result!.outcome.winner === "ai" ? colors.pink + "12" : colors.card,
+                borderColor: result!.outcome.winner === "ai" ? colors.pink + "40" : colors.border,
+              }]}>
+                <Text style={[styles.scoreColLabel, { color: colors.mutedForeground }]}>SGI · AI</Text>
+                <Text style={[styles.scoreColNum, { color: result!.outcome.winner === "ai" ? colors.pink : colors.foreground }]}>{result!.outcome.aiRawScore.toFixed(1)}</Text>
+                <Text style={[styles.scoreColUnit, { color: colors.mutedForeground }]}>/100 SGI</Text>
+              </View>
+            </View>
+
+            {/* Reward */}
+            <View style={[styles.rewardBox, { backgroundColor: colors.primary + "10", borderColor: colors.primary + "25" }]}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Ionicons name="flash" size={20} color={colors.gold} />
+                <Text style={[styles.rewardXp, { color: colors.gold }]}>+{result!.reward.xpAwarded} XP</Text>
+                {result!.level != null && (
+                  <Text style={[styles.rewardLevel, { color: colors.mutedForeground }]}>Livello {result!.level}</Text>
+                )}
+              </View>
+              {result!.badgeAwarded === "battle_victor" && (
+                <View style={[styles.badgePill, { backgroundColor: colors.gold + "22", borderColor: colors.gold + "40" }]}>
+                  <Ionicons name="ribbon" size={14} color={colors.gold} />
+                  <Text style={[styles.badgeText, { color: colors.gold }]}>Battle Victor</Text>
                 </View>
-              ))}
+              )}
             </View>
 
-            <Text style={[styles.scoreExplanation, { color: colors.mutedForeground }]}>{score.explanation}</Text>
+            {/* Per-metric breakdown */}
+            <View style={[styles.metricsBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.metricsTitle, { color: colors.foreground }]}>Analisi per metrica</Text>
+              <Text style={[styles.metricsSub, { color: colors.mutedForeground }]}>Stesso motore SGI per entrambe le risposte</Text>
+              {result!.outcome.metricComparison.map(m => <MetricRow key={m.key} m={m} colors={colors} />)}
+            </View>
 
-            {score && (
-              <Pressable
-                style={[styles.shareBtn, { backgroundColor: colors.primary, opacity: sharing ? 0.6 : 1 }]}
-                onPress={handleShare}
-                disabled={sharing}
-              >
-                <Ionicons name={sharing ? "hourglass-outline" : "share-outline"} size={18} color={palette.white} />
-                <Text style={styles.shareBtnText}>{sharing ? t("battles.preparing") : t("battles.shareResult")}</Text>
-              </Pressable>
-            )}
+            {/* Strengths / weaknesses */}
+            <View style={styles.strengthsRow}>
+              <View style={[styles.strengthCol, { backgroundColor: colors.teal + "0d", borderColor: colors.teal + "22" }]}>
+                <Text style={[styles.strengthTitle, { color: colors.teal }]}>Punti di forza</Text>
+                {result!.outcome.userStrengths.length > 0 ? (
+                  result!.outcome.userStrengths.slice(0, 4).map(m => (
+                    <View key={m.key} style={styles.strengthItem}>
+                      <Text style={[styles.strengthItemLabel, { color: colors.foreground }]} numberOfLines={1}>{m.label}</Text>
+                      <Text style={[styles.strengthItemVal, { color: colors.teal }]}>+{Math.abs(m.diff).toFixed(1)}</Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={[styles.strengthEmpty, { color: colors.mutedForeground }]}>L'AI ti ha superato ovunque stavolta.</Text>
+                )}
+              </View>
+              <View style={[styles.strengthCol, { backgroundColor: colors.pink + "0d", borderColor: colors.pink + "22" }]}>
+                <Text style={[styles.strengthTitle, { color: colors.pink }]}>Dove migliorare</Text>
+                {result!.outcome.aiAdvantages.length > 0 ? (
+                  result!.outcome.aiAdvantages.slice(0, 4).map(m => (
+                    <View key={m.key} style={styles.strengthItem}>
+                      <Text style={[styles.strengthItemLabel, { color: colors.foreground }]} numberOfLines={1}>{m.label}</Text>
+                      <Text style={[styles.strengthItemVal, { color: colors.pink }]}>+{Math.abs(m.diff).toFixed(1)}</Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={[styles.strengthEmpty, { color: colors.mutedForeground }]}>Hai battuto l'AI ovunque. Notevole.</Text>
+                )}
+              </View>
+            </View>
 
-            <Pressable style={[styles.closeBtn, { borderColor: colors.border }]} onPress={() => onClose(battleCardId ?? undefined)}>
-              <Text style={[styles.closeBtnText, { color: colors.mutedForeground }]}>{t("battles.sessionClose")}</Text>
+            {/* Answers (collapsible) */}
+            <Pressable style={[styles.collapBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => setShowAi(s => !s)}>
+              <Text style={[styles.collapTitle, { color: colors.pink }]}>Risposta dell'AI</Text>
+              <Ionicons name={showAi ? "chevron-up" : "chevron-down"} size={16} color={colors.mutedForeground} />
+            </Pressable>
+            {showAi && <Text style={[styles.answerText, { color: colors.foreground, borderColor: colors.border }]}>{result!.aiAnswer}</Text>}
+
+            <Pressable style={[styles.collapBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => setShowMine(s => !s)}>
+              <Text style={[styles.collapTitle, { color: colors.primary }]}>La tua risposta</Text>
+              <Ionicons name={showMine ? "chevron-up" : "chevron-down"} size={16} color={colors.mutedForeground} />
+            </Pressable>
+            {showMine && <Text style={[styles.answerText, { color: colors.foreground, borderColor: colors.border }]}>{result!.userAnswer}</Text>}
+
+            {/* Actions */}
+            <Pressable style={[styles.primaryAction, { backgroundColor: colors.primary }]} onPress={() => onClose(win)}>
+              <Text style={styles.primaryActionText}>{win ? "Vedi nel Feed" : "Torna ai Thread"}</Text>
             </Pressable>
           </ScrollView>
         ) : (
-          <>
-            {/* Messages */}
-            <FlatList
-              ref={flatListRef}
-              data={messages}
-              keyExtractor={(_, i) => String(i)}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="interactive"
-              contentContainerStyle={{ padding: colors.spacing.lg, gap: colors.spacing.md }}
-              ListEmptyComponent={
-                <View style={styles.emptySession}>
-                  <Ionicons name="flash-outline" size={40} color={colors.primary} style={{ opacity: 0.5 }} />
-                  <Text style={[styles.emptySessionText, { color: colors.mutedForeground }]}>
-                    {t("battles.sessionEmptyMsg")}
-                  </Text>
-                </View>
-              }
-              renderItem={({ item }) => (
-                <View style={[
-                  styles.msgBubble,
-                  item.role === "user"
-                    ? { alignSelf: "flex-end", backgroundColor: colors.primary + "20", borderColor: colors.primary + "40" }
-                    : { alignSelf: "flex-start", backgroundColor: colors.card, borderColor: colors.border },
-                ]}>
-                  <Text style={[styles.msgText, { color: colors.foreground }]}>{item.content}</Text>
-                </View>
-              )}
-            />
+          /* ── Compose / evaluating phase ── */
+          <ScrollView
+            contentContainerStyle={{ padding: colors.spacing.lg, paddingBottom: insets.bottom + 32, gap: 14 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Question */}
+            <View style={[styles.qCard, { backgroundColor: colors.primary + "0d", borderColor: colors.primary + "30" }]}>
+              {meta && <Text style={[styles.qCat, { color: colors.pink }]}>{t(meta.labelKey)}</Text>}
+              <Text style={[styles.qText, { color: colors.foreground }]}>{thread?.question ?? ""}</Text>
+            </View>
 
-            {/* Input */}
-            <View style={[styles.inputRow, { borderTopColor: colors.border, backgroundColor: colors.background, paddingBottom: 12 + (keyboardHeight > 0 ? 0 : insets.bottom) }]}>
+            {/* Calm instructions */}
+            <View style={[styles.instrBox, { backgroundColor: colors.teal + "0d", borderColor: colors.teal + "22" }]}>
+              <Ionicons name="bulb-outline" size={18} color={colors.teal} />
+              <Text style={[styles.instrText, { color: colors.foreground }]}>
+                Nessun cronometro: prenditi il tempo per la risposta più profonda e originale. L'AI risponde alla stessa domanda e un unico motore SGI valuta entrambe sulle 11 metriche. Vinci → XP alti + badge; anche perdendo guadagni XP.
+              </Text>
+            </View>
+
+            {/* Composer */}
+            <View style={[styles.composeWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <TextInput
-                style={[styles.input, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]}
-                value={input}
-                onChangeText={setInput}
-                placeholder={t("battles.sessionPlaceholder")}
+                style={[styles.composeInput, { color: colors.foreground }]}
+                value={answer}
+                onChangeText={setAnswer}
+                placeholder="Sviluppa il tuo ragionamento: collega concetti tra domini diversi, vai in profondità, sii originale…"
                 placeholderTextColor={colors.mutedForeground}
                 multiline
-                maxLength={600}
-                editable={!sending && !completed}
+                editable={phase !== "evaluating"}
+                textAlignVertical="top"
               />
-              {!completed && (
-                <Pressable
-                  style={[styles.completeBtn, { backgroundColor: colors.pink + "18" }]}
-                  onPress={handleComplete}
-                  disabled={completing}
-                >
-                  <Ionicons name="flag-outline" size={18} color={colors.pink} />
-                </Pressable>
-              )}
-              <Pressable
-                style={[styles.sendBtn, { backgroundColor: input.trim() && !sending ? colors.primary : colors.primary + "40" }]}
-                onPress={sendMessage}
-                disabled={!input.trim() || sending || completed}
-              >
-                {sending ? <ActivityIndicator size="small" color={colors.palette.white} /> : <Ionicons name="send" size={16} color={colors.palette.white} />}
-              </Pressable>
+              <Text style={[styles.charCount, { color: chars < MIN_CHARS ? colors.pink : colors.mutedForeground, borderTopColor: colors.border }]}>
+                {chars < MIN_CHARS ? `Almeno ${MIN_CHARS} caratteri` : `${chars} caratteri`}
+              </Text>
             </View>
-          </>
+
+            <Pressable
+              style={[styles.submitBtn, {
+                backgroundColor: chars >= MIN_CHARS && phase !== "evaluating" ? colors.pink : colors.muted,
+                opacity: chars >= MIN_CHARS && phase !== "evaluating" ? 1 : 0.7,
+              }]}
+              onPress={submit}
+              disabled={chars < MIN_CHARS || phase === "evaluating"}
+            >
+              {phase === "evaluating" ? (
+                <>
+                  <ActivityIndicator size="small" color={palette.white} />
+                  <Text style={styles.submitBtnText}>L'AI risponde e il motore valuta…</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="flash" size={16} color={palette.white} />
+                  <Text style={styles.submitBtnText}>Invia e affronta l'AI</Text>
+                </>
+              )}
+            </Pressable>
+
+            {phase === "evaluating" && (
+              <Text style={[styles.evalHint, { color: colors.mutedForeground }]}>
+                Può richiedere qualche secondo — l'AI genera una risposta forte, poi entrambe vengono valutate insieme.
+              </Text>
+            )}
+          </ScrollView>
         )}
       </View>
     </Modal>
@@ -460,9 +436,7 @@ export default function BattlesScreen() {
   const [tab, setTab] = useState<"arena" | "risultati" | "threads">("arena");
 
   const [activeThread, setActiveThread] = useState<Thread | null>(null);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [sessionVisible, setSessionVisible] = useState(false);
-  const [startingThreadId, setStartingThreadId] = useState<string | null>(null);
   const [pendingShareCard, setPendingShareCard] = useState<ShareCardData | null>(null);
   const [historySharing, setHistorySharing] = useState(false);
   const historyCardRef = useRef<View>(null);
@@ -487,34 +461,17 @@ export default function BattlesScreen() {
 
   const onRefresh = useCallback(() => { setRefreshing(true); loadData(true); }, []);
 
-  async function startBattle(thread: Thread) {
-    setStartingThreadId(thread.id);
-    const token = await getToken();
-    try {
-      const r = await fetch(`${BASE}/api/threads/${thread.id}/sessions`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ username: t("battles.myUsername") }),
-      });
-      if (!r.ok) throw new Error("start failed");
-      const data = await r.json() as { sessionId: string };
-      setActiveThread(thread);
-      setActiveSessionId(data.sessionId);
-      setSessionVisible(true);
-    } catch {
-      Alert.alert(t("battles.errorTitle"), t("battles.errorStart"));
-    }
-    setStartingThreadId(null);
+  function startBattle(thread: Thread) {
+    setActiveThread(thread);
+    setSessionVisible(true);
   }
 
-  function onSessionClose(battleCardId?: string) {
+  function onSessionClose(didWin?: boolean) {
     setSessionVisible(false);
     setActiveThread(null);
-    setActiveSessionId(null);
-    if (battleCardId) {
-      setTab("risultati");
-      loadData(true);
-    }
+    if (didWin) setTab("risultati");
+    // Always refresh threads + feed so a completed battle is reflected immediately.
+    loadData(true);
   }
 
   const bottomPad = Platform.OS === "web" ? 34 : tabBarHeight;
@@ -593,14 +550,12 @@ export default function BattlesScreen() {
               <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{t("battles.noArena")}</Text>
             </View>
           }
-          renderItem={({ item: thread, index }) => {
+          renderItem={({ item: thread }) => {
             const meta = CATEGORY_META[thread.category] ?? { labelKey: thread.category, color: colors.mutedForeground, icon: "help-outline" };
-            const isStarting = startingThreadId === thread.id;
             return (
               <PressableScale
                 style={[styles.threadCard, { backgroundColor: colors.card, borderColor: colors.border }]}
                 onPress={() => startBattle(thread)}
-                disabled={isStarting}
                 scaleTarget={0.97}
               >
                 <View style={styles.threadTop}>
@@ -623,15 +578,9 @@ export default function BattlesScreen() {
                   </Text>
                 ) : null}
 
-                <View style={[styles.startBtn, { backgroundColor: colors.primary + "15", borderColor: colors.primary + "30" }]}>
-                  {isStarting ? (
-                    <ActivityIndicator size="small" color={colors.primary} />
-                  ) : (
-                    <>
-                      <Ionicons name="flash" size={15} color={colors.primary} />
-                      <Text style={[styles.startBtnText, { color: colors.primary }]}>{t("battles.startBattle")}</Text>
-                    </>
-                  )}
+                <View style={[styles.startBtn, { backgroundColor: colors.pink + "15", borderColor: colors.pink + "30" }]}>
+                  <Ionicons name="flash" size={15} color={colors.pink} />
+                  <Text style={[styles.startBtnText, { color: colors.pink }]}>Sfida l'AI</Text>
                 </View>
               </PressableScale>
             );
@@ -655,6 +604,7 @@ export default function BattlesScreen() {
             const meta = CATEGORY_META[card.thread.category] ?? { labelKey: card.thread.category, color: colors.mutedForeground };
             const winner = card.player1.isWinner ? card.player1 : card.player2;
             const loser = card.player1.isWinner ? card.player2 : card.player1;
+            const isVsAi = !!card.isVsAi;
 
             async function shareCard() {
               const data: ShareCardData = {
@@ -687,8 +637,15 @@ export default function BattlesScreen() {
             return (
               <View style={[styles.resultCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <View style={styles.resultHeader}>
-                  <View style={[styles.catBadge, { backgroundColor: (meta.color ?? colors.mutedForeground) + "18", borderColor: (meta.color ?? colors.mutedForeground) + "30" }]}>
-                    <Text style={[styles.catLabel, { color: meta.color ?? colors.mutedForeground }]}>{t(meta.labelKey)}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <View style={[styles.catBadge, { backgroundColor: (meta.color ?? colors.mutedForeground) + "18", borderColor: (meta.color ?? colors.mutedForeground) + "30" }]}>
+                      <Text style={[styles.catLabel, { color: meta.color ?? colors.mutedForeground }]}>{t(meta.labelKey)}</Text>
+                    </View>
+                    {isVsAi && (
+                      <View style={[styles.vsAiTag, { backgroundColor: colors.pink + "18", borderColor: colors.pink + "30" }]}>
+                        <Text style={[styles.vsAiTagText, { color: colors.pink }]}>vs AI</Text>
+                      </View>
+                    )}
                   </View>
                   <Text style={[styles.timeAgoText, { color: colors.mutedForeground }]}>{timeAgo(card.createdAt, t)}</Text>
                 </View>
@@ -704,12 +661,16 @@ export default function BattlesScreen() {
                     </View>
                     <Text style={[styles.playerName, { color: colors.foreground }]} numberOfLines={1}>{winner.username}</Text>
                     <Text style={[styles.playerScore, { color: colors.primary }]}>{winner.scoreTotal}</Text>
-                    <View style={styles.miniPips}>
-                      <Text style={[styles.miniPip, { color: colors.mutedForeground }]}>D:{winner.scoreDensity}</Text>
-                      <Text style={[styles.miniPip, { color: colors.mutedForeground }]}>C:{winner.scoreConnections}</Text>
-                      <Text style={[styles.miniPip, { color: colors.mutedForeground }]}>P:{winner.scoreDepth}</Text>
-                    </View>
-                    <Text style={[styles.duration, { color: colors.mutedForeground }]}>{formatDuration(winner.durationSeconds)}</Text>
+                    {!isVsAi && (
+                      <>
+                        <View style={styles.miniPips}>
+                          <Text style={[styles.miniPip, { color: colors.mutedForeground }]}>D:{winner.scoreDensity}</Text>
+                          <Text style={[styles.miniPip, { color: colors.mutedForeground }]}>C:{winner.scoreConnections}</Text>
+                          <Text style={[styles.miniPip, { color: colors.mutedForeground }]}>P:{winner.scoreDepth}</Text>
+                        </View>
+                        <Text style={[styles.duration, { color: colors.mutedForeground }]}>{formatDuration(winner.durationSeconds)}</Text>
+                      </>
+                    )}
                   </View>
 
                   <Text style={[styles.vsText, { color: colors.mutedForeground }]}>VS</Text>
@@ -718,29 +679,35 @@ export default function BattlesScreen() {
                   <View style={[styles.playerCol, { backgroundColor: colors.muted, borderColor: colors.border }]}>
                     <Text style={[styles.playerName, { color: colors.foreground }]} numberOfLines={1}>{loser.username}</Text>
                     <Text style={[styles.playerScore, { color: colors.mutedForeground }]}>{loser.scoreTotal}</Text>
-                    <View style={styles.miniPips}>
-                      <Text style={[styles.miniPip, { color: colors.mutedForeground }]}>D:{loser.scoreDensity}</Text>
-                      <Text style={[styles.miniPip, { color: colors.mutedForeground }]}>C:{loser.scoreConnections}</Text>
-                      <Text style={[styles.miniPip, { color: colors.mutedForeground }]}>P:{loser.scoreDepth}</Text>
-                    </View>
-                    <Text style={[styles.duration, { color: colors.mutedForeground }]}>{formatDuration(loser.durationSeconds)}</Text>
+                    {!isVsAi && (
+                      <>
+                        <View style={styles.miniPips}>
+                          <Text style={[styles.miniPip, { color: colors.mutedForeground }]}>D:{loser.scoreDensity}</Text>
+                          <Text style={[styles.miniPip, { color: colors.mutedForeground }]}>C:{loser.scoreConnections}</Text>
+                          <Text style={[styles.miniPip, { color: colors.mutedForeground }]}>P:{loser.scoreDepth}</Text>
+                        </View>
+                        <Text style={[styles.duration, { color: colors.mutedForeground }]}>{formatDuration(loser.durationSeconds)}</Text>
+                      </>
+                    )}
                   </View>
                 </View>
 
-                <Pressable
-                  style={[styles.shareCardBtn, { borderColor: colors.border, opacity: historySharing ? 0.5 : 1 }]}
-                  onPress={shareCard}
-                  disabled={historySharing}
-                >
-                  <Ionicons
-                    name={historySharing ? "hourglass-outline" : "share-outline"}
-                    size={14}
-                    color={colors.mutedForeground}
-                  />
-                  <Text style={[styles.shareCardText, { color: colors.mutedForeground }]}>
-                    {historySharing ? t("battles.preparing") : t("battles.share")}
-                  </Text>
-                </Pressable>
+                {!isVsAi && (
+                  <Pressable
+                    style={[styles.shareCardBtn, { borderColor: colors.border, opacity: historySharing ? 0.5 : 1 }]}
+                    onPress={shareCard}
+                    disabled={historySharing}
+                  >
+                    <Ionicons
+                      name={historySharing ? "hourglass-outline" : "share-outline"}
+                      size={14}
+                      color={colors.mutedForeground}
+                    />
+                    <Text style={[styles.shareCardText, { color: colors.mutedForeground }]}>
+                      {historySharing ? t("battles.preparing") : t("battles.share")}
+                    </Text>
+                  </Pressable>
+                )}
               </View>
             );
           }}
@@ -768,7 +735,6 @@ export default function BattlesScreen() {
       <BattleSessionModal
         visible={sessionVisible}
         thread={activeThread}
-        sessionId={activeSessionId}
         onClose={onSessionClose}
         colors={colors}
         getToken={getToken}
@@ -822,32 +788,64 @@ const styles = StyleSheet.create({
   shareCardBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderRadius: 8, paddingVertical: 8 },
   shareCardText: { fontSize: 12, fontFamily: "Inter_500Medium" },
   timeAgoText: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  vsAiTag: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 },
+  vsAiTagText: { fontSize: 10, fontFamily: "Inter_700Bold" },
 
+  // Session modal — header
   sessionHeader: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderBottomWidth: 1 },
-  sessionTitle: { flex: 1, fontSize: 14, fontFamily: "Inter_600SemiBold", lineHeight: 20 },
-  timerBadge: { flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  timerText: { fontSize: 13, fontFamily: "Inter_700Bold" },
+  sessionTitle: { flex: 1, fontSize: 15, fontFamily: "Inter_700Bold", lineHeight: 20 },
+  vsAiPill: { flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  vsAiPillText: { fontSize: 11, fontFamily: "Inter_700Bold" },
 
-  completedContainer: { alignItems: "center", padding: 24, gap: 20 },
-  scoreCircle: { width: 140, height: 140, borderRadius: 70, borderWidth: 2, alignItems: "center", justifyContent: "center" },
-  scoreCircleNum: { fontSize: 40, fontFamily: "Inter_700Bold" },
-  scoreCircleLabel: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  scoreGrid: { flexDirection: "row", gap: 12, width: "100%" },
-  scoreCard: { flex: 1, borderRadius: 12, borderWidth: 1, padding: 14, alignItems: "center", gap: 6 },
-  scoreCardNum: { fontSize: 24, fontFamily: "Inter_700Bold" },
-  scoreCardLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  scoreExplanation: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22, paddingHorizontal: 8 },
-  shareBtn: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 28 },
-  shareBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  closeBtn: { borderWidth: 1, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 },
-  closeBtnText: { fontSize: 14, fontFamily: "Inter_500Medium" },
+  // Compose
+  qCard: { borderRadius: 14, borderWidth: 1, padding: 16, gap: 6 },
+  qCat: { fontSize: 11, fontFamily: "Inter_700Bold", textTransform: "uppercase", letterSpacing: 1 },
+  qText: { fontSize: 18, fontFamily: "Inter_700Bold", lineHeight: 26 },
+  instrBox: { flexDirection: "row", gap: 10, borderRadius: 12, borderWidth: 1, padding: 14 },
+  instrText: { flex: 1, fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 19 },
+  composeWrap: { borderRadius: 14, borderWidth: 1, padding: 12 },
+  composeInput: { minHeight: 200, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22 },
+  charCount: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 8, paddingTop: 8, borderTopWidth: 1 },
+  submitBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 14, paddingVertical: 15 },
+  submitBtnText: { color: palette.white, fontSize: 14, fontFamily: "Inter_700Bold" },
+  evalHint: { fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 17 },
 
-  emptySession: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 60, gap: 12, paddingHorizontal: 32 },
-  emptySessionText: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
-  inputRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, padding: 12, borderTopWidth: 1 },
-  input: { flex: 1, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, fontFamily: "Inter_400Regular", maxHeight: 100 },
-  completeBtn: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  sendBtn: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  msgBubble: { maxWidth: "80%", borderRadius: 14, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8 },
-  msgText: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 21 },
+  // Result
+  banner: { alignItems: "center", borderRadius: 16, borderWidth: 1, padding: 20, gap: 6 },
+  bannerTitle: { fontSize: 24, fontFamily: "Inter_700Bold" },
+  bannerSub: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center" },
+  scoreRow: { flexDirection: "row", gap: 10 },
+  scoreCol: { flex: 1, borderRadius: 14, borderWidth: 1, padding: 16, alignItems: "center", gap: 2 },
+  scoreColLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 1 },
+  scoreColNum: { fontSize: 34, fontFamily: "Inter_700Bold" },
+  scoreColUnit: { fontSize: 10, fontFamily: "Inter_400Regular" },
+  rewardBox: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, borderRadius: 14, borderWidth: 1, padding: 14 },
+  rewardXp: { fontSize: 18, fontFamily: "Inter_700Bold" },
+  rewardLevel: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  badgePill: { flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  badgeText: { fontSize: 12, fontFamily: "Inter_700Bold" },
+  metricsBox: { borderRadius: 14, borderWidth: 1, padding: 14 },
+  metricsTitle: { fontSize: 14, fontFamily: "Inter_700Bold" },
+  metricsSub: { fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 6 },
+  metricRow: { paddingVertical: 9, borderBottomWidth: 1, gap: 5 },
+  metricHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  metricLabel: { fontSize: 12, fontFamily: "Inter_500Medium", flex: 1 },
+  metricChip: { fontSize: 10, fontFamily: "Inter_700Bold", overflow: "hidden", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  barRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  barTag: { width: 20, fontSize: 10, fontFamily: "Inter_400Regular" },
+  barTrack: { flex: 1, height: 6, borderRadius: 3, overflow: "hidden" },
+  barFill: { height: "100%", borderRadius: 3 },
+  barVal: { width: 28, textAlign: "right", fontSize: 11, fontFamily: "Inter_700Bold" },
+  strengthsRow: { flexDirection: "row", gap: 10 },
+  strengthCol: { flex: 1, borderRadius: 12, borderWidth: 1, padding: 12, gap: 6 },
+  strengthTitle: { fontSize: 12, fontFamily: "Inter_700Bold" },
+  strengthItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6 },
+  strengthItemLabel: { flex: 1, fontSize: 11, fontFamily: "Inter_400Regular" },
+  strengthItemVal: { fontSize: 11, fontFamily: "Inter_700Bold" },
+  strengthEmpty: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  collapBtn: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderRadius: 12, borderWidth: 1, padding: 14 },
+  collapTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  answerText: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 21, borderWidth: 1, borderRadius: 12, padding: 14, marginTop: -6 },
+  primaryAction: { borderRadius: 14, paddingVertical: 15, alignItems: "center", marginTop: 4 },
+  primaryActionText: { color: palette.white, fontSize: 15, fontFamily: "Inter_700Bold" },
 });

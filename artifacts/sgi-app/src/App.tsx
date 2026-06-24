@@ -389,7 +389,7 @@ function ClerkProviderWithRoutes() {
           <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
           <Route path="/battles" component={() => <ProtectedRoute component={BattlesPage} />} />
           <Route path="/threads" component={() => <ProtectedRoute component={ThreadsPage} />} />
-          <Route path="/threads/:id/battle/:sessionId" component={() => <ProtectedRoute component={BattleSessionPage} />} />
+          <Route path="/threads/:id/battle" component={() => <ProtectedRoute component={BattleSessionPage} />} />
           <Route path="/threads/:id" component={() => <ProtectedRoute component={ThreadDetailPage} />} />
           <Route path="/battle-cards/:id" component={() => <ProtectedRoute component={BattleCardPage} />} />
           <Route path="/admin" component={() => <ProtectedRoute component={AdminPage} />} />

@@ -5,6 +5,7 @@
 - [Clerk proxy JWT issuer alignment](clerk-proxy-jwt-issuer.md) — clerkMiddleware must include proxyUrl in prod or Bearer token verification fails despite cookies working
 - [req.auth is a function in @clerk/express v2](clerk-req-auth-function.md) — req.auth?.userId is ALWAYS undefined; use getAuth(req).userId from @clerk/express
 - [SGI scoring model](sgi-scoring-model.md) — gpt-5-nano truncates scoring JSON at 512 tokens; use gpt-4o-mini + json_object mode
+- [SGI battle architecture](sgi-battle-architecture.md) — Battle = USER vs AI single-question via POST /threads/:id/battle; legacy threadSessions chat/timer endpoints still exist but unused; XP→gamification only, never users.sgiScore
 - [SGI mobile↔API contract](sgi-mobile-api-contract.md) — mobile screens repeatedly wired to wrong contract; battle chat is SSE w/ field `message`, /complete returns flat scoreX fields
 - [SGI mobile keyboard in pageSheet modal](sgi-mobile-keyboard-modal.md) — KeyboardAvoidingView fails in iOS pageSheet; track keyboard height manually (iOS only) + paddingBottom
 - [Expo workflow port fix](expo-replit-port-fix.md) — Expo DIDNT_OPEN_A_PORT despite Metro running; fix is adding localPort to .replit [[ports]] via verifyAndReplaceDotReplit

@@ -1,8 +1,7 @@
 import { useLocation, useParams } from "wouter";
 import { useAuth } from "@clerk/react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { ArrowLeft, Swords, Trophy, Clock, Network, ChevronRight, Share2, Flame } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, Swords, Trophy, Network, Flame, Brain } from "lucide-react";
 
 const API_BASE = "/api";
 
@@ -31,20 +30,10 @@ async function fetchThread(id: string, token: string): Promise<ThreadDetail> {
   return r.json();
 }
 
-async function startSession(id: string, token: string): Promise<{ sessionId: string }> {
-  const r = await fetch(`${API_BASE}/threads/${id}/sessions`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!r.ok) throw new Error("Errore nell'avvio della sessione");
-  return r.json();
-}
-
 export default function ThreadDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { getToken } = useAuth();
-  const qc = useQueryClient();
 
   const { data: thread, isLoading } = useQuery({
     queryKey: ["thread", id],
@@ -55,17 +44,9 @@ export default function ThreadDetailPage() {
     enabled: !!id,
   });
 
-  const startMutation = useMutation({
-    mutationFn: async () => {
-      const token = await getToken();
-      return startSession(id!, token ?? "");
-    },
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ["thread", id] });
-      setLocation(`/threads/${id}/battle/${data.sessionId}`);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  function startBattle() {
+    setLocation(`/threads/${id}/battle`);
+  }
 
   if (isLoading) {
     return (
@@ -76,9 +57,6 @@ export default function ThreadDetailPage() {
   }
 
   if (!thread) return null;
-
-  const canStart = !thread.mySession || thread.mySession.status === "abandoned";
-  const isCompleted = thread.mySession?.status === "completed";
 
   return (
     <div className="flex-1 overflow-y-auto" style={{ background: "#08090f" }}>
@@ -137,35 +115,21 @@ export default function ThreadDetailPage() {
               <span className="text-sm font-semibold" style={{ color: "#eeeeff" }}>Slot Battaglia</span>
             </div>
             <p className="text-xs mb-4" style={{ color: "#9090b8" }}>
-              4 minuti cronometrati di elucubrazione con l'AI. Viene assegnato un punteggio SGI in tempo reale.
+              Tu contro l'AI sulla stessa domanda. Nessun cronometro: prenditi il tempo per la risposta migliore. Un unico motore SGI valuta entrambe su 11 metriche.
             </p>
 
             <div className="flex items-center gap-2 mb-4 text-xs" style={{ color: "#9090b8" }}>
-              <Clock className="w-3.5 h-3.5" />
-              4 minuti · Scoring live · Connessioni estratte
+              <Brain className="w-3.5 h-3.5" />
+              Niente timer · 11 metriche · XP e badge
             </div>
 
-            {isCompleted ? (
-              <div
-                className="w-full py-2.5 rounded-lg text-sm font-semibold text-center"
-                style={{ background: "rgba(6,214,160,0.12)", border: "1px solid rgba(6,214,160,0.25)", color: "#06d6a0" }}
-              >
-                ✓ Completato · Score: {thread.mySession?.scoreTotal}
-              </div>
-            ) : (
-              <button
-                onClick={() => startMutation.mutate()}
-                disabled={startMutation.isPending}
-                className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all"
-                style={{
-                  background: "linear-gradient(135deg, #f72585, #b5179e)",
-                  color: "#fff",
-                  opacity: startMutation.isPending ? 0.7 : 1,
-                }}
-              >
-                {startMutation.isPending ? "Avvio…" : canStart ? "⚔ Entra in Battaglia" : "Riprendi Battaglia"}
-              </button>
-            )}
+            <button
+              onClick={startBattle}
+              className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all"
+              style={{ background: "linear-gradient(135deg, #f72585, #b5179e)", color: "#fff" }}
+            >
+              ⚔ Sfida l'AI
+            </button>
           </div>
 
           {/* Battle card / knowledge base */}

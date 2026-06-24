@@ -32,6 +32,7 @@ interface BattleCard {
   thread: { id: string; question: string; category: string };
   player1: PlayerData;
   player2: PlayerData;
+  isVsAi?: boolean;
 }
 
 function timeAgo(dateStr: string) {
@@ -57,7 +58,7 @@ function ScorePip({ label, value, color }: { label: string; value: number; color
   );
 }
 
-function PlayerColumn({ p, side, t }: { p: PlayerData; side: "left" | "right"; t: (k: string) => string }) {
+function PlayerColumn({ p, side, t, isVsAi }: { p: PlayerData; side: "left" | "right"; t: (k: string) => string; isVsAi?: boolean }) {
   const isLeft = side === "left";
   return (
     <div
@@ -91,31 +92,35 @@ function PlayerColumn({ p, side, t }: { p: PlayerData; side: "left" | "right"; t
         </div>
       </div>
 
-      <div className={`flex gap-3 ${isLeft ? "" : "flex-row-reverse"}`}>
-        <ScorePip label={t("battles.density")} value={p.scoreDensity} color="#06d6a0" />
-        <ScorePip label={t("battles.connLabel")} value={p.scoreConnections} color="#7c6bff" />
-        <ScorePip label={t("battles.depth")} value={p.scoreDepth} color="#f72585" />
-      </div>
+      {!isVsAi && (
+        <>
+          <div className={`flex gap-3 ${isLeft ? "" : "flex-row-reverse"}`}>
+            <ScorePip label={t("battles.density")} value={p.scoreDensity} color="#06d6a0" />
+            <ScorePip label={t("battles.connLabel")} value={p.scoreConnections} color="#7c6bff" />
+            <ScorePip label={t("battles.depth")} value={p.scoreDepth} color="#f72585" />
+          </div>
 
-      <div className="flex items-center gap-1 opacity-40">
-        <Clock className="w-3 h-3" />
-        <span className="text-[10px]">{formatDuration(p.durationSeconds)}</span>
-      </div>
+          <div className="flex items-center gap-1 opacity-40">
+            <Clock className="w-3 h-3" />
+            <span className="text-[10px]">{formatDuration(p.durationSeconds)}</span>
+          </div>
 
-      {p.connections.length > 0 && (
-        <div className={`flex flex-col gap-1 w-full ${isLeft ? "" : "items-end"}`}>
-          <span className="text-[9px] font-semibold opacity-40 uppercase tracking-wider">{t("battles.threadOpen")}</span>
-          {p.connections.slice(0, 2).map((c, i) => (
-            <div
-              key={i}
-              className={`flex items-center gap-1 text-[10px] opacity-60 ${isLeft ? "" : "flex-row-reverse"}`}
-            >
-              <span className="font-semibold" style={{ color: "#7c6bff" }}>{c.concept1}</span>
-              <span className="opacity-40">↔</span>
-              <span className="font-semibold" style={{ color: "#06d6a0" }}>{c.concept2}</span>
+          {p.connections.length > 0 && (
+            <div className={`flex flex-col gap-1 w-full ${isLeft ? "" : "items-end"}`}>
+              <span className="text-[9px] font-semibold opacity-40 uppercase tracking-wider">{t("battles.threadOpen")}</span>
+              {p.connections.slice(0, 2).map((c, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center gap-1 text-[10px] opacity-60 ${isLeft ? "" : "flex-row-reverse"}`}
+                >
+                  <span className="font-semibold" style={{ color: "#7c6bff" }}>{c.concept1}</span>
+                  <span className="opacity-40">↔</span>
+                  <span className="font-semibold" style={{ color: "#06d6a0" }}>{c.concept2}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -148,24 +153,34 @@ function BattleCardItem({ card, t }: { card: BattleCard; t: (k: string) => strin
             >
               {cat.label}
             </span>
+            {card.isVsAi && (
+              <span
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{ background: "rgba(247,37,133,0.15)", color: "#f72585", border: "1px solid rgba(247,37,133,0.25)" }}
+              >
+                vs AI
+              </span>
+            )}
             <span className="text-[10px] opacity-30">{timeAgo(card.createdAt)}</span>
           </div>
           <p className="text-sm font-semibold leading-snug" style={{ color: "#eeeeff" }}>
             {card.thread.question}
           </p>
         </div>
-        <button
-          onClick={handleShare}
-          className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-lg transition-all hover:opacity-80 flex-shrink-0"
-          style={{ background: "rgba(124,107,255,0.15)", color: "#a89fff", border: "1px solid rgba(124,107,255,0.2)" }}
-        >
-          <Share2 className="w-3 h-3" />
-          {t("battles.share")}
-        </button>
+        {!card.isVsAi && (
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-lg transition-all hover:opacity-80 flex-shrink-0"
+            style={{ background: "rgba(124,107,255,0.15)", color: "#a89fff", border: "1px solid rgba(124,107,255,0.2)" }}
+          >
+            <Share2 className="w-3 h-3" />
+            {t("battles.share")}
+          </button>
+        )}
       </div>
 
       <div className="p-3 flex items-stretch gap-2">
-        <PlayerColumn p={card.player1} side="left" t={t} />
+        <PlayerColumn p={card.player1} side="left" t={t} isVsAi={card.isVsAi} />
 
         <div className="flex flex-col items-center justify-center gap-2 flex-shrink-0 px-1">
           <div className="w-px flex-1" style={{ background: "rgba(255,255,255,0.07)" }} />
@@ -178,7 +193,7 @@ function BattleCardItem({ card, t }: { card: BattleCard; t: (k: string) => strin
           <div className="w-px flex-1" style={{ background: "rgba(255,255,255,0.07)" }} />
         </div>
 
-        <PlayerColumn p={card.player2} side="right" t={t} />
+        <PlayerColumn p={card.player2} side="right" t={t} isVsAi={card.isVsAi} />
       </div>
 
       <div
@@ -189,21 +204,25 @@ function BattleCardItem({ card, t }: { card: BattleCard; t: (k: string) => strin
           <Zap className="w-3 h-3" />
           <span>{t("battles.scoreDelta")}: {Math.abs(card.player1.scoreTotal - card.player2.scoreTotal)} pt</span>
         </div>
-        <div className="flex items-center gap-1.5 text-[10px] opacity-40">
-          <Network className="w-3 h-3" />
-          <span>{card.player1.connections.length + card.player2.connections.length} {t("battles.totalConns")}</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-[10px] opacity-40">
-          <Layers className="w-3 h-3" />
-          <span>{t("battles.threadOpen")}</span>
-        </div>
-        <a
-          href={`${import.meta.env.BASE_URL}battle-cards/${card.id}`.replace("//", "/")}
-          className="ml-auto flex items-center gap-1 text-[10px] opacity-40 hover:opacity-70 transition-opacity"
-        >
-          <ExternalLink className="w-3 h-3" />
-          {t("battles.detail")}
-        </a>
+        {!card.isVsAi && (
+          <>
+            <div className="flex items-center gap-1.5 text-[10px] opacity-40">
+              <Network className="w-3 h-3" />
+              <span>{card.player1.connections.length + card.player2.connections.length} {t("battles.totalConns")}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] opacity-40">
+              <Layers className="w-3 h-3" />
+              <span>{t("battles.threadOpen")}</span>
+            </div>
+            <a
+              href={`${import.meta.env.BASE_URL}battle-cards/${card.id}`.replace("//", "/")}
+              className="ml-auto flex items-center gap-1 text-[10px] opacity-40 hover:opacity-70 transition-opacity"
+            >
+              <ExternalLink className="w-3 h-3" />
+              {t("battles.detail")}
+            </a>
+          </>
+        )}
       </div>
     </div>
   );

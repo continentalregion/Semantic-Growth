@@ -188,6 +188,7 @@ export const BADGE_DEFINITIONS: Record<string, { name: string; description: stri
   abstract_reasoner:       { name: "Abstract Reasoner",       description: "Achieved abstraction level above 8.0" },
   high_growth_user:        { name: "High Growth User",        description: "Gained 10+ SGI points in 7 days" },
   mind_changer:            { name: "Mind Changer",            description: "Revised your position with a revisionSignal above 7.0" },
+  battle_victor:           { name: "Battle Victor",           description: "Defeated the SGI AI in a 1-on-1 battle" },
 };
 
 export function computeLevel(xp: number): number { return Math.floor(Math.sqrt(xp / 100)) + 1; }
