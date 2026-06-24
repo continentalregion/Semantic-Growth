@@ -1,0 +1,22 @@
+SGI — tre output in sequenza, fermandoti dove indicato. NON inventare: ricava tutto leggendo il codice reale. Dove qualcosa non c'è nel codice, scrivi "non presente nel codice" invece di riempire. Lavora su backend condiviso + entrambi i frontend (web e app) dove serve. Mantieni app avviabile su Expo Go e sito funzionante.
+
+FASE 1 — DOCUMENTO TECNICO (per me, fonte di verità; markdown, dal codice):
+1) Le 11 metriche (conceptualComplexity, semanticVariety, interdisciplinaryScore, reasoningDepth, originality, stability, continuity, abstractionLevel, lexicalRichness, informationDensity, revisionSignal): per ognuna cosa misura, scala, e COME è calcolata nel codice (sgiScoring.ts e correlati); specifica se LLM-based o rule-based.
+2) Le 4 macro-dimensioni (profondità/connettività/precisione/revisione): formula esatta di derivazione dalle raw, dal codice.
+3) SGI Score: calcolo complessivo (computeRawScore, computeNewSgiScore/EMA), aggiornamento nel tempo, e come ne derivano rank globale e percentile.
+4) Sistema Battle (battleScoring.ts): flusso completo, come l'AI genera la risposta, come entrambe vengono valutate, come si determinano vincitore e breakdown.
+5) Gamification: formula XP, computeLevel, livelli, badge, streak; conferma esplicita che XP e SGI Score/rank sono indipendenti.
+6) Architettura: endpoint principali (metodo + cosa restituiscono), tabelle DB rilevanti, e cosa vive nel backend condiviso vs nei due frontend.
+7) Le 11 sezioni del sito: per ciascuna cosa fa e quali dati/endpoint usa.
+Salva il documento, POI FERMATI e aspetta la mia conferma prima della Fase 2.
+
+FASE 2 (solo dopo mia conferma) — PAGINA "HOW IT WORKS" PUBBLICA nel sito web, derivata dal documento tecnico, scritta per gli UTENTI (linguaggio accessibile, niente formule grezze né nomi tecnici nudi): cos'è SGI e la crescita semantica, cosa significano le metriche in parole umane, come funziona una battle, come si guadagna XP e si sale di livello, perché il rank è separato. Coerente col design system, tradotta IT/EN/ES (riusa i18n). Mostrami il copy prima di finalizzare, poi fermati.
+
+FASE 3 (solo dopo mia conferma) — CARD SOCIAL CONDIVISIBILI esteticamente perfette, su web e app:
+- Formati dedicati ai social: Instagram/Facebook Stories e Reel 1080×1920 (9:16) e quadrato 1080×1080 (1:1) per il feed. La cattura/generazione deve produrre PNG ad alta risoluzione, nitidi, senza view vuote/nere.
+- REQUISITO OBBLIGATORIO: ogni card deve riportare in modo esplicito e leggibile il sito "sgindex.work" (oltre al logo/brand SGI), così chi la vede sui social capisce di cosa si tratta e dove andare. Il dominio va sempre visibile, non tagliato dal crop dei vari formati.
+- Estetica curata col design system (palette, tipografia, spacing, radius dei token; niente hex a caso): sfondo coerente col brand, gerarchia chiara, score e confronto ben visibili, eventuale claim breve.
+- Sia per le card del confronto battle (vincitore/punteggi/breakdown) sia per eventuali card di milestone (livello/score raggiunto).
+Mostrami un'anteprima dei layout (i vari formati) prima di finalizzare. Mantieni allineate web e app.
+
+Inizia dalla Fase 1.

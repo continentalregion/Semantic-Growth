@@ -33,3 +33,13 @@ Score 0–10. 0 = no revision or first message. 1–4 = minor nuance. 5–7 = ex
 ## How to apply
 
 Any change to scoring dimensions must: (1) update `SgiDimensions` interface, (2) update the SCORING_PROMPT, (3) update `computeRawScore` weights, (4) update `computeMacroDimensions`, (5) add column to schema + `pnpm --filter @workspace/db push`.
+
+## Gotchas (non-obvious, verified in code)
+
+- **`sgi_snapshots` persists only 8 of the 11 dims** — missing `abstractionLevel`, `lexicalRichness`, `informationDensity`. So `buildUserProfile` (users.ts) reconstructs dashboard macros from the snapshot with those three = 0 → `precisione` is ALWAYS 0 and `profondita` is partial when computed from a snapshot. The in-line macros computed at scoring time use all 11.
+- **SGI score (and thus global rank) changes ONLY from /chat** via `computeNewSgiScore` EMA (alpha 0.15). Battles (`POST /threads/:id/battle`) award XP to `gamification` only and NEVER touch `users.sgiScore` — XP/level is fully independent of SGI rank.
+- **Badge XP inconsistency:** `checkAndAwardBadges` grants +500 XP per badge, but the `battle_victor` badge (granted in threads.ts) does NOT add the +500. `mind_changer` is defined in `BADGE_DEFINITIONS` but never awarded by `checkAndAwardBadges`.
+
+## Phase-1 technical reference doc
+
+A full source-of-truth doc lives at `docs/SGI-DOCUMENTAZIONE-TECNICA.md` (Italian): 11 metrics, 4 macros, SGI score/EMA/rank, battle system, gamification, architecture (endpoints+tables), 11 site sections. Branding domains in code = `semantic-growth.app` + `semantic-growth-index.replit.app`; `sgindex.work` is NOT in code (needed for Phase 3 social cards).
