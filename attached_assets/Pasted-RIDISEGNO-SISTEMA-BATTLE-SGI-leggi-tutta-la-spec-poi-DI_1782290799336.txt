@@ -1,0 +1,24 @@
+RIDISEGNO SISTEMA BATTLE SGI — leggi tutta la spec, poi DIAGNOSTICA prima di toccare codice.
+
+CONTESTO: la battle attuale (timer 4min, score Densità/Connessioni/Profondità) non è coerente col prodotto. SGI misura CRESCITA SEMANTICA, non velocità. Va ridisegnata secondo il modello sotto. Sito e app condividono lo stesso backend; il motore di scoring deterministico a 11 metriche esiste già ed è usato nella dashboard.
+
+MODELLO DECISO:
+1) Battle = UTENTE vs AI sulla stessa domanda impegnativa (categoria a scelta, es. science/filosofia ecc.). Non più utente vs utente, non serve coordinare due persone.
+2) VALUTAZIONE: entrambe le risposte (utente e AI) valutate dallo STESSO motore SGI a 11 metriche già esistente — NON un punteggio di gioco separato. La coerenza semantica è già dentro questa valutazione, non serve monitorarla a parte.
+3) TEMPO: rimuovi il timer da 4 minuti. Mettine uno generoso ~10-15 min, presentato come AGIO (tempo per pensare bene), NON come pressione: niente countdown rosso/ansiogeno, stile calmo.
+4) AI FORTE: l'AI avversaria risponde a livello alto. Vincere deve essere raro e prezioso. (L'AI produce una risposta di qualità elevata alla stessa domanda.)
+5) SCONFITTA ISTRUTTIVA: quando l'utente perde, la card NON mostra solo il punteggio — mostra SU QUALI delle metriche l'AI ha battuto l'utente e dove l'utente era forte (feedback di crescita, coerente col nome "Growth"). Vale anche da vinta: mostra il breakdown del confronto metrica per metrica.
+6) RICOMPENSE:
+   - Vinci → XP elevato + eventuale badge (vittoria su AI forte vale visibilmente di più di una sessione normale).
+   - Perdi → XP ridotto ma non zero (chi perde non deve smettere).
+   - L'XP alimenta i LIVELLI della sezione Progressi/gamification.
+   - Il RANK GLOBALE resta SEPARATO: è il SGI Score reale dell'utente, NON si muove con le battle. Non mescolare le due cose.
+
+PRIMA DI IMPLEMENTARE, diagnostica e riportami (NON modificare codice, poi fermati):
+A) Come funziona oggi la battle nel codice (file, flusso da apertura a score card, dove vive il timer 4min, come viene calcolato lo score attuale).
+B) Il motore a 11 metriche è richiamabile per valutare una singola risposta su richiesta (per valutare sia utente che AI nella battle)? Dove sta l'endpoint/funzione?
+C) Come viene generata oggi la risposta dell'AI nella battle, se esiste già.
+D) Esiste già un sistema XP/livelli (per la sezione Progressi) a cui agganciare le ricompense? Dove?
+E) Il bug separato che ho riscontrato: i thread non si aggiornano con quelli nuovi — diagnostica anche la causa (caching query? mancato refetch? polling assente?).
+
+Dopo la diagnosi mi proponi un piano di implementazione a step e aspetti la mia conferma prima di scrivere codice. Non rompere Arena/Feed esistenti. Mantieni l'app avviabile su Expo Go.
