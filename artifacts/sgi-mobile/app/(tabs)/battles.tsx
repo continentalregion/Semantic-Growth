@@ -19,6 +19,7 @@ import {
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import { ShareableBattleCard, type ShareCardData } from "@/components/ui/ShareableBattleCard";
+import { ShareableBattleDuelCard, type DuelCardData } from "@/components/ui/ShareableBattleDuelCard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
@@ -168,6 +169,8 @@ function BattleSessionModal({
   const [showAi, setShowAi] = useState(false);
   const [showMine, setShowMine] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const duelCardRef = useRef<View>(null);
+  const [duelSharing, setDuelSharing] = useState(false);
 
   useEffect(() => {
     if (!visible) {
@@ -215,6 +218,34 @@ function BattleSessionModal({
   const chars = answer.trim().length;
   const isResult = phase === "result" && result != null;
   const win = isResult && result!.outcome.winner === "user";
+
+  const duelData: DuelCardData | null = isResult ? {
+    question: result!.question,
+    categoryLabel: meta ? t(meta.labelKey) : result!.category,
+    winner: result!.outcome.winner,
+    userScore: result!.outcome.userRawScore,
+    aiScore: result!.outcome.aiRawScore,
+    xpAwarded: result!.reward.xpAwarded,
+    level: result!.level,
+    metrics: result!.outcome.metricComparison.map(m => ({ label: m.label, user: m.user, ai: m.ai, winner: m.winner })),
+  } : null;
+
+  async function shareDuel() {
+    if (!duelData || duelSharing) return;
+    setDuelSharing(true);
+    try {
+      await new Promise(r => setTimeout(r, 250));
+      const uri = await captureRef(duelCardRef, { format: "png", quality: 1, result: "tmpfile", width: 1080, height: 1920 });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: "Condividi la tua Battaglia SGI" });
+      } else {
+        await Share.share({ message: `La mia Battaglia SGI: Tu ${duelData.userScore.toFixed(1)} vs AI ${duelData.aiScore.toFixed(1)} — semantic-growth.app` });
+      }
+    } catch { /* cancelled or error */ } finally {
+      setDuelSharing(false);
+    }
+  }
 
   function requestClose() {
     if (phase === "evaluating") return;
@@ -347,6 +378,16 @@ function BattleSessionModal({
             {showMine && <Text style={[styles.answerText, { color: colors.foreground, borderColor: colors.border }]}>{result!.userAnswer}</Text>}
 
             {/* Actions */}
+            <Pressable
+              style={[styles.shareStoryBtn, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "55", opacity: duelSharing ? 0.6 : 1 }]}
+              onPress={shareDuel}
+              disabled={duelSharing}
+            >
+              <Ionicons name={duelSharing ? "hourglass-outline" : "share-social-outline"} size={16} color={colors.primary} />
+              <Text style={[styles.shareStoryText, { color: colors.primary }]}>
+                {duelSharing ? "Generazione\u2026" : "Condividi nelle Storie"}
+              </Text>
+            </Pressable>
             <Pressable style={[styles.primaryAction, { backgroundColor: colors.primary }]} onPress={() => onClose(win)}>
               <Text style={styles.primaryActionText}>{win ? "Vedi nel Feed" : "Torna ai Thread"}</Text>
             </Pressable>
@@ -415,6 +456,18 @@ function BattleSessionModal({
               </Text>
             )}
           </ScrollView>
+        )}
+
+        {/* Off-screen Story card for capture (IG/FB Stories) */}
+        {isResult && duelData && (
+          <View
+            ref={duelCardRef}
+            collapsable={false}
+            pointerEvents="none"
+            style={{ position: "absolute", left: -Dimensions.get("window").width * 3, top: 0 }}
+          >
+            <ShareableBattleDuelCard data={duelData} />
+          </View>
         )}
       </View>
     </Modal>
@@ -787,6 +840,8 @@ const styles = StyleSheet.create({
   duration: { fontSize: 10, fontFamily: "Inter_400Regular" },
   shareCardBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderRadius: 8, paddingVertical: 8 },
   shareCardText: { fontSize: 12, fontFamily: "Inter_500Medium" },
+  shareStoryBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderRadius: 12, paddingVertical: 13 },
+  shareStoryText: { fontSize: 14, fontFamily: "Inter_700Bold" },
   timeAgoText: { fontSize: 11, fontFamily: "Inter_400Regular" },
   vsAiTag: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 },
   vsAiTagText: { fontSize: 10, fontFamily: "Inter_700Bold" },

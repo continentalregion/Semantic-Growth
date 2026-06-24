@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { useAuth } from "@clerk/react";
 import { toast } from "sonner";
-import { Swords, Brain, Sparkles, Trophy, ArrowLeft, ChevronDown, Crown, Zap } from "lucide-react";
+import { Swords, Brain, Sparkles, Trophy, ArrowLeft, ChevronDown, Crown, Zap, Share2 } from "lucide-react";
 import MarkdownMessage from "@/components/MarkdownMessage";
+import { generateBattleStoryCard, shareOrDownloadCanvas } from "@/lib/battleStoryCard";
 
 const API_BASE = "/api";
 const MIN_CHARS = 10;
@@ -123,6 +124,7 @@ export default function BattleSessionPage() {
   const [answer, setAnswer] = useState("");
   const [phase, setPhase] = useState<"compose" | "evaluating" | "result">("compose");
   const [result, setResult] = useState<BattleResult | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     getToken().then(token => {
@@ -165,6 +167,34 @@ export default function BattleSessionPage() {
     setAnswer("");
     setResult(null);
     setPhase("compose");
+  }
+
+  async function handleShareStory() {
+    if (!result || sharing) return;
+    setSharing(true);
+    try {
+      const { outcome } = result;
+      const canvas = generateBattleStoryCard({
+        question: result.question,
+        category: result.category,
+        winner: outcome.winner,
+        userRawScore: outcome.userRawScore,
+        aiRawScore: outcome.aiRawScore,
+        xpAwarded: result.reward.xpAwarded,
+        level: result.level,
+        metrics: outcome.metricComparison.map(m => ({ label: m.label, user: m.user, ai: m.ai, winner: m.winner })),
+      });
+      const res = await shareOrDownloadCanvas(canvas, "sgi-battaglia.png", {
+        title: "La mia Battaglia SGI",
+        text: `Tu ${outcome.userRawScore.toFixed(1)} vs AI ${outcome.aiRawScore.toFixed(1)} — Semantic Growth Index`,
+      });
+      if (res === "downloaded") toast.success("Immagine salvata! Caricala nelle tue Storie.");
+      else if (res === "shared") toast.success("Story condivisa!");
+    } catch {
+      toast.error("Impossibile generare la card. Riprova.");
+    } finally {
+      setSharing(false);
+    }
   }
 
   // ── Result phase ───────────────────────────────────────────────────────────
@@ -254,6 +284,21 @@ export default function BattleSessionPage() {
               </div>
             )}
           </div>
+
+          {/* Share to Stories */}
+          <button
+            onClick={handleShareStory}
+            disabled={sharing}
+            className="w-full py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 mb-5"
+            style={{
+              background: "linear-gradient(90deg, rgba(124,107,255,0.95), rgba(6,214,160,0.95))",
+              color: "#0a0e20",
+              opacity: sharing ? 0.6 : 1,
+            }}
+          >
+            <Share2 className="w-4 h-4" />
+            {sharing ? "Generazione\u2026" : "Condividi nelle Storie"}
+          </button>
 
           {/* Per-metric breakdown */}
           <div
