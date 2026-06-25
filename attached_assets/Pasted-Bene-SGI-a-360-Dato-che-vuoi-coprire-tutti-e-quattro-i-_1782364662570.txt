@@ -1,0 +1,34 @@
+Bene, SGI a 360°. Dato che vuoi coprire tutti e quattro i fronti, ti do una struttura ordinata per priorità — perché su SGI alcune cose contano più di altre, e l'ordine in cui le sistemi fa la differenza.
+
+Prima però una cosa onesta: non ho davanti il sito in questo momento. Posso darti le leve giuste per un prodotto come SGI, ma per consigli chirurgici sulla tua landing attuale dovrei vederla. Se vuoi, alla fine ti dico come fartela "auditare" punto per punto.
+
+**1. Chiarezza del messaggio (la priorità assoluta per SGI)**
+
+SGI ha un problema strutturale: "Semantic Growth Index" è un concetto astratto. Un visitatore in 5 secondi deve capire *cosa ottiene*, non *come funziona l'algoritmo*. La domanda a cui la tua hero deve rispondere non è "cos'è un indice semantico" ma "cosa cambia per me".
+
+- Headline orientata al beneficio, non alla tecnologia. Non "Semantic Growth Index – deterministic linguistic analytics", ma qualcosa tipo "Misura come evolve il tuo linguaggio nel tempo" o "Scopri quanto cresce la ricchezza del tuo modo di scrivere". Il nome tecnico viene dopo.
+- Subito sotto, **una visualizzazione del risultato**: mostra una score card di esempio, un grafico di crescita, il numero SGI. Far *vedere* l'output è più potente di spiegarlo.
+- Le undici metriche non vanno in home come lista tecnica — sovraccaricano. Mostrane 2-3 emblematiche con linguaggio umano, e il resto in una pagina "come funziona".
+
+**2. Conversione**
+
+- **Una sola CTA dominante**, ripetuta. Per SGI probabilmente "Analizza il tuo testo gratis" / "Prova il tuo SGI" — un'azione a basso attrito che dà subito un risultato. Il momento "aha" deve arrivare *prima* di chiedere pagamento o registrazione.
+- **Free-to-value rapido**: fai calcolare un SGI su un testo incollato senza login. La gente paga dopo aver visto il proprio numero, non prima.
+- Prezzo e piani chiari, ma solo dopo che hanno toccato il valore. Se Stripe non è ancora live, intanto raccogli email/waitlist così non perdi i visitatori di adesso.
+- **Social proof**: anche solo "X testi analizzati" o un paio di use-case concreti (scrittori che tracciano la propria evoluzione, studenti, content creator).
+
+**3. Design / estetica**
+
+- SGI è un prodotto di *dati* — l'estetica vincente è "strumento di precisione", non "SaaS generico colorato". Tipografia pulita, molto spazio bianco, un accento colore forte per i numeri/score, grafici curati. Il punteggio SGI dev'essere l'eroe visivo.
+- Coerenza con l'app mobile che stai rifacendo: stesso design system, stessi colori, stessa scala tipografica. Web e app devono sembrare lo stesso prodotto.
+- Dark mode si sposa bene con prodotti analitici/dati, se non ce l'hai valuta.
+
+**4. Performance tecnica**
+
+- Core Web Vitals: tempo di caricamento della hero sotto i ~2.5s. Se usi React, controlla il bundle e fai lazy-load di grafici/librerie pesanti.
+- SEO di base: meta title/description orientati alle query reali ("come migliorare il proprio linguaggio", "analisi semantica testo"), Open Graph per le condivisioni (collegato alla gamification di cui parlavamo — la card condivisa deve avere preview OG curata).
+- Mobile-first reale: testa la hero e la demo su schermo piccolo, è lì che arriva il traffico social.
+
+**Il filo conduttore**: tutto ruota attorno al far **vedere e provare il punteggio SGI subito**. Chiarezza, conversione, design e SEO convergono su un unico obiettivo — portare il visitatore dal "non capisco" al "ho visto il mio numero" nel minor tempo possibile. È quello il momento in cui SGI si vende da solo.
+
+Per renderti i consigli specifici invece che generali, due strade: incolla qui il **testo attuale della tua hero** (headline + sottotitolo + CTA) e te lo riscrivo subito; oppure dimmi se posso analizzare la pagina e fai così — vuoi che apra sgindex.work e ti faccia un audit concreto di cosa cambiare, sezione per sezione?
