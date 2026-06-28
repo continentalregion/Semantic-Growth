@@ -21,10 +21,15 @@ import type {
 
 import type {
   ApiError,
+  BillingCheckoutInput,
+  BillingPlan,
+  BillingPortalInput,
+  BillingRedirect,
   DomainStrengths,
   GamificationProfile,
   GetLeaderboardParams,
   GetSgiHistoryParams,
+  GetUserSgiHistoryParams,
   HealthStatus,
   LeaderboardPage,
   LeaderboardSummary,
@@ -294,7 +299,7 @@ export const getGetSgiHistoryUrl = (params?: GetSgiHistoryParams,) => {
 }
 
 /**
- * @summary Get SGI score history for charting
+ * @summary Get SGI score history for charting (free tier capped at 7 days)
  */
 export const getSgiHistory = async (params?: GetSgiHistoryParams, options?: RequestInit): Promise<SgiSnapshot[]> => {
 
@@ -341,7 +346,7 @@ export type GetSgiHistoryQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Get SGI score history for charting
+ * @summary Get SGI score history for charting (free tier capped at 7 days)
  */
 
 export function useGetSgiHistory<TData = Awaited<ReturnType<typeof getSgiHistory>>, TError = ErrorType<unknown>>(
@@ -371,7 +376,7 @@ export const getGetSemanticMapUrl = () => {
 }
 
 /**
- * @summary Get interactive semantic domain map data
+ * @summary Get interactive semantic domain map data (premium only)
  */
 export const getSemanticMap = async ( options?: RequestInit): Promise<SemanticMap> => {
 
@@ -395,7 +400,7 @@ export const getGetSemanticMapQueryKey = () => {
     }
 
 
-export const getGetSemanticMapQueryOptions = <TData = Awaited<ReturnType<typeof getSemanticMap>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSemanticMap>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetSemanticMapQueryOptions = <TData = Awaited<ReturnType<typeof getSemanticMap>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSemanticMap>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -414,14 +419,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetSemanticMapQueryResult = NonNullable<Awaited<ReturnType<typeof getSemanticMap>>>
-export type GetSemanticMapQueryError = ErrorType<unknown>
+export type GetSemanticMapQueryError = ErrorType<void>
 
 
 /**
- * @summary Get interactive semantic domain map data
+ * @summary Get interactive semantic domain map data (premium only)
  */
 
-export function useGetSemanticMap<TData = Awaited<ReturnType<typeof getSemanticMap>>, TError = ErrorType<unknown>>(
+export function useGetSemanticMap<TData = Awaited<ReturnType<typeof getSemanticMap>>, TError = ErrorType<void>>(
   options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSemanticMap>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -448,7 +453,7 @@ export const getGetDomainStrengthsUrl = () => {
 }
 
 /**
- * @summary Get strong and weak domain areas
+ * @summary Get strong and weak domain areas (premium only)
  */
 export const getDomainStrengths = async ( options?: RequestInit): Promise<DomainStrengths> => {
 
@@ -472,7 +477,7 @@ export const getGetDomainStrengthsQueryKey = () => {
     }
 
 
-export const getGetDomainStrengthsQueryOptions = <TData = Awaited<ReturnType<typeof getDomainStrengths>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDomainStrengths>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetDomainStrengthsQueryOptions = <TData = Awaited<ReturnType<typeof getDomainStrengths>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDomainStrengths>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -491,14 +496,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetDomainStrengthsQueryResult = NonNullable<Awaited<ReturnType<typeof getDomainStrengths>>>
-export type GetDomainStrengthsQueryError = ErrorType<unknown>
+export type GetDomainStrengthsQueryError = ErrorType<void>
 
 
 /**
- * @summary Get strong and weak domain areas
+ * @summary Get strong and weak domain areas (premium only)
  */
 
-export function useGetDomainStrengths<TData = Awaited<ReturnType<typeof getDomainStrengths>>, TError = ErrorType<unknown>>(
+export function useGetDomainStrengths<TData = Awaited<ReturnType<typeof getDomainStrengths>>, TError = ErrorType<void>>(
   options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDomainStrengths>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -525,7 +530,7 @@ export const getGetPredictionsUrl = () => {
 }
 
 /**
- * @summary Get predicted SGI and rank at 30/90/180 days
+ * @summary Get predicted SGI and rank at 30/90/180 days (premium only)
  */
 export const getPredictions = async ( options?: RequestInit): Promise<Predictions> => {
 
@@ -549,7 +554,7 @@ export const getGetPredictionsQueryKey = () => {
     }
 
 
-export const getGetPredictionsQueryOptions = <TData = Awaited<ReturnType<typeof getPredictions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPredictions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetPredictionsQueryOptions = <TData = Awaited<ReturnType<typeof getPredictions>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPredictions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -568,19 +573,339 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetPredictionsQueryResult = NonNullable<Awaited<ReturnType<typeof getPredictions>>>
-export type GetPredictionsQueryError = ErrorType<unknown>
+export type GetPredictionsQueryError = ErrorType<void>
 
 
 /**
- * @summary Get predicted SGI and rank at 30/90/180 days
+ * @summary Get predicted SGI and rank at 30/90/180 days (premium only)
  */
 
-export function useGetPredictions<TData = Awaited<ReturnType<typeof getPredictions>>, TError = ErrorType<unknown>>(
+export function useGetPredictions<TData = Awaited<ReturnType<typeof getPredictions>>, TError = ErrorType<void>>(
   options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPredictions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetPredictionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetUserSgiHistoryUrl = (id: string,
+    params?: GetUserSgiHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/users/${id}/sgi-history?${stringifiedParams}` : `/api/users/${id}/sgi-history`
+}
+
+/**
+ * @summary Get SGI history for a specific user (must be the authenticated user)
+ */
+export const getUserSgiHistory = async (id: string,
+    params?: GetUserSgiHistoryParams, options?: RequestInit): Promise<SgiSnapshot[]> => {
+
+  return customFetch<SgiSnapshot[]>(getGetUserSgiHistoryUrl(id,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetUserSgiHistoryQueryKey = (id: string,
+    params?: GetUserSgiHistoryParams,) => {
+    return [
+    `/api/users/${id}/sgi-history`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetUserSgiHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getUserSgiHistory>>, TError = ErrorType<void>>(id: string,
+    params?: GetUserSgiHistoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserSgiHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUserSgiHistoryQueryKey(id,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserSgiHistory>>> = ({ signal }) => getUserSgiHistory(id,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUserSgiHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUserSgiHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getUserSgiHistory>>>
+export type GetUserSgiHistoryQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get SGI history for a specific user (must be the authenticated user)
+ */
+
+export function useGetUserSgiHistory<TData = Awaited<ReturnType<typeof getUserSgiHistory>>, TError = ErrorType<void>>(
+ id: string,
+    params?: GetUserSgiHistoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserSgiHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetUserSgiHistoryQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetUserSemanticMapUrl = (id: string,) => {
+
+
+
+
+  return `/api/users/${id}/semantic-map`
+}
+
+/**
+ * @summary Get semantic map for a specific user (must be the authenticated user, premium only)
+ */
+export const getUserSemanticMap = async (id: string, options?: RequestInit): Promise<SemanticMap> => {
+
+  return customFetch<SemanticMap>(getGetUserSemanticMapUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetUserSemanticMapQueryKey = (id: string,) => {
+    return [
+    `/api/users/${id}/semantic-map`
+    ] as const;
+    }
+
+
+export const getGetUserSemanticMapQueryOptions = <TData = Awaited<ReturnType<typeof getUserSemanticMap>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserSemanticMap>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUserSemanticMapQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserSemanticMap>>> = ({ signal }) => getUserSemanticMap(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUserSemanticMap>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUserSemanticMapQueryResult = NonNullable<Awaited<ReturnType<typeof getUserSemanticMap>>>
+export type GetUserSemanticMapQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get semantic map for a specific user (must be the authenticated user, premium only)
+ */
+
+export function useGetUserSemanticMap<TData = Awaited<ReturnType<typeof getUserSemanticMap>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserSemanticMap>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetUserSemanticMapQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetUserDomainStrengthsUrl = (id: string,) => {
+
+
+
+
+  return `/api/users/${id}/domain-strengths`
+}
+
+/**
+ * @summary Get domain strengths for a specific user (must be the authenticated user, premium only)
+ */
+export const getUserDomainStrengths = async (id: string, options?: RequestInit): Promise<DomainStrengths> => {
+
+  return customFetch<DomainStrengths>(getGetUserDomainStrengthsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetUserDomainStrengthsQueryKey = (id: string,) => {
+    return [
+    `/api/users/${id}/domain-strengths`
+    ] as const;
+    }
+
+
+export const getGetUserDomainStrengthsQueryOptions = <TData = Awaited<ReturnType<typeof getUserDomainStrengths>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserDomainStrengths>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUserDomainStrengthsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserDomainStrengths>>> = ({ signal }) => getUserDomainStrengths(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUserDomainStrengths>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUserDomainStrengthsQueryResult = NonNullable<Awaited<ReturnType<typeof getUserDomainStrengths>>>
+export type GetUserDomainStrengthsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get domain strengths for a specific user (must be the authenticated user, premium only)
+ */
+
+export function useGetUserDomainStrengths<TData = Awaited<ReturnType<typeof getUserDomainStrengths>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserDomainStrengths>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetUserDomainStrengthsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetUserPredictionsUrl = (id: string,) => {
+
+
+
+
+  return `/api/users/${id}/predictions`
+}
+
+/**
+ * @summary Get SGI predictions for a specific user (must be the authenticated user, premium only)
+ */
+export const getUserPredictions = async (id: string, options?: RequestInit): Promise<Predictions> => {
+
+  return customFetch<Predictions>(getGetUserPredictionsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetUserPredictionsQueryKey = (id: string,) => {
+    return [
+    `/api/users/${id}/predictions`
+    ] as const;
+    }
+
+
+export const getGetUserPredictionsQueryOptions = <TData = Awaited<ReturnType<typeof getUserPredictions>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserPredictions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUserPredictionsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserPredictions>>> = ({ signal }) => getUserPredictions(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUserPredictions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUserPredictionsQueryResult = NonNullable<Awaited<ReturnType<typeof getUserPredictions>>>
+export type GetUserPredictionsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get SGI predictions for a specific user (must be the authenticated user, premium only)
+ */
+
+export function useGetUserPredictions<TData = Awaited<ReturnType<typeof getUserPredictions>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserPredictions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetUserPredictionsQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1275,6 +1600,222 @@ export const useSendOpenaiMessage = <TError = ErrorType<unknown>,
       return useMutation(getSendOpenaiMessageMutationOptions(options));
     }
 
+export const getGetBillingPlansUrl = () => {
 
 
+
+
+  return `/api/billing/plans`
+}
+
+/**
+ * @summary List available subscription plans from the synced Stripe catalog
+ */
+export const getBillingPlans = async ( options?: RequestInit): Promise<BillingPlan[]> => {
+
+  return customFetch<BillingPlan[]>(getGetBillingPlansUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBillingPlansQueryKey = () => {
+    return [
+    `/api/billing/plans`
+    ] as const;
+    }
+
+
+export const getGetBillingPlansQueryOptions = <TData = Awaited<ReturnType<typeof getBillingPlans>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBillingPlans>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBillingPlansQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBillingPlans>>> = ({ signal }) => getBillingPlans({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBillingPlans>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBillingPlansQueryResult = NonNullable<Awaited<ReturnType<typeof getBillingPlans>>>
+export type GetBillingPlansQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List available subscription plans from the synced Stripe catalog
+ */
+
+export function useGetBillingPlans<TData = Awaited<ReturnType<typeof getBillingPlans>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBillingPlans>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBillingPlansQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateBillingCheckoutUrl = () => {
+
+
+
+
+  return `/api/billing/checkout`
+}
+
+/**
+ * @summary Create a Stripe Checkout session for a subscription plan
+ */
+export const createBillingCheckout = async (billingCheckoutInput: BillingCheckoutInput, options?: RequestInit): Promise<BillingRedirect> => {
+
+  return customFetch<BillingRedirect>(getCreateBillingCheckoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      billingCheckoutInput,)
+  }
+);}
+
+
+
+
+export const getCreateBillingCheckoutMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBillingCheckout>>, TError,{data: BodyType<BillingCheckoutInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBillingCheckout>>, TError,{data: BodyType<BillingCheckoutInput>}, TContext> => {
+
+const mutationKey = ['createBillingCheckout'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBillingCheckout>>, {data: BodyType<BillingCheckoutInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createBillingCheckout(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBillingCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof createBillingCheckout>>>
+    export type CreateBillingCheckoutMutationBody = BodyType<BillingCheckoutInput>
+    export type CreateBillingCheckoutMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a Stripe Checkout session for a subscription plan
+ */
+export const useCreateBillingCheckout = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBillingCheckout>>, TError,{data: BodyType<BillingCheckoutInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createBillingCheckout>>,
+        TError,
+        {data: BodyType<BillingCheckoutInput>},
+        TContext
+      > => {
+      return useMutation(getCreateBillingCheckoutMutationOptions(options));
+    }
+
+export const getCreateBillingPortalUrl = () => {
+
+
+
+
+  return `/api/billing/portal`
+}
+
+/**
+ * @summary Create a Stripe billing portal session for the current user
+ */
+export const createBillingPortal = async (billingPortalInput?: BillingPortalInput, options?: RequestInit): Promise<BillingRedirect> => {
+
+  return customFetch<BillingRedirect>(getCreateBillingPortalUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      billingPortalInput,)
+  }
+);}
+
+
+
+
+export const getCreateBillingPortalMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBillingPortal>>, TError,{data?: BodyType<BillingPortalInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBillingPortal>>, TError,{data?: BodyType<BillingPortalInput>}, TContext> => {
+
+const mutationKey = ['createBillingPortal'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBillingPortal>>, {data?: BodyType<BillingPortalInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createBillingPortal(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBillingPortalMutationResult = NonNullable<Awaited<ReturnType<typeof createBillingPortal>>>
+    export type CreateBillingPortalMutationBody = BodyType<BillingPortalInput> | undefined
+    export type CreateBillingPortalMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a Stripe billing portal session for the current user
+ */
+export const useCreateBillingPortal = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBillingPortal>>, TError,{data?: BodyType<BillingPortalInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createBillingPortal>>,
+        TError,
+        {data?: BodyType<BillingPortalInput>},
+        TContext
+      > => {
+      return useMutation(getCreateBillingPortalMutationOptions(options));
+    }
 

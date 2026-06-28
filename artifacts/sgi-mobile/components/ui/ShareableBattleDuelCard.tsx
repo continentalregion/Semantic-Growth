@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { palette } from "@/constants/theme";
+import { LogoMark } from "@/components/ui/Logo";
 
 export interface DuelMetric {
   label: string;
@@ -83,9 +84,7 @@ export function ShareableBattleDuelCard({ data }: { data: DuelCardData }) {
     <View style={s.root}>
       {/* Brand header */}
       <View style={s.header}>
-        <View style={s.logoRing}>
-          <Ionicons name="flash" size={20} color={C.primary} />
-        </View>
+        <LogoMark size={44} />
         <View style={{ flex: 1 }}>
           <Text style={s.brand}>SGI</Text>
           <Text style={s.brandSub}>Semantic Growth Index</Text>
@@ -167,11 +166,6 @@ const s = StyleSheet.create({
     paddingBottom: 18,
   },
   header: { flexDirection: "row", alignItems: "center", gap: 12 },
-  logoRing: {
-    width: 44, height: 44, borderRadius: 22, borderWidth: 1.5,
-    borderColor: C.primary + "55", backgroundColor: C.primaryGlow,
-    alignItems: "center", justifyContent: "center",
-  },
   brand: { color: C.white, fontFamily: "Inter_700Bold", fontSize: 24, lineHeight: 26 },
   brandSub: { color: C.muted, fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 16 },
   battleBadge: {

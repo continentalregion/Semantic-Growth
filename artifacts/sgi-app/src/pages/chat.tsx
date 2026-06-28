@@ -258,7 +258,7 @@ export default function Chat() {
       {/* Sidebar */}
       <div className="w-64 flex flex-col gap-2 flex-shrink-0">
         <Button
-          onClick={handleNewConversation}
+          onClick={() => handleNewConversation()}
           className="w-full gap-2"
           variant="outline"
           data-testid="button-new-conversation"
@@ -386,7 +386,7 @@ export default function Chat() {
               <p className="text-lg font-medium">No conversation selected</p>
               <p className="text-sm text-muted-foreground mt-1">Start a new exploration or select an existing one.</p>
             </div>
-            <Button onClick={handleNewConversation} data-testid="button-start-exploration">
+            <Button onClick={() => handleNewConversation()} data-testid="button-start-exploration">
               Start New Exploration
             </Button>
           </div>

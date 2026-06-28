@@ -8,10 +8,17 @@
 
 export * from './apiError';
 export * from './badge';
+export * from './billingCheckoutInput';
+export * from './billingCheckoutInputPlan';
+export * from './billingPlan';
+export * from './billingPlanPlan';
+export * from './billingPortalInput';
+export * from './billingRedirect';
 export * from './domainStrengths';
 export * from './gamificationProfile';
 export * from './getLeaderboardParams';
 export * from './getSgiHistoryParams';
+export * from './getUserSgiHistoryParams';
 export * from './healthStatus';
 export * from './leaderboardEntry';
 export * from './leaderboardPage';

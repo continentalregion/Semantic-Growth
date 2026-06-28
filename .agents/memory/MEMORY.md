@@ -5,6 +5,7 @@
 - [Clerk proxy JWT issuer alignment](clerk-proxy-jwt-issuer.md) — clerkMiddleware must include proxyUrl in prod or Bearer token verification fails despite cookies working
 - [req.auth is a function in @clerk/express v2](clerk-req-auth-function.md) — req.auth?.userId is ALWAYS undefined; use getAuth(req).userId from @clerk/express
 - [SGI scoring model](sgi-scoring-model.md) — gpt-5-nano truncates scoring JSON at 512 tokens; use gpt-4o-mini + json_object mode
+- [Stripe connector + sync quirks](stripe-replit-sync-quirks.md) — connector key is settings.secret (not secret_key); syncBackfill needs {object:"all"} or syncs nothing
 - [SGI canonical brand logo](sgi-brand-logo.md) — one glyph mirrored in Logo.tsx + favicon.svg + social-card script (run it to regen opengraph.png); sgi-app/dist is gitignored (rebuilt on deploy)
 - [Host fonts & resvg](host-fonts-resvg.md) — only DejaVu fonts on host; Space Grotesk/Inter absent, resvg falls back — set font-family="DejaVu Sans" explicitly
 - [captureRef story-card sizing](captureref-story-card-sizing.md) — fixed 9:16 (1080×1920) capture box silently CROPS overflow; budget content height, use compact diverging bars

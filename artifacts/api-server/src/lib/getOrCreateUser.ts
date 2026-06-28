@@ -2,6 +2,7 @@ import { db } from "@workspace/db";
 import { users, gamification, missions, recommendations } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { updateLeaderboardRank } from "../routes/users";
+import { reconcileStripePlanForUser } from "./reconcileStripePlan";
 
 const CLERK_BAPI = "https://api.clerk.com/v1";
 
@@ -30,7 +31,7 @@ async function fetchClerkEmail(clerkId: string): Promise<string | null> {
 // if they signed up via Clerk (e.g. via BFF / mobile OAuth) but never called POST /api/users/me.
 export async function getOrCreateUser(clerkId: string): Promise<DbUser | null> {
   const [existing] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-  if (existing) return existing;
+  if (existing) return reconcileStripePlanForUser(existing);
 
   // User not yet in DB — auto-register using Clerk Admin API for email
   const email = await fetchClerkEmail(clerkId);

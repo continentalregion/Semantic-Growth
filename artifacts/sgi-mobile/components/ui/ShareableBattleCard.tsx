@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { palette } from "@/constants/theme";
+import { LogoMark } from "@/components/ui/Logo";
 
 export interface ShareCardData {
   total: number;
@@ -74,9 +75,7 @@ export function ShareableBattleCard({ data }: { data: ShareCardData }) {
     <View style={s.root}>
       {/* Header brand */}
       <View style={s.header}>
-        <View style={s.logoRing}>
-          <Ionicons name="analytics" size={16} color={C.primary} />
-        </View>
+        <LogoMark size={32} />
         <View>
           <Text style={s.brand}>SGI</Text>
           <Text style={s.brandSub}>Semantic Growth Index</Text>
@@ -141,16 +140,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 18,
     paddingBottom: 14,
-  },
-  logoRing: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: C.primary + "55",
-    backgroundColor: C.primaryGlow,
-    alignItems: "center",
-    justifyContent: "center",
   },
   brand: {
     color: C.white,

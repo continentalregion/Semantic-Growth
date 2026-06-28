@@ -10,6 +10,7 @@ import {
   ScrollView,
 } from "react-native";
 import { PressableScale } from "@/components/ui/PressableScale";
+import { LogoMark } from "@/components/ui/Logo";
 // @clerk/expo/legacy esporta useSignIn/useSignUp con la forma legacy:
 //   { signIn, isLoaded, setActive }  — identica a @clerk/react/legacy
 // È un pacchetto locale (sgi-mobile/node_modules/@clerk/expo), Metro lo trova.
@@ -302,8 +303,8 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={s.brand}>
-            <View style={s.logoRing}>
-              <Ionicons name="trending-up" size={32} color={colors.primary} />
+            <View style={s.logoMark}>
+              <LogoMark size={72} />
             </View>
             <Text style={s.title}>Semantic Growth Index</Text>
             <Text style={s.subtitle}>Analisi semantica della tua intelligenza</Text>
@@ -469,15 +470,7 @@ function makeStyles(colors: ReturnType<typeof import("@/hooks/useColors").useCol
       alignItems: "center",
       marginBottom: 40,
     },
-    logoRing: {
-      width: 72,
-      height: 72,
-      borderRadius: 36,
-      borderWidth: 1.5,
-      borderColor: colors.primary + "55",
-      backgroundColor: colors.primary + "15",
-      alignItems: "center",
-      justifyContent: "center",
+    logoMark: {
       marginBottom: 16,
     },
     title: {

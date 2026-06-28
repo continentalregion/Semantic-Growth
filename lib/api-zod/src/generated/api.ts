@@ -24,7 +24,7 @@ export const GetMyProfileResponse = zod.object({
   "id": zod.number(),
   "clerkId": zod.string(),
   "email": zod.string(),
-  "plan": zod.enum(['free', 'premium']),
+  "plan": zod.enum(['free', 'premium', 'pro']),
   "sgiScore": zod.number(),
   "sgiDailyDelta": zod.number().nullable(),
   "sgiWeeklyDelta": zod.number().nullable(),
@@ -49,7 +49,7 @@ export const SyncUserResponse = zod.object({
   "id": zod.number(),
   "clerkId": zod.string(),
   "email": zod.string(),
-  "plan": zod.enum(['free', 'premium']),
+  "plan": zod.enum(['free', 'premium', 'pro']),
   "sgiScore": zod.number(),
   "sgiDailyDelta": zod.number().nullable(),
   "sgiWeeklyDelta": zod.number().nullable(),
@@ -63,7 +63,7 @@ export const SyncUserResponse = zod.object({
 
 
 /**
- * @summary Get SGI score history for charting
+ * @summary Get SGI score history for charting (free tier capped at 7 days)
  */
 export const getSgiHistoryQueryDaysDefault = 30;
 
@@ -87,7 +87,7 @@ export const GetSgiHistoryResponse = zod.array(GetSgiHistoryResponseItem)
 
 
 /**
- * @summary Get interactive semantic domain map data
+ * @summary Get interactive semantic domain map data (premium only)
  */
 export const GetSemanticMapResponse = zod.object({
   "nodes": zod.array(zod.object({
@@ -105,7 +105,7 @@ export const GetSemanticMapResponse = zod.object({
 
 
 /**
- * @summary Get strong and weak domain areas
+ * @summary Get strong and weak domain areas (premium only)
  */
 export const GetDomainStrengthsResponse = zod.object({
   "strongAreas": zod.array(zod.string()),
@@ -114,9 +114,107 @@ export const GetDomainStrengthsResponse = zod.object({
 
 
 /**
- * @summary Get predicted SGI and rank at 30/90/180 days
+ * @summary Get predicted SGI and rank at 30/90/180 days (premium only)
  */
 export const GetPredictionsResponse = zod.object({
+  "conservative": zod.object({
+  "rank30d": zod.number(),
+  "rank90d": zod.number(),
+  "rank180d": zod.number(),
+  "sgi30d": zod.number(),
+  "sgi90d": zod.number(),
+  "sgi180d": zod.number()
+}),
+  "realistic": zod.object({
+  "rank30d": zod.number(),
+  "rank90d": zod.number(),
+  "rank180d": zod.number(),
+  "sgi30d": zod.number(),
+  "sgi90d": zod.number(),
+  "sgi180d": zod.number()
+}),
+  "optimistic": zod.object({
+  "rank30d": zod.number(),
+  "rank90d": zod.number(),
+  "rank180d": zod.number(),
+  "sgi30d": zod.number(),
+  "sgi90d": zod.number(),
+  "sgi180d": zod.number()
+})
+})
+
+
+/**
+ * @summary Get SGI history for a specific user (must be the authenticated user)
+ */
+export const GetUserSgiHistoryParams = zod.object({
+  "id": zod.coerce.string().describe('Clerk user ID')
+})
+
+export const getUserSgiHistoryQueryDaysDefault = 30;
+
+export const GetUserSgiHistoryQueryParams = zod.object({
+  "days": zod.coerce.number().default(getUserSgiHistoryQueryDaysDefault)
+})
+
+export const GetUserSgiHistoryResponseItem = zod.object({
+  "id": zod.number(),
+  "score": zod.number(),
+  "conceptualComplexity": zod.number(),
+  "semanticVariety": zod.number(),
+  "interdisciplinaryScore": zod.number(),
+  "reasoningDepth": zod.number(),
+  "originality": zod.number(),
+  "stability": zod.number(),
+  "continuity": zod.number(),
+  "timestamp": zod.coerce.date()
+})
+export const GetUserSgiHistoryResponse = zod.array(GetUserSgiHistoryResponseItem)
+
+
+/**
+ * @summary Get semantic map for a specific user (must be the authenticated user, premium only)
+ */
+export const GetUserSemanticMapParams = zod.object({
+  "id": zod.coerce.string().describe('Clerk user ID')
+})
+
+export const GetUserSemanticMapResponse = zod.object({
+  "nodes": zod.array(zod.object({
+  "id": zod.string(),
+  "domain": zod.string(),
+  "explorationScore": zod.number(),
+  "messageCount": zod.number()
+})),
+  "edges": zod.array(zod.object({
+  "source": zod.string(),
+  "target": zod.string(),
+  "strength": zod.number()
+}))
+})
+
+
+/**
+ * @summary Get domain strengths for a specific user (must be the authenticated user, premium only)
+ */
+export const GetUserDomainStrengthsParams = zod.object({
+  "id": zod.coerce.string().describe('Clerk user ID')
+})
+
+export const GetUserDomainStrengthsResponse = zod.object({
+  "strongAreas": zod.array(zod.string()),
+  "developmentAreas": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Get SGI predictions for a specific user (must be the authenticated user, premium only)
+ */
+export const GetUserPredictionsParams = zod.object({
+  "id": zod.coerce.string().describe('Clerk user ID')
+})
+
+export const GetUserPredictionsResponse = zod.object({
   "conservative": zod.object({
   "rank30d": zod.number(),
   "rank90d": zod.number(),
@@ -292,6 +390,45 @@ export const SendOpenaiMessageParams = zod.object({
 
 export const SendOpenaiMessageBody = zod.object({
   "content": zod.string()
+})
+
+
+/**
+ * @summary List available subscription plans from the synced Stripe catalog
+ */
+export const GetBillingPlansResponseItem = zod.object({
+  "plan": zod.enum(['premium', 'pro']),
+  "name": zod.string(),
+  "priceId": zod.string(),
+  "unitAmount": zod.number(),
+  "currency": zod.string(),
+  "interval": zod.string()
+})
+export const GetBillingPlansResponse = zod.array(GetBillingPlansResponseItem)
+
+
+/**
+ * @summary Create a Stripe Checkout session for a subscription plan
+ */
+export const CreateBillingCheckoutBody = zod.object({
+  "plan": zod.enum(['premium', 'pro']),
+  "returnUrl": zod.string().optional()
+})
+
+export const CreateBillingCheckoutResponse = zod.object({
+  "url": zod.string().nullable()
+})
+
+
+/**
+ * @summary Create a Stripe billing portal session for the current user
+ */
+export const CreateBillingPortalBody = zod.object({
+  "returnUrl": zod.string().optional()
+})
+
+export const CreateBillingPortalResponse = zod.object({
+  "url": zod.string().nullable()
 })
 
 

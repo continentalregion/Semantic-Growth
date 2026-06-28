@@ -6,11 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type UserProfilePlan = typeof UserProfilePlan[keyof typeof UserProfilePlan];
+export type BillingCheckoutInputPlan = typeof BillingCheckoutInputPlan[keyof typeof BillingCheckoutInputPlan];
 
 
-export const UserProfilePlan = {
-  free: 'free',
+export const BillingCheckoutInputPlan = {
   premium: 'premium',
   pro: 'pro',
 } as const;

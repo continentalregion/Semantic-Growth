@@ -9,6 +9,7 @@ import translateRouter from "./translate";
 import threadsRouter from "./threads";
 import adminRouter from "./admin";
 import authRouter from "./auth";
+import billingRouter from "./billing";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(chatRouter);
 router.use(translateRouter);
 router.use(threadsRouter);
 router.use(adminRouter);
+router.use(billingRouter);
 
 export default router;

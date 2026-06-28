@@ -1,24 +1,86 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useUser } from "@clerk/react";
-import { useGetMyProfile } from "@workspace/api-client-react";
+import {
+  useGetMyProfile,
+  useCreateBillingCheckout,
+  useCreateBillingPortal,
+  getGetMyProfileQueryKey,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Crown, User, Shield, CheckCircle2, Zap, Star } from "lucide-react";
+import { Crown, User, Shield, CheckCircle2, Star, CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
 export default function Settings() {
   const { t } = useTranslation();
   const { user } = useUser();
+  const queryClient = useQueryClient();
   const { data: profile, isLoading } = useGetMyProfile();
   const [showUpgradeModal, setShowUpgradeModal] = useState<"premium" | "pro" | null>(null);
+
+  const checkout = useCreateBillingCheckout();
+  const portal = useCreateBillingPortal();
 
   const plan = profile?.plan ?? "free";
   const isPremium = plan === "premium";
   const isPro     = plan === "pro";
+
+  // The base URL Stripe returns the user to (strip any existing query params).
+  const returnUrl =
+    typeof window !== "undefined" ? window.location.href.split("?")[0] : undefined;
+
+  // Handle the redirect back from Stripe Checkout (?checkout=success|cancel).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get("checkout");
+    if (!status) return;
+
+    if (status === "success") {
+      toast.success(t("settings.checkoutSuccess"));
+      // The webhook updates the plan asynchronously — refetch so the badge
+      // reflects the new subscription once the sync lands.
+      queryClient.invalidateQueries({ queryKey: getGetMyProfileQueryKey() });
+    } else if (status === "cancel") {
+      toast.info(t("settings.checkoutCancel"));
+    }
+
+    params.delete("checkout");
+    const qs = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const startCheckout = async (planId: "premium" | "pro") => {
+    try {
+      const res = await checkout.mutateAsync({ data: { plan: planId, returnUrl } });
+      if (res?.url) {
+        window.location.href = res.url;
+      } else {
+        toast.error(t("settings.checkoutError"));
+      }
+    } catch {
+      toast.error(t("settings.checkoutError"));
+    }
+  };
+
+  const openPortal = async () => {
+    try {
+      const res = await portal.mutateAsync({ data: { returnUrl } });
+      if (res?.url) {
+        window.location.href = res.url;
+      } else {
+        toast.error(t("settings.portalError"));
+      }
+    } catch {
+      toast.error(t("settings.portalError"));
+    }
+  };
 
   const PLANS = [
     {
@@ -57,6 +119,11 @@ export default function Settings() {
       </div>
     );
   }
+
+  const modalGradient =
+    showUpgradeModal === "pro"
+      ? "linear-gradient(135deg, #f0c040, #e08020)"
+      : "linear-gradient(135deg, #7c6bff, #5b4de0)";
 
   return (
     <div className="space-y-8 max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -167,6 +234,7 @@ export default function Settings() {
                     data-testid={`button-upgrade-${p.id}`}
                     style={isCurrent ? {} : { background: p.gradient, color: "#fff" }}
                     variant={isCurrent ? "outline" : "default"}
+                    disabled={isCurrent}
                     onClick={() => setShowUpgradeModal(p.id as "premium" | "pro")}
                   >
                     <Icon className="w-4 h-4" />
@@ -187,8 +255,18 @@ export default function Settings() {
               <Crown className="w-5 h-5" /> {t("settings.proActive")}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">{t("settings.proActiveDesc")}</p>
+            <Button
+              variant="outline"
+              className="gap-2"
+              data-testid="button-manage-subscription"
+              disabled={portal.isPending}
+              onClick={openPortal}
+            >
+              {portal.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+              {t("settings.manageBtn")}
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -201,8 +279,18 @@ export default function Settings() {
               <Star className="w-5 h-5" /> {t("settings.premiumActive")}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">{t("settings.premiumActiveDesc")}</p>
+            <Button
+              variant="outline"
+              className="gap-2"
+              data-testid="button-manage-subscription"
+              disabled={portal.isPending}
+              onClick={openPortal}
+            >
+              {portal.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+              {t("settings.manageBtn")}
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -227,7 +315,7 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      {/* Upgrade Modal */}
+      {/* Upgrade / Checkout confirmation modal */}
       {showUpgradeModal && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md bg-card" style={{ border: "1px solid rgba(124,107,255,0.3)" }}>
@@ -245,15 +333,23 @@ export default function Settings() {
               </div>
               <p className="text-sm text-muted-foreground">{t("settings.stripeNotice")}</p>
               <Button
+                className="w-full gap-2 font-semibold"
+                style={{ background: modalGradient, color: "#fff" }}
+                disabled={checkout.isPending}
+                onClick={() => startCheckout(showUpgradeModal)}
+                data-testid="button-confirm-checkout"
+              >
+                {checkout.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                {checkout.isPending ? t("settings.redirecting") : t("settings.proceedToCheckout")}
+              </Button>
+              <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => {
-                  setShowUpgradeModal(null);
-                  toast.info(t("settings.notifyToast"));
-                }}
+                disabled={checkout.isPending}
+                onClick={() => setShowUpgradeModal(null)}
                 data-testid="button-close-upgrade-modal"
               >
-                {t("settings.closeBtn")}
+                {t("settings.cancelBtn")}
               </Button>
             </CardContent>
           </Card>

@@ -29,6 +29,9 @@ async function buildAll() {
     // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
     external: [
       "*.node",
+      // stripe-replit-sync reads .sql migration files from disk at runtime via
+      // path traversal, so it must not be bundled.
+      "stripe-replit-sync",
       "@resvg/resvg-js",
       "@resvg/resvg-js-linux-x64-gnu",
       "sharp",

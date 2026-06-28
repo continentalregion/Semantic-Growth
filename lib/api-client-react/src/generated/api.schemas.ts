@@ -9,12 +9,52 @@ export interface HealthStatus {
   status: string;
 }
 
+export type BillingPlanPlan = typeof BillingPlanPlan[keyof typeof BillingPlanPlan];
+
+
+export const BillingPlanPlan = {
+  premium: 'premium',
+  pro: 'pro',
+} as const;
+
+export interface BillingPlan {
+  plan: BillingPlanPlan;
+  name: string;
+  priceId: string;
+  unitAmount: number;
+  currency: string;
+  interval: string;
+}
+
+export type BillingCheckoutInputPlan = typeof BillingCheckoutInputPlan[keyof typeof BillingCheckoutInputPlan];
+
+
+export const BillingCheckoutInputPlan = {
+  premium: 'premium',
+  pro: 'pro',
+} as const;
+
+export interface BillingCheckoutInput {
+  plan: BillingCheckoutInputPlan;
+  returnUrl?: string;
+}
+
+export interface BillingPortalInput {
+  returnUrl?: string;
+}
+
+export interface BillingRedirect {
+  /** @nullable */
+  url: string | null;
+}
+
 export type UserProfilePlan = typeof UserProfilePlan[keyof typeof UserProfilePlan];
 
 
 export const UserProfilePlan = {
   free: 'free',
   premium: 'premium',
+  pro: 'pro',
 } as const;
 
 export interface UserProfile {
@@ -211,39 +251,12 @@ export type GetSgiHistoryParams = {
 days?: number;
 };
 
+export type GetUserSgiHistoryParams = {
+days?: number;
+};
+
 export type GetLeaderboardParams = {
 limit?: number;
 offset?: number;
 };
-
-export interface BadgeItem {
-  id: number;
-  badgeKey: string;
-  name: string;
-  description: string;
-  earnedAt: string;
-}
-
-export interface MissionItem {
-  id: number;
-  type: string;
-  title: string;
-  description: string;
-  progress: number;
-  target: number;
-  completed: boolean;
-  expiresAt: string;
-}
-
-export interface GamificationData {
-  xp: number;
-  level: number;
-  streak: number;
-  lastActiveDate: string | null;
-  badges: BadgeItem[];
-  missions: MissionItem[];
-  missionsLocked: boolean;
-  xpToNextLevel: number;
-  levelProgress: number;
-}
 

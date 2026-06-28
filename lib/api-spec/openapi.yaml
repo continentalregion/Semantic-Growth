@@ -390,6 +390,59 @@ paths:
           content:
             text/event-stream: {}
 
+  /billing/plans:
+    get:
+      operationId: getBillingPlans
+      tags: [billing]
+      summary: List available subscription plans from the synced Stripe catalog
+      responses:
+        "200":
+          description: Available plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BillingPlan"
+
+  /billing/checkout:
+    post:
+      operationId: createBillingCheckout
+      tags: [billing]
+      summary: Create a Stripe Checkout session for a subscription plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BillingCheckoutInput"
+      responses:
+        "200":
+          description: Checkout session URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingRedirect"
+
+  /billing/portal:
+    post:
+      operationId: createBillingPortal
+      tags: [billing]
+      summary: Create a Stripe billing portal session for the current user
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BillingPortalInput"
+      responses:
+        "200":
+          description: Billing portal URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingRedirect"
+
 components:
   schemas:
     HealthStatus:
@@ -399,6 +452,55 @@ components:
           type: string
       required:
         - status
+
+    BillingPlan:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [premium, pro]
+        name:
+          type: string
+        priceId:
+          type: string
+        unitAmount:
+          type: integer
+        currency:
+          type: string
+        interval:
+          type: string
+      required:
+        - plan
+        - name
+        - priceId
+        - unitAmount
+        - currency
+        - interval
+
+    BillingCheckoutInput:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [premium, pro]
+        returnUrl:
+          type: string
+      required:
+        - plan
+
+    BillingPortalInput:
+      type: object
+      properties:
+        returnUrl:
+          type: string
+
+    BillingRedirect:
+      type: object
+      properties:
+        url:
+          type: ["string", "null"]
+      required:
+        - url
 
     UserProfile:
       type: object
@@ -411,7 +513,7 @@ components:
           type: string
         plan:
           type: string
-          enum: [free, premium]
+          enum: [free, premium, pro]
         sgiScore:
           type: number
         sgiDailyDelta:

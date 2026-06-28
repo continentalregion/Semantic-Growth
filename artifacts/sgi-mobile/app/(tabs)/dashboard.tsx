@@ -39,6 +39,7 @@ import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
+import { LogoMark } from "@/components/ui/Logo";
 import { SkeletonCard, SkeletonBox } from "@/components/ui/SkeletonBox";
 import { ScoreRevealRing } from "@/components/ui/ScoreRevealRing";
 
@@ -360,7 +361,7 @@ export default function DashboardScreen() {
           },
         ]}
       >
-        <Ionicons name="analytics" size={20} color={colors.primary} />
+        <LogoMark size={22} />
         <Text style={[st.headerTitle, { color: colors.foreground }]}>{t("nav.dashboard")}</Text>
         <View
           style={[

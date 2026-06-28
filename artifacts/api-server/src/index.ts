@@ -1,9 +1,11 @@
+import { runMigrations } from "stripe-replit-sync";
 import app from "./app";
 import { logger } from "./lib/logger";
 import { db } from "@workspace/db";
 import { users } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { seedDemoData } from "./lib/demoSeed";
+import { getStripeSync } from "./lib/stripeClient";
 
 const rawPort = process.env["PORT"];
 
@@ -39,6 +41,41 @@ async function seedAdminPlans() {
   }
 }
 
+// Initialize Stripe: create/verify the synced `stripe` schema, register the
+// managed webhook, and kick off a backfill. Non-blocking and fully guarded —
+// a Stripe outage must never prevent the core API from serving requests.
+async function initStripe() {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    logger.warn("[stripe] DATABASE_URL missing — skipping Stripe initialization");
+    return;
+  }
+  try {
+    logger.info("[stripe] running migrations…");
+    // Creates/verifies the `stripe` schema (the schema name is fixed by the lib).
+    await runMigrations({ databaseUrl });
+    logger.info("[stripe] schema ready");
+
+    const stripeSync = await getStripeSync();
+    const domain = process.env.REPLIT_DOMAINS?.split(",")[0];
+    if (domain) {
+      const webhook = await stripeSync.findOrCreateManagedWebhook(
+        `https://${domain}/api/stripe/webhook`,
+      );
+      logger.info({ url: webhook?.url ?? "ok" }, "[stripe] managed webhook ready");
+    } else {
+      logger.warn("[stripe] REPLIT_DOMAINS missing — skipping managed webhook setup");
+    }
+
+    stripeSync
+      .syncBackfill({ object: "all" })
+      .then((res) => logger.info({ res }, "[stripe] data backfill complete"))
+      .catch((err) => logger.error({ err }, "[stripe] data backfill failed"));
+  } catch (err) {
+    logger.error({ err }, "[stripe] initialization failed — billing may be degraded");
+  }
+}
+
 app.listen(port, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
@@ -48,4 +85,6 @@ app.listen(port, (err) => {
   logger.info({ port }, "Server listening");
   seedAdminPlans();
   seedDemoData();
+  // Fire-and-forget: never blocks startup, never crashes the process.
+  void initStripe();
 });
