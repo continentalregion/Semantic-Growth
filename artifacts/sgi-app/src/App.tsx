@@ -9,6 +9,7 @@ import { Toaster as Sonner } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useSyncUser, useGetMyProfile } from "@workspace/api-client-react";
 import Layout from "@/components/layout";
+import { Logo } from "@/components/Logo";
 
 // Pages
 import Home from "@/pages/home";
@@ -116,18 +117,7 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="relative z-10">
-          <div className="flex items-center gap-2.5 mb-16">
-            <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg,#7c6bff,#06d6a0)" }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="2" />
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-              </svg>
-            </div>
-            <span className="font-bold text-lg tracking-tight text-white font-display">SGI</span>
-          </div>
+          <Logo size={36} className="mb-16" />
 
           <h2
             className="text-4xl font-extrabold leading-tight mb-5 font-display"
@@ -221,9 +211,12 @@ function ConnectingScreen() {
           className="w-12 h-12 rounded-full flex items-center justify-center"
           style={{ background: "linear-gradient(135deg,#7c6bff,#06d6a0)" }}
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="2" />
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+            <path d="M3 17 L9 11 L13 14.5 L21 6" />
+            <circle cx="3" cy="17" r="1.7" fill="white" stroke="none" />
+            <circle cx="9" cy="11" r="1.7" fill="white" stroke="none" />
+            <circle cx="13" cy="14.5" r="1.7" fill="white" stroke="none" />
+            <circle cx="21" cy="6" r="2.4" fill="white" stroke="none" />
           </svg>
         </div>
       </div>

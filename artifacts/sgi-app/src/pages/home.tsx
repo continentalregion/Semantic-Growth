@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/Logo";
 import {
   Network,
   ChevronRight,
@@ -124,10 +125,7 @@ export default function Home() {
       </div>
 
       <header className="container mx-auto px-6 py-6 flex flex-wrap items-center justify-between gap-y-3 relative z-10">
-        <div className="flex items-center gap-2">
-          <Network className="w-8 h-8 text-primary" aria-hidden="true" />
-          <span className="text-xl font-bold tracking-tight">SGI</span>
-        </div>
+        <Logo size={34} />
         <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
           <div className="flex items-center gap-1">
             {LANGS.map((l) => (

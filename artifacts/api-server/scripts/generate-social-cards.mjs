@@ -24,12 +24,16 @@ const C = {
 };
 const DOMAIN = "sgindex.work";
 
-// SGI brand glyph (radiating node) — identical to App.tsx auth/logo mark.
+// SGI brand glyph (rising semantic trendline) — canonical mark, identical to
+// the web Logo component (artifacts/sgi-app/src/components/Logo.tsx) & favicon.svg.
 // Centered within a 24x24 box, drawn at center (cx,cy) scaled by k.
 function glyph(cx, cy, k) {
   return `<g stroke="#ffffff" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(${cx},${cy}) scale(${k}) translate(-12,-12)">
-    <circle cx="12" cy="12" r="2.4" fill="#ffffff" stroke="none"/>
-    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+    <path d="M3 17 L9 11 L13 14.5 L21 6"/>
+    <circle cx="3" cy="17" r="1.7" fill="#ffffff" stroke="none"/>
+    <circle cx="9" cy="11" r="1.7" fill="#ffffff" stroke="none"/>
+    <circle cx="13" cy="14.5" r="1.7" fill="#ffffff" stroke="none"/>
+    <circle cx="21" cy="6" r="2.4" fill="#ffffff" stroke="none"/>
   </g>`;
 }
 
@@ -174,18 +178,42 @@ function buildStory() {
 </svg>`;
 }
 
-function render(svg, file, width) {
+// ── OPENGRAPH 1200×630 (link preview card for sgindex.work) ───────────────────
+function buildOG() {
+  const W = 1200, H = 630;
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  ${defs(W, H)}
+  <rect width="${W}" height="${H}" fill="url(#bg)"/>
+  ${grid(W, H)}
+  <ellipse cx="130" cy="90" rx="540" ry="540" fill="url(#glowP)"/>
+  <ellipse cx="1080" cy="560" rx="540" ry="540" fill="url(#glowT)"/>
+  <rect x="12" y="12" width="${W - 24}" height="${H - 24}" rx="34" fill="none" stroke="rgba(124,107,255,0.22)" stroke-width="2"/>
+
+  ${logoTile(W / 2 - 60, 66, 120)}
+
+  <text x="${W / 2}" y="320" text-anchor="middle" font-family="${C.font}" font-size="118" font-weight="700" letter-spacing="5" fill="${C.fg}">SGI</text>
+  <text x="${W / 2}" y="368" text-anchor="middle" font-family="${C.font}" font-size="25" font-weight="600" letter-spacing="10" fill="${C.muted}">SEMANTIC GROWTH INDEX</text>
+
+  <line x1="${W / 2 - 64}" y1="408" x2="${W / 2 + 64}" y2="408" stroke="url(#brandH)" stroke-width="4" stroke-linecap="round"/>
+
+  <text x="${W / 2}" y="488" text-anchor="middle" font-family="${C.font}" font-size="38" font-weight="700" fill="url(#brandH)">Traccia l'evoluzione della tua mente</text>
+
+  ${domainPill(W / 2, 566, 30)}
+</svg>`;
+}
+
+function render(svg, absPath, width) {
   const resvg = new Resvg(svg, {
     fitTo: { mode: "width", value: width },
     font: { loadSystemFonts: true, defaultFontFamily: C.font },
     background: C.bg0,
   });
   const png = resvg.render().asPng();
-  const out = resolve(OUT_DIR, file);
-  writeFileSync(out, png);
-  console.log("wrote", out, png.length, "bytes");
+  writeFileSync(absPath, png);
+  console.log("wrote", absPath, png.length, "bytes");
 }
 
-render(buildSquare(), "sgi-card-1080x1080.png", 1080);
-render(buildStory(), "sgi-card-1080x1920.png", 1080);
+render(buildSquare(), resolve(OUT_DIR, "sgi-card-1080x1080.png"), 1080);
+render(buildStory(), resolve(OUT_DIR, "sgi-card-1080x1920.png"), 1080);
+render(buildOG(), resolve(__dirname, "../../sgi-app/public/opengraph.png"), 1200);
 console.log("done");
