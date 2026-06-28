@@ -44,10 +44,6 @@ export default function ThreadDetailPage() {
     enabled: !!id,
   });
 
-  function startBattle() {
-    setLocation(`/threads/${id}/battle`);
-  }
-
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center" style={{ background: "#08090f" }}>
@@ -105,30 +101,30 @@ export default function ThreadDetailPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-6">
-          {/* Battle CTA */}
+          {/* Battle CTA → PvP */}
           <div
             className="rounded-2xl p-5"
             style={{ background: "rgba(21,23,40,1)", border: "1px solid rgba(255,255,255,0.07)" }}
           >
             <div className="flex items-center gap-2 mb-3">
               <Swords className="w-4 h-4" style={{ color: "#f72585" }} />
-              <span className="text-sm font-semibold" style={{ color: "#eeeeff" }}>Slot Battaglia</span>
+              <span className="text-sm font-semibold" style={{ color: "#eeeeff" }}>Battaglie 1-contro-1</span>
             </div>
             <p className="text-xs mb-4" style={{ color: "#9090b8" }}>
-              Tu contro l'AI sulla stessa domanda. Nessun cronometro: prenditi il tempo per la risposta migliore. Un unico motore SGI valuta entrambe su 11 metriche.
+              Le battaglie ora sono tra utenti reali: vieni abbinato automaticamente a un altro pensatore e avete 6:30 ciascuno per costruire la conversazione più densa e convincente.
             </p>
 
             <div className="flex items-center gap-2 mb-4 text-xs" style={{ color: "#9090b8" }}>
               <Brain className="w-3.5 h-3.5" />
-              Niente timer · 11 metriche · XP e badge
+              Matchmaking automatico · 6:30 a testa · XP e badge
             </div>
 
             <button
-              onClick={startBattle}
+              onClick={() => setLocation("/battles")}
               className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all"
               style={{ background: "linear-gradient(135deg, #f72585, #b5179e)", color: "#fff" }}
             >
-              ⚔ Sfida l'AI
+              ⚔ Vai alle Battaglie
             </button>
           </div>
 

@@ -7,6 +7,7 @@ import recommendationsRouter from "./recommendations";
 import chatRouter from "./chat";
 import translateRouter from "./translate";
 import threadsRouter from "./threads";
+import battlesRouter from "./battles";
 import adminRouter from "./admin";
 import authRouter from "./auth";
 import billingRouter from "./billing";
@@ -22,6 +23,7 @@ router.use(recommendationsRouter);
 router.use(chatRouter);
 router.use(translateRouter);
 router.use(threadsRouter);
+router.use(battlesRouter);
 router.use(adminRouter);
 router.use(billingRouter);
 

@@ -9,8 +9,8 @@
 - [SGI canonical brand logo](sgi-brand-logo.md) — one glyph mirrored in Logo.tsx + favicon.svg + social-card script (run it to regen opengraph.png); sgi-app/dist is gitignored (rebuilt on deploy)
 - [Host fonts & resvg](host-fonts-resvg.md) — only DejaVu fonts on host; Space Grotesk/Inter absent, resvg falls back — set font-family="DejaVu Sans" explicitly
 - [captureRef story-card sizing](captureref-story-card-sizing.md) — fixed 9:16 (1080×1920) capture box silently CROPS overflow; budget content height, use compact diverging bars
-- [SGI battle architecture](sgi-battle-architecture.md) — Battle = USER vs AI single-question via POST /threads/:id/battle; legacy threadSessions chat/timer endpoints still exist but unused; XP→gamification only, never users.sgiScore
-- [SGI mobile↔API contract](sgi-mobile-api-contract.md) — mobile screens repeatedly wired to wrong contract; battle chat is SSE w/ field `message`, /complete returns flat scoreX fields
+- [SGI battle architecture](sgi-battle-architecture.md) — Battle = ASYNC USER-vs-USER matchmaking + 390s AI-sparring; split battle_matches/entries; resolve/forfeit ON READ (two clocks); /threads/:id/battle now 410; XP→gamification only
+- [SGI mobile↔API contract](sgi-mobile-api-contract.md) — class of bug: mobile wired to wrong contract; mirror the web client. (Battle SSE examples are HISTORICAL — battle is now PvP JSON+polling)
 - [SGI mobile keyboard in pageSheet modal](sgi-mobile-keyboard-modal.md) — KeyboardAvoidingView fails in iOS pageSheet; track keyboard height manually (iOS only) + paddingBottom
 - [Expo workflow port fix](expo-replit-port-fix.md) — Expo DIDNT_OPEN_A_PORT despite Metro running; fix is adding localPort to .replit [[ports]] via verifyAndReplaceDotReplit
 - [Expo 54 + pnpm Metro bundle fix](expo-pnpm-metro-bundle.md) — deployment bundle 404: watchFolders must include workspaceRoot; bundle URL must be workspaceRoot-relative

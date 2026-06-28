@@ -10,3 +10,4 @@ export * from "./recommendations";
 export * from "./semanticDomains";
 export * from "./blockedAttempts";
 export * from "./threads";
+export * from "./pvpBattles";

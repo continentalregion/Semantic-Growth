@@ -58,88 +58,6 @@ Respond ONLY with valid JSON array (no markdown):
 [{"concept1": "...", "concept2": "...", "description": "one sentence explaining the link", "strength": <1-5>}]
 `.trim();
 
-// ─── GET /battles/public — public feed of completed battle cards ─────────────
-router.get("/battles/public", async (_req, res) => {
-  try {
-    // Legacy user-vs-user battle cards.
-    const cards = await db.select().from(battleCards)
-      .orderBy(desc(battleCards.createdAt))
-      .limit(30);
-
-    const cardResults = (await Promise.all(cards.map(async card => {
-      const [thread] = await db.select().from(threads).where(eq(threads.id, card.threadId)).limit(1);
-      const [s1] = await db.select().from(threadSessions).where(eq(threadSessions.id, card.session1Id)).limit(1);
-      const [s2] = await db.select().from(threadSessions).where(eq(threadSessions.id, card.session2Id)).limit(1);
-      if (!thread || !s1 || !s2) return null;
-      return {
-        id: card.id,
-        createdAt: card.createdAt,
-        isVsAi: false,
-        thread: { id: thread.id, question: thread.question, category: thread.category },
-        player1: {
-          username: s1.username ?? "Anonimo",
-          scoreTotal: s1.scoreTotal ?? 0,
-          scoreDensity: s1.scoreDensity ?? 0,
-          scoreConnections: s1.scoreConnections ?? 0,
-          scoreDepth: s1.scoreDepth ?? 0,
-          connections: (s1.connections as ThreadConnection[]) ?? [],
-          durationSeconds: s1.durationSeconds ?? 0,
-          isWinner: card.winnerSessionId === s1.id,
-        },
-        player2: {
-          username: s2.username ?? "Anonimo",
-          scoreTotal: s2.scoreTotal ?? 0,
-          scoreDensity: s2.scoreDensity ?? 0,
-          scoreConnections: s2.scoreConnections ?? 0,
-          scoreDepth: s2.scoreDepth ?? 0,
-          connections: (s2.connections as ThreadConnection[]) ?? [],
-          durationSeconds: s2.durationSeconds ?? 0,
-          isWinner: card.winnerSessionId === s2.id,
-        },
-      };
-    }))).filter(Boolean);
-
-    // User-vs-AI battles surface in the feed ONLY when the user won; losses are
-    // private. Each is marked isVsAi so the client can render the "vs AI" badge.
-    const aiWins = await db.select().from(aiBattles)
-      .where(eq(aiBattles.isPublic, true))
-      .orderBy(desc(aiBattles.createdAt))
-      .limit(30);
-
-    const aiResults = aiWins.map(b => ({
-      id: b.id,
-      createdAt: b.createdAt,
-      isVsAi: true,
-      thread: { id: b.threadId, question: b.question, category: b.category },
-      player1: {
-        username: b.username ?? "Anonimo",
-        scoreTotal: Math.round(b.userScore.rawScore),
-        scoreDensity: 0, scoreConnections: 0, scoreDepth: 0,
-        connections: [] as ThreadConnection[],
-        durationSeconds: 0,
-        isWinner: true,
-      },
-      player2: {
-        username: "SGI · AI",
-        scoreTotal: Math.round(b.aiScore.rawScore),
-        scoreDensity: 0, scoreConnections: 0, scoreDepth: 0,
-        connections: [] as ThreadConnection[],
-        durationSeconds: 0,
-        isWinner: false,
-      },
-    }));
-
-    const merged = [...cardResults, ...aiResults]
-      .sort((a, b) => new Date(b!.createdAt as Date).getTime() - new Date(a!.createdAt as Date).getTime())
-      .slice(0, 30);
-
-    res.json(merged);
-  } catch (err) {
-    console.error("[battles/public] error", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
 // ─── GET /threads — list all threads ────────────────────────────────────────
 router.get("/threads", async (req, res) => {
   try {
@@ -685,86 +603,17 @@ router.get("/battle-cards/:id/og-image", async (req, res) => {
   }
 });
 
-// ─── POST /threads/:id/battle — USER vs AI battle (commit) ───────────────────
-// Generate a strong AI answer to the thread question, score BOTH the user answer
-// and the AI answer with the same 11-metric engine (single LLM call, temp 0),
-// PERSIST the duel to ai_battles, award XP into gamification (feeds levels), and
-// — on a win — mark it public ("vs AI" in the feed) + grant the battle-victor
-// badge. IMPORTANT: this NEVER touches users.sgiScore (global RANK stays
-// independent of battles).
-router.post("/threads/:id/battle", async (req, res) => {
-  try {
-    const clerkId = getAuth(req).userId;
-    if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
-
-    const user = await getOrCreateUser(clerkId);
-    if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
-
-    const { id } = req.params;
-    const userAnswer = typeof req.body?.userAnswer === "string" ? req.body.userAnswer.trim() : "";
-    if (userAnswer.length < 10) { res.status(400).json({ error: "userAnswer too short (min 10 chars)" }); return; }
-
-    const [thread] = await db.select().from(threads).where(eq(threads.id, id)).limit(1);
-    if (!thread) { res.status(404).json({ error: "Thread not found" }); return; }
-
-    const evaluation = await evaluateBattle(thread.question, thread.category ?? "philosophy", userAnswer);
-    const isWin = evaluation.outcome.winner === "user";
-    const username = user.email?.split("@")[0] ?? "anon";
-    const xpGained = evaluation.reward.xpAwarded;
-
-    // Persist the duel. Public in the feed only on a win; losses stay private.
-    const [battle] = await db.insert(aiBattles).values({
-      threadId: thread.id,
-      userId: clerkId,
-      username,
-      question: thread.question,
-      category: thread.category ?? "philosophy",
-      userAnswer,
-      aiAnswer: evaluation.aiAnswer,
-      userScore: evaluation.user as unknown as BattleAnswerScore,
-      aiScore: evaluation.ai as unknown as BattleAnswerScore,
-      winner: evaluation.outcome.winner,
-      xpAwarded: xpGained,
-      isPublic: isWin,
-    }).returning({ id: aiBattles.id });
-
-    // Award XP into the gamification table (feeds levels + streak). Upsert keeps
-    // it safe even if a gamification row does not exist yet.
-    const today = new Date().toISOString().split("T")[0];
-    const [gam] = await db.insert(gamification)
-      .values({ userId: user.id, xp: xpGained, level: computeLevel(xpGained), streak: 1, lastActiveDate: today })
-      .onConflictDoUpdate({
-        target: gamification.userId,
-        set: {
-          xp: sql`${gamification.xp} + ${xpGained}`,
-          streak: sql`CASE WHEN DATE(${gamification.lastActiveDate}) = CURRENT_DATE - INTERVAL '1 day' THEN ${gamification.streak} + 1 WHEN DATE(${gamification.lastActiveDate}) = CURRENT_DATE THEN ${gamification.streak} ELSE 1 END`,
-          lastActiveDate: today,
-          level: sql`floor(sqrt((${gamification.xp} + ${xpGained}) / 100.0)) + 1`,
-        },
-      })
-      .returning({ xp: gamification.xp, level: gamification.level });
-
-    // Grant the one-time battle-victor badge on a win.
-    let badgeAwarded: string | null = null;
-    if (isWin) {
-      const inserted = await db.insert(badges)
-        .values({ userId: user.id, badgeKey: "battle_victor" })
-        .onConflictDoNothing()
-        .returning({ id: badges.id });
-      if (inserted.length > 0) badgeAwarded = "battle_victor";
-    }
-
-    res.json({
-      ...evaluation,
-      battleId: battle?.id ?? null,
-      xp: gam?.xp ?? null,
-      level: gam?.level ?? null,
-      badgeAwarded,
-    });
-  } catch (err) {
-    console.error("[threads] battle commit error", err);
-    res.status(500).json({ error: "Battle evaluation failed" });
-  }
+// ─── POST /threads/:id/battle — DEPRECATED (USER vs AI removed) ──────────────
+// The old USER-vs-AI duel has been replaced by ASYNC USER-vs-USER battles (see
+// routes/battles.ts: POST /battles/matchmake). This endpoint is intentionally
+// retired and no longer writes to ai_battles. Legacy ai_battles/battle_cards
+// rows are kept for history but read-only.
+router.post("/threads/:id/battle", (_req, res) => {
+  res.status(410).json({
+    error: "La sfida contro l'AI è stata sostituita dalle battaglie tra utenti.",
+    code: "BATTLE_MODE_REPLACED",
+    replacement: "/api/battles/matchmake",
+  });
 });
 
 export default router;
