@@ -71,7 +71,27 @@ app.use(
 
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
-app.use(cors({ credentials: true, origin: true }));
+// CORS: explicit allowlist only (credentials are sent, so a wildcard origin is
+// unsafe). Production domain + localhost for development.
+const ALLOWED_ORIGINS = [
+  "https://sgindex.work",
+  "https://www.sgindex.work",
+  /^http:\/\/localhost(:\d+)?$/,
+  /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+];
+app.use(
+  cors({
+    credentials: true,
+    origin(origin, callback) {
+      // Allow non-browser / same-origin requests (no Origin header).
+      if (!origin) return callback(null, true);
+      const allowed = ALLOWED_ORIGINS.some((o) =>
+        typeof o === "string" ? o === origin : o.test(origin),
+      );
+      callback(null, allowed);
+    },
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -144,65 +164,6 @@ app.use((req, _res, next) => {
     }
   }
   next();
-});
-
-// Decode a JWT without verifying — returns header+payload claims
-function decodeJwtUnsafe(token: string): Record<string, unknown> | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const decode = (s: string) =>
-      JSON.parse(Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
-    return { header: decode(parts[0]), payload: decode(parts[1]) };
-  } catch {
-    return null;
-  }
-}
-
-// Temporary debug endpoint — logs auth state to diagnose production 401s
-app.get("/api/debug-auth", (req, res) => {
-  const auth = getAuth(req);
-  const host = getClerkProxyHost(req);
-  const pubKey = publishableKeyFromHost(host ?? "", process.env.CLERK_PUBLISHABLE_KEY);
-  const cookieHeader = req.headers["cookie"] ?? "";
-  const authHeader = req.headers["authorization"] ?? "(none)";
-
-  // Parse all cookies into a map
-  const cookieMap: Record<string, string> = {};
-  for (const part of cookieHeader.split(";")) {
-    const [k, ...v] = part.trim().split("=");
-    if (k) cookieMap[k.trim()] = v.join("=");
-  }
-
-  // Decode ALL session cookies
-  const sessionCookies: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(cookieMap)) {
-    if (k.startsWith("__session")) {
-      sessionCookies[k] = v ? decodeJwtUnsafe(v) ?? `(not a jwt, len=${v.length})` : "(empty)";
-    }
-  }
-
-  // Decode bearer token if present
-  let bearerDecoded: Record<string, unknown> | null = null;
-  if (authHeader.startsWith("Bearer ")) {
-    bearerDecoded = decodeJwtUnsafe(authHeader.slice(7));
-  }
-
-  const result = {
-    userId: auth?.userId ?? null,
-    sessionId: auth?.sessionId ?? null,
-    host,
-    resolvedPubKeyPrefix: pubKey?.slice(0, 15),
-    hasSecretKey: !!process.env.CLERK_SECRET_KEY,
-    secretKeyPrefix: process.env.CLERK_SECRET_KEY?.slice(0, 10),
-    cookieNames: Object.keys(cookieMap),
-    sessionCookies,
-    bearerDecoded,
-    nodeEnv: process.env.NODE_ENV,
-    fullPubKey: pubKey,
-  };
-  logger.info({ debugAuth: true, ...result }, "debug-auth");
-  res.json(result);
 });
 
 app.use("/api", router);

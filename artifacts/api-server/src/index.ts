@@ -22,8 +22,13 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 async function seedAdminPlans() {
+  const adminEmail = process.env.ADMIN_EMAIL?.trim();
+  if (!adminEmail) {
+    logger.info("[seed] ADMIN_EMAIL not set — skipping admin plan seeding");
+    return;
+  }
   const ADMIN_EMAILS: { email: string; plan: "pro" | "premium" }[] = [
-    { email: "francescoullo1@gmail.com", plan: "pro" },
+    { email: adminEmail, plan: "pro" },
   ];
   for (const { email, plan } of ADMIN_EMAILS) {
     try {
