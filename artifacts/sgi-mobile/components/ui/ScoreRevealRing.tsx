@@ -18,7 +18,7 @@ const AnimatedTextInput = createAnimatedComponent(TextInput);
 type Props = {
   /** Current SGI value (e.g. 7.4) */
   value: number;
-  /** Scale maximum the ring fills against (SGI is 0–10) */
+  /** Scale maximum the ring fills against (SGI is 0–100) */
   max?: number;
   /** Outer diameter of the ring in px */
   size?: number;
@@ -49,7 +49,7 @@ type Props = {
  */
 export function ScoreRevealRing({
   value,
-  max = 10,
+  max = 100,
   size = 132,
   strokeWidth = 11,
   decimals = 1,
@@ -137,6 +137,7 @@ export function ScoreRevealRing({
       </Svg>
       <AnimatedTextInput
         editable={false}
+        accessible={false}
         underlineColorAndroid="transparent"
         importantForAccessibility="no"
         animatedProps={textProps}

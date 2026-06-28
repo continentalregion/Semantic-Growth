@@ -6,7 +6,6 @@ import {
   StyleSheet,
   RefreshControl,
   Platform,
-  TextInput,
   useWindowDimensions,
 } from "react-native";
 import Animated, {
@@ -41,8 +40,8 @@ import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { SkeletonCard, SkeletonBox } from "@/components/ui/SkeletonBox";
+import { ScoreRevealRing } from "@/components/ui/ScoreRevealRing";
 
-const AnimatedTextInput = createAnimatedComponent(TextInput);
 const AnimatedRect = createAnimatedComponent(SvgRect);
 
 const MACRO_DIMS = [
@@ -61,33 +60,6 @@ const RAW_METRICS = [
   { key: "stability" as const, labelKey: "dashboard.metricStability", descKey: "dashboard.metricStabilityDesc", color: palette.success },
   { key: "continuity" as const, labelKey: "dashboard.metricContinuity", descKey: "dashboard.metricContinuityDesc", color: palette.secondary },
 ] as const;
-
-function AnimatedCounter({
-  value,
-  decimals = 1,
-  style,
-}: {
-  value: number;
-  decimals?: number;
-  style?: object;
-}) {
-  const sv = useSharedValue(0);
-  useEffect(() => {
-    sv.value = withTiming(value, { duration: 1400, easing: Easing.out(Easing.cubic) });
-  }, [value]);
-  const animProps = useAnimatedProps(() => ({
-    text: sv.value.toFixed(decimals),
-    defaultValue: sv.value.toFixed(decimals),
-  }));
-  return (
-    <AnimatedTextInput
-      animatedProps={animProps}
-      editable={false}
-      style={style}
-      underlineColorAndroid="transparent"
-    />
-  );
-}
 
 function DeltaChip({ label, value, colors }: {
   label: string;
@@ -470,16 +442,21 @@ export default function DashboardScreen() {
               {t("dashboard.sgiScoreLabel")}
             </Text>
 
-            <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 12 }}>
-              <AnimatedCounter
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+              <ScoreRevealRing
                 value={profile?.sgiScore ?? 0}
+                max={100}
+                size={132}
                 decimals={1}
-                style={[st.bigScore, { color: colors.primary }]}
+                numberColor={colors.primary}
+                trackColor={colors.muted}
+                gradientFrom={palette.primary}
+                gradientTo={palette.teal}
+                accessibilityLabel={`${t("dashboard.sgiScoreLabel")}: ${(profile?.sgiScore ?? 0).toFixed(1)}`}
               />
               <View
                 style={{
                   flex: 1,
-                  paddingBottom: 8,
                   flexDirection: "row",
                   flexWrap: "wrap",
                   gap: 6,
@@ -904,13 +881,6 @@ const st = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontFamily: "Inter_600SemiBold",
-  },
-  bigScore: {
-    fontSize: 62,
-    fontFamily: "Inter_700Bold",
-    lineHeight: 68,
-    minWidth: 120,
-    includeFontPadding: false,
   },
   miniStatCell: {
     flex: 1,
