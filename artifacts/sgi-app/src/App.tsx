@@ -332,7 +332,10 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   }, []);
 
   if (!isLoaded) return <ConnectingScreen />;
-  if (!isSignedIn) return <Redirect to="/sign-in" />;
+  if (!isSignedIn) {
+    const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+    return <Redirect to={`/sign-in?redirect_url=${returnTo}`} />;
+  }
 
   if (!profile && profileLoading && !splashExpired) return <ConnectingScreen />;
 
