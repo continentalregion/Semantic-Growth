@@ -81,6 +81,7 @@ const IT = {
     streamError: "Risposta interrotta — il messaggio non è stato conteggiato. Riprova.",
     usedFallback: "Il modello selezionato non era disponibile. Risposta generata con GPT-4o Mini.",
     opusMonthlyCapReached: "Hai raggiunto il limite mensile di {{limit}} messaggi su Claude Opus. I messaggi successivi useranno Claude Sonnet.",
+    monthlyCostCapReached: "Hai raggiunto il limite di utilizzo mensile del tuo piano. I messaggi successivi useranno un modello più veloce.",
     retryLastMsg: "Riprova",
   },
   leaderboard: {
@@ -450,6 +451,7 @@ const EN = {
     streamError: "Response interrupted — the message was not counted. Please retry.",
     usedFallback: "Selected model was unavailable. Response generated with GPT-4o Mini.",
     opusMonthlyCapReached: "You've reached the monthly limit of {{limit}} messages on Claude Opus. Further messages will use Claude Sonnet.",
+    monthlyCostCapReached: "You've reached your plan's monthly usage limit. Further messages will use a faster model.",
     retryLastMsg: "Retry",
   },
   leaderboard: {
@@ -818,6 +820,7 @@ const ES = {
     streamError: "Respuesta interrumpida — el mensaje no fue contabilizado. Por favor, reintenta.",
     usedFallback: "El modelo seleccionado no estaba disponible. Respuesta generada con GPT-4o Mini.",
     opusMonthlyCapReached: "Has alcanzado el límite mensual de {{limit}} mensajes en Claude Opus. Los siguientes mensajes usarán Claude Sonnet.",
+    monthlyCostCapReached: "Has alcanzado el límite de uso mensual de tu plan. Los siguientes mensajes usarán un modelo más rápido.",
     retryLastMsg: "Reintentar",
   },
   leaderboard: {

@@ -20,9 +20,14 @@ import {
   GLOBAL_BUDGET_DEGRADATION_THRESHOLD,
   OPUS_MONTHLY_LIMIT,
   OPUS_FALLBACK_MODEL,
+  PREMIUM_AI_BUDGET_CENTS,
+  PRO_AI_BUDGET_CENTS,
+  COST_CAP_FALLBACK_MODEL,
 } from "../config/pricing";
 
-const OPENAI_MODELS = ["gpt-4o-mini", "gpt-4o", "o4-mini"] as const;
+// o4-mini rimosso: era in ALLOWED_MODELS.pro ma assente dal selettore UI —
+// incoerenza chiusa rimuovendo la voce server-side (Opzione A).
+const OPENAI_MODELS = ["gpt-4o-mini", "gpt-4o"] as const;
 const CLAUDE_MODELS = ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"] as const;
 const ALL_MODELS = [...OPENAI_MODELS, ...CLAUDE_MODELS] as const;
 type ModelId = typeof ALL_MODELS[number];
@@ -45,11 +50,11 @@ function currentMonthKey(): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
 }
 
-async function resetMonthlyIfNeeded(userId: number, user: { monthlyResetDate: string | null; monthlyMessagesUsed: number; opusMessagesUsed: number }) {
+async function resetMonthlyIfNeeded(userId: number, user: { monthlyResetDate: string | null; monthlyMessagesUsed: number; opusMessagesUsed: number; aiCostCents: number }) {
   const thisMonth = currentMonthKey();
   if (user.monthlyResetDate !== thisMonth) {
     await db.update(users)
-      .set({ monthlyMessagesUsed: 0, opusMessagesUsed: 0, monthlyResetDate: thisMonth })
+      .set({ monthlyMessagesUsed: 0, opusMessagesUsed: 0, aiCostCents: 0, monthlyResetDate: thisMonth })
       .where(eq(users.id, userId));
     return 0;
   }
@@ -259,6 +264,43 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     const requestedRaw     = convo.model ?? planDefaultModel;
     let requestedModel = (allowedForPlan.includes(requestedRaw) ? requestedRaw : planDefaultModel) as ModelId;
 
+    // ── FASE 4: cost cap per-utente (model-agnostic) ──────────────────────────
+    // Budget AI mensile per piano: Premium 575¢ (€5.75), Pro 1166¢ (€11.66).
+    // Garantisce margine minimo 40% indipendentemente dal modello scelto.
+    // Piano Free: escluso dal cost cap (usa solo il limite messaggi da FASE hard stop).
+    //
+    // NOTA RACE CONDITION: la lettura di user.aiCostCents è ottimistica (stale object).
+    // Con due tab concorrenti entrambe sotto il limite, entrambe procedono e
+    // l'overshoot massimo è ~1 msg × costo del modello più caro (~€0.06 su Opus).
+    // Comportamento accettabile e coerente con monthlyMessagesUsed. Per blindare
+    // ulteriormente serve SELECT FOR UPDATE, ma aggiunge latenza non giustificata
+    // agli attuali volumi.
+    let costCapReached = false;
+    const AI_BUDGET_CENTS: Record<string, number> = {
+      premium: PREMIUM_AI_BUDGET_CENTS,
+      pro:     PRO_AI_BUDGET_CENTS,
+    };
+    const tierBudget = AI_BUDGET_CENTS[user.plan];
+    if (tierBudget !== undefined) {
+      const currentAiCost = (user.monthlyResetDate === currentMonthKey()) ? user.aiCostCents : 0;
+      if (currentAiCost >= tierBudget) {
+        const safeModel = COST_CAP_FALLBACK_MODEL as ModelId;
+        if (requestedModel !== safeModel) {
+          console.warn(`[cost-cap] userId=${user.id} plan=${user.plan} aiCost=${currentAiCost}/${tierBudget}¢ — degrading ${requestedModel} → ${safeModel}`);
+          if (LOG_BLOCKS) {
+            await db.insert(blockedAttempts).values({
+              userId: user.id, plan: user.plan,
+              reason: "cost_cap",
+              model: requestedModel, used: currentUsed, limit,
+            }).catch(() => {});
+          }
+        }
+        requestedModel = safeModel;
+        costCapReached = true;
+      }
+    }
+    // ── fine cost cap per-utente ──────────────────────────────────────────────
+
     // ── FASE 5: valvola globale — controlla budget mensile totale ─────────────
     // Se l'app si avvicina al tetto globale, declassa automaticamente a Haiku
     const globalBudgetThreshold = GLOBAL_MONTHLY_BUDGET_CENTS * GLOBAL_BUDGET_DEGRADATION_THRESHOLD;
@@ -416,13 +458,18 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       .values({ conversationId: convoId, role: "assistant", content: fullContent, tokensUsed, costCents })
       .returning({ id: messages.id });
 
-    // Increment monthly usage counter (+ opus counter if Opus was actually used)
+    // Increment monthly usage counters atomically:
+    // - monthlyMessagesUsed: always +1
+    // - opusMessagesUsed: +1 only if Opus was actually served (after all downgrades)
+    // - aiCostCents: +costCents (real tokens from API, not estimated) — used by FASE 4 cost cap
     const newUsed = currentUsed + 1;
     const opusWasUsed = chosenModel === "claude-opus-4-8";
+    const costCentsInt = Math.ceil(costCents); // round up to avoid accumulating rounding debt
     await db.update(users)
       .set({
         monthlyMessagesUsed: newUsed,
         monthlyResetDate: currentMonthKey(),
+        aiCostCents: sql`${users.aiCostCents} + ${costCentsInt}`,
         ...(opusWasUsed ? { opusMessagesUsed: sql`${users.opusMessagesUsed} + 1` } : {}),
       })
       .where(eq(users.id, user.id));
@@ -542,6 +589,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       costCents,
       usage: { used: newUsed, limit, remaining: remainingAfter, plan: user.plan },
       ...(opusDowngraded ? { opusDowngraded: { from: "claude-opus-4-8", to: OPUS_FALLBACK_MODEL, opusLimit: OPUS_MONTHLY_LIMIT } } : {}),
+      ...(costCapReached ? { costCapReached: { aiCostCents: (user.monthlyResetDate === currentMonthKey() ? user.aiCostCents : 0), tierLimit: tierBudget, fallbackModel: COST_CAP_FALLBACK_MODEL } } : {}),
       ...(streamError ? { streamError: true } : {}),
       ...(usedFallback ? { usedFallback: true } : {}),
       ...(newTitle ? { title: newTitle } : {}),

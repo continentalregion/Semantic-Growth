@@ -209,6 +209,9 @@ export default function Chat() {
               if (parsed.usedFallback) {
                 toast.info(t("chat.usedFallback"));
               }
+              if (parsed.costCapReached) {
+                toast.warning(t("chat.monthlyCostCapReached"));
+              }
               if (parsed.opusDowngraded) {
                 toast.warning(t("chat.opusMonthlyCapReached", { limit: parsed.opusDowngraded.opusLimit }));
               }
