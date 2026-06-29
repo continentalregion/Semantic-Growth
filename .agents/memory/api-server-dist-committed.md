@@ -1,24 +1,36 @@
 ---
-name: API server dist committed to git
-description: The api-server dist/ directory is committed to git — production runs the committed binary, not a fresh build
+name: API server deploy build (dist is rebuilt, NOT committed)
+description: How the api-server binary is produced for production — built on deploy via artifact.toml, dist is gitignored
 ---
 
 ## Rule
-After ANY change to `artifacts/api-server/src/**`, you MUST run `pnpm run build` inside `artifacts/api-server/` and commit the updated `dist/index.mjs` before deploying. Otherwise production runs stale code.
+`artifacts/api-server/dist/` is **gitignored and NOT committed**. The production
+deployment **rebuilds it on deploy**, so a source change in
+`artifacts/api-server/src/**` takes effect on the next Publish/republish **without
+committing dist**.
 
-**Why:** Replit's autoscale deployment does NOT rebuild the API server binary during deploy — it uses the committed `dist/` files directly. The dev workflow uses `pnpm run dev` which builds first, but that only affects the dev environment.
+**Why:** `artifacts/api-server/.replit-artifact/artifact.toml` defines
+`[services.production.build]` → `pnpm --filter @workspace/api-server run build`
+(esbuild via `build.mjs`) and `[services.production.run]` →
+`node --enable-source-maps artifacts/api-server/dist/index.mjs`. So deploy builds
+fresh dist from source, then runs it. (Earlier this repo committed dist and prod ran
+the stale committed binary — that is no longer true; the note was corrected after
+confirming the artifact.toml build step + `.gitignore` entry `dist`.)
 
-**How to apply:**
-1. Edit source files in `artifacts/api-server/src/`
-2. Run `cd artifacts/api-server && pnpm run build`
-3. Commit the updated `dist/index.mjs` (and map files)
-4. THEN click Publish
-
-This was discovered after 3 failed deploys where the production API server kept returning 404 for a newly added route and 401 for all auth-protected routes — all because the committed binary predated the code changes.
+**How to apply:** edit source, verify with the esbuild build + workflow restart, then
+Publish. Do NOT hand-commit dist.
 
 ## Related: the real build is esbuild, NOT tsc
-The api-server compiles via `node build.mjs` (esbuild, type-stripping — no type checking). Running `pnpm --filter @workspace/api-server run typecheck` (`tsc -p tsconfig.json --noEmit`) is **RED pre-existing** — it reports errors in unmodified files (e.g. `chat.ts` column/schema drift like `costCents`/`tokensUsed`, and `@workspace/db` "no exported member" from unbuilt TS project references).
+The api-server compiles via `node build.mjs` (esbuild, type-stripping — no type
+checking). Running `pnpm --filter @workspace/api-server run typecheck`
+(`tsc -p tsconfig.json --noEmit`) is **RED pre-existing** — it reports errors in
+unmodified files (e.g. `chat.ts` column/schema drift, `@workspace/db` "no exported
+member" from unbuilt TS project references).
 
-**Why:** these tsc errors are not produced by your changes and do not block the app. The app runs fine because esbuild ignores them.
+**Why:** these tsc errors are not produced by your changes and do not block the app;
+esbuild ignores them.
 
-**How to apply:** to validate your own api-server changes, run the esbuild build (`pnpm --filter @workspace/api-server run build`) and restart the workflow — do NOT treat the pre-existing red `tsc --noEmit` as your regression. To confirm your files are clean, grep the typecheck output for your filenames.
+**How to apply:** validate api-server changes with the esbuild build
+(`pnpm --filter @workspace/api-server run build`) + workflow restart. To confirm your
+files are clean, grep the typecheck output for your filenames; do not treat the
+pre-existing red `tsc --noEmit` as your regression.

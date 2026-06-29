@@ -1,11 +1,12 @@
 - [SGI CSS theme](sgi-css-theme.md) — index.css had all "red" placeholder HSL values; replaced with dark navy/cyan futuristic theme
 - [SGI leaderboard null bug](sgi-leaderboard-null.md) — seeded leaderboard entries have userId=null; always null-guard before equality check
 - [SGI design system](sgi-design-system.md) — palette viola/teal/pink, Space Grotesk, CSS tokens --sgi-* in index.css; primary=248 100% 71% (purple)
-- [API server dist committed to git](api-server-dist-committed.md) — must rebuild dist/ and commit before every deploy; real build is esbuild, `tsc --noEmit` is RED pre-existing (don't treat as your regression)
+- [API server deploy build](api-server-dist-committed.md) — dist is gitignored & REBUILT on deploy via artifact.toml [services.production.build]; source changes apply on republish (don't commit dist); esbuild is the real build, tsc --noEmit RED pre-existing
 - [Clerk proxy JWT issuer alignment](clerk-proxy-jwt-issuer.md) — clerkMiddleware must include proxyUrl in prod or Bearer token verification fails despite cookies working
 - [req.auth is a function in @clerk/express v2](clerk-req-auth-function.md) — req.auth?.userId is ALWAYS undefined; use getAuth(req).userId from @clerk/express
 - [SGI scoring model](sgi-scoring-model.md) — gpt-5-nano truncates scoring JSON at 512 tokens; use gpt-4o-mini + json_object mode
 - [Stripe connector + sync quirks](stripe-replit-sync-quirks.md) — connector key is settings.secret (not secret_key); syncBackfill needs {object:"all"} or syncs nothing
+- [Stripe connector multi-env](stripe-connector-multi-env.md) — credential proxy returns dev+prod connections in one items[]; filter by environment (REPL_IDENTITY=dev) or prod silently uses TEST keys
 - [SGI canonical brand logo](sgi-brand-logo.md) — one glyph mirrored in Logo.tsx + favicon.svg + social-card script (run it to regen opengraph.png); sgi-app/dist is gitignored (rebuilt on deploy)
 - [Host fonts & resvg](host-fonts-resvg.md) — only DejaVu fonts on host; Space Grotesk/Inter absent, resvg falls back — set font-family="DejaVu Sans" explicitly
 - [captureRef story-card sizing](captureref-story-card-sizing.md) — fixed 9:16 (1080×1920) capture box silently CROPS overflow; budget content height, use compact diverging bars
