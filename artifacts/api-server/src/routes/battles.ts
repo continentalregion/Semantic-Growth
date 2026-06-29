@@ -37,7 +37,10 @@ const MIN_TEXT = 10;                        // below this, a player's contributi
 const SPARRING_MODEL = "gpt-4o-mini";
 const MAX_HISTORY = 12;                     // messages sent to the sparring model
 
-// ─── Shared themes (server-generated; curated so matchmaking never blocks on an LLM)
+// ─── Fallback theme pool (used when LLM generation fails or times out) ───────
+// These 16 curated themes ensure matchmaking never blocks on an LLM failure.
+// Primary theme generation is LLM-based (generateBattleTheme) with per-user
+// exclusion of already-seen themes and category rotation.
 const THEME_POOL: Array<{ theme: string; category: string }> = [
   { theme: "La coscienza è un fenomeno emergente o una proprietà fondamentale della realtà?", category: "philosophy" },
   { theme: "Il libero arbitrio è compatibile con un universo deterministico?", category: "philosophy" },
@@ -57,8 +60,107 @@ const THEME_POOL: Array<{ theme: string; category: string }> = [
   { theme: "Il caso o la necessità governa l'andamento della storia umana?", category: "history" },
 ];
 
-function pickTheme() {
-  return THEME_POOL[Math.floor(Math.random() * THEME_POOL.length)]!;
+const BATTLE_THEME_CATEGORIES = [
+  "philosophy", "science", "technology", "art", "history", "economics", "politics",
+] as const;
+type BattleCategory = typeof BATTLE_THEME_CATEGORIES[number];
+
+// Fallback: pick from THEME_POOL excluding already-seen themes.
+// If all 16 are seen, exclude only the 8 most recent to guarantee novelty vs. recent sessions.
+function pickThemeFor(seen: string[]): { theme: string; category: string } {
+  const seenSet = new Set(seen);
+  const available = THEME_POOL.filter(t => !seenSet.has(t.theme));
+  if (available.length > 0) {
+    return available[Math.floor(Math.random() * available.length)]!;
+  }
+  // All 16 seen — exclude only the 8 most recent (seen is ordered most-recent-first)
+  const recentSet = new Set(seen.slice(0, 8));
+  const refreshed = THEME_POOL.filter(t => !recentSet.has(t.theme));
+  if (refreshed.length > 0) {
+    return refreshed[Math.floor(Math.random() * refreshed.length)]!;
+  }
+  // Absolute fallback: exclude only the single most recent
+  const notLast = THEME_POOL.filter(t => t.theme !== seen[0]);
+  return notLast[Math.floor(Math.random() * notLast.length)] ?? THEME_POOL[0]!;
+}
+
+// Primary theme generator: LLM call with 2s hard timeout → fallback to pickThemeFor.
+// COST NOTE: theme generation costs ~0.036¢ per battle (gpt-4o-mini, ~720 tokens).
+// This is absorbed by GLOBAL_MONTHLY_BUDGET_CENTS as platform infrastructure cost —
+// NOT charged to the user's aiCostCents — analogous to the auto-title generation
+// in chat.ts. Tracking sub-cent per-user cost would add complexity with no margin benefit.
+async function generateBattleTheme(clerkId: string): Promise<{ theme: string; category: string }> {
+  // Read last 20 themes and last 3 categories for this user (most recent first).
+  const historyResult = await db.execute(sql`
+    SELECT m.theme, m.category
+    FROM battle_entries e
+    JOIN battle_matches m ON m.id = e.match_id
+    WHERE e.user_id = ${clerkId}
+      AND m.status IN ('completed', 'active', 'waiting', 'scoring')
+    ORDER BY m.created_at DESC
+    LIMIT 20
+  `);
+  const rows = (historyResult.rows ?? []) as Array<{ theme: string; category: string }>;
+  const seenThemes = rows.map(r => r.theme);
+  const recentCategories = [...new Set(rows.slice(0, 3).map(r => r.category))];
+
+  // First-time users (no history) skip LLM and go straight to the fallback pool —
+  // any theme is new to them, so variety is guaranteed without an extra LLM call.
+  if (seenThemes.length > 0) {
+    try {
+      const seenList = seenThemes.map((t, i) => `${i + 1}. ${t}`).join("\n");
+      const recentCatList = recentCategories.join(", ") || "none";
+
+      const prompt = `Generate ONE unique intellectual debate theme for a user on SGI, a semantic growth platform.
+
+RULES:
+- Output ONLY valid JSON: {"theme": "...", "category": "..."}
+- "theme" must be a single open-ended question in ITALIAN, 15-25 words, rich and genuinely debatable.
+- "category" must be exactly one of: philosophy, science, technology, art, history, economics, politics
+- The theme must be CONCEPTUALLY DIFFERENT from every entry in SEEN_THEMES — do not overlap in subject, angle, or domain.
+- AVOID all categories in RECENT_CATEGORIES — choose a different category to prevent repeating the same discipline.
+
+SEEN_THEMES (user has debated these — no subject/angle overlap):
+${seenList}
+
+RECENT_CATEGORIES (last 3 — pick a different one):
+${recentCatList}
+
+Return ONLY the JSON object, nothing else.`;
+
+      const llmCall = openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        max_tokens: 80,
+        temperature: 0.9,
+        response_format: { type: "json_object" },
+        messages: [{ role: "user", content: prompt }],
+      });
+      // Hard 2s timeout: a slow Haiku must never block battle creation
+      const timeoutGuard = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("theme-gen timeout")), 2000),
+      );
+
+      const response = await Promise.race([llmCall, timeoutGuard]);
+      const content = response.choices[0]?.message?.content ?? "";
+      const parsed = JSON.parse(content.trim()) as Record<string, unknown>;
+
+      const theme = typeof parsed.theme === "string" ? parsed.theme.trim() : "";
+      const rawCat = parsed.category as string;
+      const category: BattleCategory = (BATTLE_THEME_CATEGORIES as readonly string[]).includes(rawCat)
+        ? (rawCat as BattleCategory)
+        : (BATTLE_THEME_CATEGORIES.find(c => !recentCategories.includes(c)) ?? "philosophy");
+
+      if (theme.length >= 10 && theme.length <= 300) {
+        console.info(`[theme-gen] ok for ${clerkId.slice(0, 8)}: "${theme.slice(0, 60)}…" (${category})`);
+        return { theme, category };
+      }
+      console.warn("[theme-gen] LLM returned invalid theme shape, using fallback");
+    } catch (err) {
+      console.warn("[theme-gen] LLM failed, using fallback:", err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  return pickThemeFor(seenThemes);
 }
 
 // ─── AI sparring partner (Socratic challenger; NOT the opponent being scored) ──
@@ -384,6 +486,11 @@ async function buildMatchView(clerkId: string, matchId: string) {
 }
 
 // ─── POST /battles/matchmake — automatic, race-safe pairing ──────────────────
+// Three-phase flow keeps the LLM theme-generation call OUTSIDE any DB transaction:
+//   Phase 1: optimistic read — resume existing open match (no lock, instant).
+//   Phase 2: locked transaction — join an existing waiting match (no LLM needed).
+//   Phase 3: LLM theme generation → open new match (only when phases 1+2 both miss).
+// This ensures the ~700ms Haiku call only runs for users actually creating a new match.
 router.post("/battles/matchmake", async (req, res) => {
   try {
     const clerkId = getAuth(req).userId;
@@ -394,17 +501,22 @@ router.post("/battles/matchmake", async (req, res) => {
 
     await reconcileExpiredMatches();
 
-    const matchId = await db.transaction(async (tx) => {
-      // 1. If I already have an OPEN entry, resume that match (idempotent).
-      const existing = await tx.execute(sql`
-        SELECT match_id FROM battle_entries
-        WHERE user_id = ${clerkId} AND status IN ('matched', 'in_progress')
-        LIMIT 1
-      `);
-      const existingMatchId = (existing.rows?.[0] as { match_id?: string } | undefined)?.match_id;
-      if (existingMatchId) return existingMatchId;
+    // ── Phase 1: resume existing open entry (no lock, idempotent) ────────────
+    const existingRow = await db.execute(sql`
+      SELECT match_id FROM battle_entries
+      WHERE user_id = ${clerkId} AND status IN ('matched', 'in_progress')
+      LIMIT 1
+    `);
+    const existingMatchId = (existingRow.rows?.[0] as { match_id?: string } | undefined)?.match_id;
+    if (existingMatchId) {
+      const view = await buildMatchView(clerkId, existingMatchId);
+      res.json(view);
+      return;
+    }
 
-      // 2. Claim one waiting match that is NOT mine (lock row, skip contended).
+    // ── Phase 2: join a waiting match (locked transaction, no LLM) ───────────
+    let joinedMatchId: string | null = null;
+    await db.transaction(async (tx) => {
       const waiting = await tx.execute(sql`
         SELECT id FROM battle_matches m
         WHERE m.status = 'waiting'
@@ -423,22 +535,31 @@ router.post("/battles/matchmake", async (req, res) => {
         await tx.update(battleMatches)
           .set({ status: "active", expiresAt: new Date(Date.now() + ACTIVE_TTL_MS), updatedAt: new Date() })
           .where(eq(battleMatches.id, waitingId));
-        return waitingId;
+        joinedMatchId = waitingId;
       }
-
-      // 3. Nobody waiting → open a new match with a fresh shared theme.
-      const picked = pickTheme();
-      const [created] = await tx.insert(battleMatches).values({
-        theme: picked.theme, category: picked.category, status: "waiting",
-        expiresAt: new Date(Date.now() + WAITING_TTL_MS),
-      }).returning({ id: battleMatches.id });
-      await tx.insert(battleEntries).values({
-        matchId: created!.id, userId: clerkId, username, slot: 1, status: "matched",
-      });
-      return created!.id;
     });
 
-    const view = await buildMatchView(clerkId, matchId);
+    if (joinedMatchId) {
+      const view = await buildMatchView(clerkId, joinedMatchId);
+      res.json(view);
+      return;
+    }
+
+    // ── Phase 3: nobody waiting → generate unique theme via LLM, open new match ─
+    // generateBattleTheme reads this user's battle history, calls gpt-4o-mini with
+    // a 2s timeout, and falls back to pickThemeFor(seenThemes) on any failure.
+    const picked = await generateBattleTheme(clerkId);
+
+    const [created] = await db.insert(battleMatches).values({
+      theme: picked.theme, category: picked.category, status: "waiting",
+      expiresAt: new Date(Date.now() + WAITING_TTL_MS),
+    }).returning({ id: battleMatches.id });
+
+    await db.insert(battleEntries).values({
+      matchId: created!.id, userId: clerkId, username, slot: 1, status: "matched",
+    });
+
+    const view = await buildMatchView(clerkId, created!.id);
     res.json(view);
   } catch (err) {
     console.error("[battles] matchmake error", err);
