@@ -1,0 +1,27 @@
+PLAN MODE — prima diagnostica, poi proponi. NON scrivere codice finché non confermo.
+
+CONTESTO
+SGI (sgindex.work): le battaglie sono sfide user-vs-AI con una domanda/prompt su cui l'utente viene valutato sulle 11 metriche semantiche. Problema riscontrato: le battaglie tendono a ripetersi — stesse domande o domande troppo simili, soprattutto per lo STESSO utente che gioca più volte. Voglio che ogni battaglia sia sempre diversa, e in particolare che un utente non riveda mai (o quasi) una domanda già affrontata.
+
+PARTE 1 — DIAGNOSI (rispondi prima di proporre)
+Analizza il codebase e dimmi con precisione, citando file e righe:
+1. Come viene generata o selezionata la domanda/prompt di una battaglia oggi? È:
+   a) pescata da una lista statica/seed nel codice o nel DB,
+   b) generata a runtime da un LLM,
+   c) un mix?
+2. Se è da lista: quante domande esistono in totale? Dove sono?
+3. Se è generata da LLM: qual è il prompt usato, e c'è qualche elemento che varia tra una generazione e l'altra (seed, temperatura, categoria, randomizzazione)? Mostra il prompt esatto.
+4. Esiste GIÀ un tracking di quali domande un utente ha già visto/affrontato? (cerca tabelle tipo battle_history, una colonna sull'utente, log delle battaglie). Se sì, dove?
+5. Come viene scelta la domanda quando lo stesso utente avvia una nuova battaglia? C'è qualche esclusione delle già viste, o è puramente random/ripetibile?
+
+PARTE 2 — CAUSA
+Spiega ESATTAMENTE perché oggi si verificano le ripetizioni. Voglio la causa reale, non una generica. Esempi possibili: lista troppo corta, nessun tracking del visto, random con replacement, prompt LLM identico ogni volta senza variazione, categoria fissa.
+
+PARTE 3 — PROPOSTA DI FIX (non implementare ancora)
+In base alla causa reale, proponi la soluzione più semplice che garantisca varietà per-utente. Considera e confronta queste direzioni, dicendomi quale si adatta al codice attuale:
+- A) Se è LLM-generata: arricchire il prompt con variazione forzata (categoria casuale tra le esistenti, angolazione diversa, e la lista delle ultime N domande già viste dall'utente passata come "evita questi temi").
+- B) Se è da lista statica: tracciare le domande viste per-utente (tabella o colonna) ed escluderle nella selezione; gestire il caso "esaurite tutte" (reset, o passaggio a generazione LLM).
+- C) Approccio ibrido.
+Per l'opzione che raccomandi, elenca: file e righe da toccare, eventuale modifica schema DB, e come gestisci gli edge case (utente nuovo senza storia, domande esaurite, due battaglie avviate quasi simultaneamente).
+
+OUTPUT: prima le risposte 1-5 della diagnosi, poi causa, poi proposta. NIENTE codice finché non dico procedi.
