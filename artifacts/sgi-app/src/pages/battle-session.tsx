@@ -1,13 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useParams } from "wouter";
-import { useAuth } from "@clerk/react";
+import { useAuth, useUser } from "@clerk/react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   Swords, Brain, Trophy, ArrowLeft, Crown, Zap, Clock, Send,
-  Loader2, Users, ChevronDown, Hourglass, Bot,
+  Loader2, Users, ChevronDown, Hourglass, Bot, Share2, Download,
 } from "lucide-react";
 import MarkdownMessage from "@/components/MarkdownMessage";
+import {
+  generatePvpStoryCard,
+  generatePvpSquareCard,
+  shareOrDownloadPvpCard,
+} from "@/lib/pvpBattleCard";
 
 const API_BASE = "/api";
 const MIN_CHARS = 10;
@@ -117,6 +122,7 @@ export default function BattleSessionPage() {
   const { matchId } = useParams<{ matchId: string }>();
   const [, setLocation] = useLocation();
   const { getToken } = useAuth();
+  const { user } = useUser();
   const { t } = useTranslation();
 
   const [view, setView] = useState<MatchView | null>(null);
@@ -128,6 +134,8 @@ export default function BattleSessionPage() {
   const [starting, setStarting] = useState(false);
   const [showAiOffer, setShowAiOffer] = useState(false);
   const [acceptingAi, setAcceptingAi] = useState(false);
+  const [sharing, setSharing] = useState<"story" | "square" | null>(null);
+  const [showShareMenu, setShowShareMenu] = useState(false);
 
   const arenaInit = useRef(false);
   const completing = useRef(false);
@@ -252,6 +260,38 @@ export default function BattleSessionPage() {
       setAcceptingAi(false);
     }
   }, [acceptingAi, matchId, view, authedFetch, load, t]);
+
+  const handleShare = useCallback(async (format: "story" | "square") => {
+    if (!view?.result || sharing) return;
+    setSharing(format);
+    setShowShareMenu(false);
+    try {
+      await document.fonts.ready;
+      await new Promise(r => setTimeout(r, 0));
+      const res = view.result;
+      const myUsername = user?.username ?? user?.firstName ?? "Io";
+      const cardData = {
+        outcome: res.outcome,
+        myRawScore: res.myRawScore,
+        opponentRawScore: res.opponentRawScore,
+        myUsername,
+        opponentUsername: res.opponentUsername,
+        theme: view.theme,
+        category: view.category,
+        vsAi: view.vsAi,
+        aiLevel: view.aiLevel,
+      };
+      const canvas = format === "story"
+        ? generatePvpStoryCard(cardData)
+        : generatePvpSquareCard(cardData);
+      const outcomeWord = res.outcome === "win" ? "vittoria" : res.outcome === "tie" ? "pareggio" : "sconfitta";
+      await shareOrDownloadPvpCard(canvas, format, `SGI Battle — ${outcomeWord}!`);
+    } catch {
+      toast.error("Errore nella generazione della card.");
+    } finally {
+      setSharing(null);
+    }
+  }, [view, sharing, user]);
 
   // Show AI offer after AI_OFFER_AFTER_MS of waiting.
   useEffect(() => {
@@ -545,6 +585,58 @@ export default function BattleSessionPage() {
             <Zap className="w-5 h-5" style={{ color: GOLD }} />
             <span className="text-lg font-black" style={{ color: GOLD }}>+{res.xpAwarded} XP</span>
             <span className="text-xs ml-1" style={{ color: MUTED }}>{t("battle.xpEarned")}</span>
+          </div>
+
+          {/* ── Share card button ─────────────────────────────────────── */}
+          <div className="relative mb-5">
+            <button
+              onClick={() => setShowShareMenu(m => !m)}
+              disabled={!!sharing}
+              className="w-full py-3 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                color: "#eeeeff",
+                opacity: sharing ? 0.6 : 1,
+              }}
+            >
+              {sharing ? (
+                <Loader2 className="w-4 h-4 animate-spin" style={{ color: PURPLE }} />
+              ) : (
+                <Share2 className="w-4 h-4" style={{ color: PURPLE }} />
+              )}
+              {sharing ? "Generando card…" : "Condividi card"}
+            </button>
+            {showShareMenu && !sharing && (
+              <div
+                className="absolute left-0 right-0 mt-1 rounded-xl overflow-hidden z-10"
+                style={{ background: "#13122a", border: "1px solid rgba(124,107,255,0.3)" }}
+              >
+                <button
+                  onClick={() => handleShare("story")}
+                  className="w-full px-4 py-3 text-sm text-left flex items-center gap-3 transition-colors hover:bg-white/5"
+                  style={{ color: "#eeeeff" }}
+                >
+                  <Download className="w-4 h-4 flex-shrink-0" style={{ color: PURPLE }} />
+                  <div>
+                    <div className="font-semibold">Story 9:16</div>
+                    <div className="text-[11px]" style={{ color: MUTED }}>1080×1920 — Instagram / TikTok</div>
+                  </div>
+                </button>
+                <div style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+                <button
+                  onClick={() => handleShare("square")}
+                  className="w-full px-4 py-3 text-sm text-left flex items-center gap-3 transition-colors hover:bg-white/5"
+                  style={{ color: "#eeeeff" }}
+                >
+                  <Download className="w-4 h-4 flex-shrink-0" style={{ color: TEAL }} />
+                  <div>
+                    <div className="font-semibold">Quadrata 1:1</div>
+                    <div className="text-[11px]" style={{ color: MUTED }}>1080×1080 — Feed / Twitter</div>
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
 
           {res.reasoning && (
