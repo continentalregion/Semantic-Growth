@@ -1,0 +1,51 @@
+PLAN MODE — prima fammi un PIANO dettagliato, NON scrivere codice finché non te lo confermo.
+
+CONTESTO
+Report precedente confermato. Stato attuale di SGI (sgindex.work):
+- Tier: Free (20 msg/mese), Premium (600), Pro (2.000). Cap messaggi globale per piano già esistente in pricing.ts.
+- Cap Opus: solo Pro, solo claude-opus-4-8, 150 msg/mese → fallback claude-sonnet-4-6 (FASE 6, chat.ts L287-298).
+- Valvola globale cross-tenant: GLOBAL_MONTHLY_BUDGET_CENTS = 8000 (€80), soglia 85% → tutti a Haiku.
+- Costi blended per msg (MODEL_COST_CENTS_PER_1K): Haiku €0.0005, gpt-4o-mini €0.0003, o4-mini €0.0015, gpt-4o €0.005, sonnet €0.006... ATTENZIONE: il report mostra anche €0.012/msg per Sonnet nei calcoli worst-case (2000 token medi × 0.006/1K = €0.012). Verifica quale dei due è il costo per-messaggio effettivo e usa QUELLO nei calcoli.
+
+PROBLEMI DA RISOLVERE (confermati dal report)
+1. Sonnet non ha sotto-cap. Un utente Pro che usa tutti i 2.000 msg su Sonnet costa ~€24-31 contro ~€19.14 netti → margine NEGATIVO (-23.8% / -60.9%). Premium su Sonnet → +25.7%, sotto il target.
+2. o4-mini è in ALLOWED_MODELS.pro e validato server-side ma NON nel selettore UI → esposizione latente via POST diretta.
+3. La valvola globale €80 è aggregata cross-tenant: con pochi utenti Pro attivi su Sonnet sfora a metà mese e degrada a Haiku ANCHE utenti paganti che non hanno consumato → problema UX/rimborsi.
+
+OBIETTIVO
+Garantire un margine minimo del 40% per OGNI utente pagante, indipendentemente da quale modello sceglie, senza dipendere dalla valvola globale cross-tenant.
+
+SOLUZIONE RICHIESTA — budget di costo per-utente (model-agnostic)
+Invece di limitare i messaggi, limita il COSTO AI per utente al mese. Voglio che tu progetti questo:
+
+A) Nuova colonna DB su users: aiCostCents (intero, cent) — costo AI accumulato nel mese corrente. Si resetta insieme a opusMessagesUsed e monthlyMessagesUsed in resetMonthlyIfNeeded.
+
+B) Tetto di costo per-utente per tier, calcolato così:
+   tetto_costo = ricavo_netto_reale × (1 - margine_minimo)
+   con margine_minimo = 0.40 e ricavo_netto_reale che include la fee Stripe REALE (1.5% + €0.25, NON il 3% flat attuale — vedi problema 7 del report precedente).
+   - Premium: netto ~€9.44 → tetto AI ~€5.66
+   - Pro: netto ~€19.14 → tetto AI ~€11.48
+   Mostrami i numeri esatti che calcoli e da quali costanti li derivi.
+
+C) Logica server-side in chat.ts (FASE prima dell'invio al provider):
+   - Incrementa aiCostCents con il costo reale del messaggio DOPO ogni risposta (usa i token effettivi dell'API, non la stima).
+   - PRIMA di servire un messaggio: se aiCostCents >= tetto_del_tier → forza il modello a claude-haiku-4-5 (il più economico) indipendentemente da cosa l'utente ha scelto, e setta un flag tipo costCapReached = true.
+   - Questo SOSTITUISCE concettualmente il sotto-cap Opus? Valuta tu: il cap Opus a 150 msg può restare come limite di qualità/percezione, ma il vero limite economico ora è aiCostCents. Dimmi se tenerli entrambi o se il cap costo rende ridondante quello Opus.
+
+D) Payload SSE 'done': includi costCapReached e, quando scatta, { aiCostCents, tierLimit, fallbackModel }.
+
+E) Frontend: toast IT/EN/ES tipo "Hai raggiunto il limite di utilizzo mensile del tuo piano. I messaggi successivi useranno un modello più veloce." — NON menzionare costi o euro all'utente.
+
+F) Chiudi o4-mini: rimuovilo da ALLOWED_MODELS.pro (o aggiungilo al selettore UI se lo vuoi offrire — dimmi tu le due opzioni). Deve sparire l'incoerenza UI/API.
+
+G) Valvola globale €80: NON rimuoverla, ma riposizionala come tetto di emergenza puro (anti-abuso/runaway), alzandola o documentandola come tale, dato che ora la protezione vera è per-utente. Proponimi un nuovo valore sensato in base al numero di utenti paganti (assumendo scenari da 10, 50, 200 utenti Pro).
+
+OUTPUT DEL PIANO
+1. Lista esatta dei file e delle righe che modificheresti.
+2. I tetti di costo per-utente calcolati, con la formula e le costanti.
+3. La risposta alla domanda C (tenere o rimuovere il cap Opus).
+4. Le due opzioni per o4-mini (F).
+5. La proposta per la valvola globale (G) con i tre scenari.
+6. Eventuali edge case: cosa succede a un utente che è a metà di una risposta lunga quando scatta il cap? Reset a cavallo di mezzanotte fine mese? Race condition sull'incremento concorrente di aiCostCents?
+
+NON scrivere codice. Voglio prima vedere il piano e i numeri, poi ti dico di procedere.
