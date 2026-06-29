@@ -1,0 +1,50 @@
+PLAN MODE — NON scrivere né modificare codice. Voglio solo un'analisi e un report.
+
+CONTESTO
+Sto costruendo SGI (sgindex.work), una chat semantica con selezione modello multi-provider.
+Tier utente: Fast (base), Premium, Pro.
+Selettore modelli attuale:
+- Claude Haiku 4 → Fast
+- Claude Sonnet 4 → Premium
+- Claude Opus 4 → Pro
+- GPT-4o Mini → Premium
+- GPT-4o → Pro
+
+Ho già implementato un cap mensile SOLO su Opus (OPUS_MONTHLY_LIMIT = 150, con downgrade automatico a un fallback). Nessun altro modello è cappato. Devo capire il margine reale e il worst-case economico per ogni tier a pagamento.
+
+COSA VOGLIO DA TE (report, non codice)
+Analizza il codebase e rispondi in modo preciso a TUTTO questo. Dove non trovi un dato nel codice, scrivi esplicitamente "NON TROVATO IN CODICE" invece di inventare.
+
+1. MAPPATURA MODELLI → STRINGHE API
+   - Per ogni modello nel selettore, qual è la stringa API esatta inviata al provider? (cerca in pricing.ts, chat.ts, e ovunque si costruisca la richiesta)
+   - Verifica che le stringhe corrispondano ai nomi mostrati nel selettore frontend.
+   - Segnala ogni mismatch tra label UI e model ID reale.
+
+2. COSTI UNITARI PER MODELLO
+   - Per ogni modello, trova/deduci il costo per 1M token input e output usato nei calcoli (se hardcoded da qualche parte) o dimmi che non è codificato.
+   - Indica se esiste una funzione/costante che stima il costo per messaggio. Se sì, mostra la formula esatta (token medi input/output assunti per messaggio).
+
+3. CAP E LIMITI ESISTENTI
+   - Elenca TUTTI i limiti mensili/giornalieri/per-messaggio presenti nel codice, per ogni modello e per ogni tier.
+   - Conferma se Opus è l'unico modello cappato. Se ci sono altri cap, elencali.
+   - Mostra dove e come viene fatto il downgrade (FASE 6 in chat.ts) e qual è il fallback configurato.
+
+4. PREZZI DEI PIANI
+   - Trova il prezzo mensile di ogni tier (Fast/Premium/Pro) come configurato in Stripe o nel codice.
+   - Indica l'importo netto stimato dopo le commissioni Stripe, se calcolato da qualche parte.
+
+5. PROVENIENZA CHIAMATE OPENAI
+   - GPT-4o e GPT-4o Mini: le chiamate passano dalla mia API key OpenAI (costo a mio carico) o da un proxy/accordo terzo? Mostra dove sono configurate le credenziali.
+
+6. WORST-CASE PER TIER (calcolo, non codice)
+   Per Premium e Pro separatamente, costruisci il worst-case economico:
+   - Assumi che l'utente usi per tutto il mese il modello PIÙ COSTOSO selezionabile nel suo tier, al massimo volume plausibile.
+   - Se non c'è un cap globale di messaggi/mese, segnalalo come RISCHIO APERTO e indica che il worst-case è teoricamente illimitato.
+   - Dammi: costo modello più caro × volume, ricavo netto del tier, margine % risultante.
+
+7. BUCHI LOGICI
+   - Segnala qualsiasi percorso in cui un utente può accumulare costi non cappati (es. uso diretto di Sonnet o GPT-4o senza passare da Opus).
+   - Segnala se il contatore Opus o il flag di downgrade non si resettano correttamente a inizio mese.
+
+OUTPUT
+Un report strutturato punto per punto (1–7). Per ogni numero che fornisci, cita il file e la riga da cui proviene. Non proporre fix in questa fase: prima voglio la fotografia esatta dello stato attuale.
