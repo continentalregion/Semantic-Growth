@@ -114,3 +114,12 @@ export async function getStripeSync(): Promise<StripeSync> {
     stripeWebhookSecret: webhookSecret ?? "",
   });
 }
+
+/**
+ * Whether the active Stripe credentials are LIVE keys. Mode is encoded in the
+ * key itself (`_live_` / `_test_`), so this needs no API round-trip.
+ */
+export async function isStripeLiveMode(): Promise<boolean> {
+  const { secretKey } = await getStripeCredentials();
+  return secretKey.includes("_live_");
+}

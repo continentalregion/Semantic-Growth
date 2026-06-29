@@ -6,6 +6,7 @@ import { users } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { seedDemoData } from "./lib/demoSeed";
 import { getStripeSync } from "./lib/stripeClient";
+import { cleanupForeignModeStripeData } from "./lib/cleanupStripeData";
 
 const rawPort = process.env["PORT"];
 
@@ -60,6 +61,12 @@ async function initStripe() {
     // Creates/verifies the `stripe` schema (the schema name is fixed by the lib).
     await runMigrations({ databaseUrl });
     logger.info("[stripe] schema ready");
+
+    // Remove leftover rows from the other Stripe mode (e.g. test-mode data
+    // synced while production briefly ran on test keys) BEFORE the backfill —
+    // stale customers otherwise break per-customer sync steps with
+    // "No such customer". Idempotent and self-guarded.
+    await cleanupForeignModeStripeData();
 
     const stripeSync = await getStripeSync();
     const domain = process.env.REPLIT_DOMAINS?.split(",")[0];

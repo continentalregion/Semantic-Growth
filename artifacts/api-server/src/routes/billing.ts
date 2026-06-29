@@ -36,13 +36,45 @@ function withParam(url: string, key: string, value: string): string {
   return u.toString();
 }
 
-/** Ensure the user has a Stripe customer id, creating one if needed (race-safe). */
+/** True for Stripe "resource_missing" errors — e.g. a customer or price that
+ * does not exist in the Stripe environment the active key points at. */
+function isResourceMissing(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    (err as { code?: unknown }).code === "resource_missing"
+  );
+}
+
+/** Ensure the user has a Stripe customer id, creating one if needed (race-safe).
+ * Also self-heals a stale id: a customer created under a previous key set (e.g.
+ * a test customer left from when production briefly ran on test keys) is
+ * `resource_missing` in live mode, which would make every checkout fail with
+ * "No such customer". In that case we drop it and create a fresh one. */
 async function ensureStripeCustomer(userId: number): Promise<string | null> {
   const [current] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!current) return null;
-  if (current.stripeCustomerId) return current.stripeCustomerId;
 
   const stripe = await getUncachableStripeClient();
+
+  // Reuse the stored customer ONLY if it still exists in the current Stripe
+  // environment; otherwise drop it and fall through to create a new one.
+  if (current.stripeCustomerId) {
+    try {
+      const existing = await stripe.customers.retrieve(current.stripeCustomerId);
+      const isDeleted = "deleted" in existing && existing.deleted === true;
+      if (!isDeleted) return current.stripeCustomerId;
+    } catch (err) {
+      if (!isResourceMissing(err)) throw err;
+    }
+    // Stale or deleted — clear it, but only if the row still holds this exact
+    // id (a concurrent request may already have replaced it).
+    await db
+      .update(users)
+      .set({ stripeCustomerId: null })
+      .where(and(eq(users.id, userId), eq(users.stripeCustomerId, current.stripeCustomerId)));
+  }
+
   const isPlaceholderEmail = current.email.endsWith("@clerk.local");
   const customer = await stripe.customers.create({
     ...(isPlaceholderEmail ? {} : { email: current.email }),
@@ -176,13 +208,16 @@ router.post("/billing/portal", async (req, res) => {
       res.status(404).json({ error: "User not found" });
       return;
     }
-    if (!user.stripeCustomerId) {
+    // Validate/recreate the customer in the current Stripe environment so a
+    // stale id self-heals instead of throwing "No such customer".
+    const customerId = await ensureStripeCustomer(user.id);
+    if (!customerId) {
       res.status(400).json({ error: "No billing account" });
       return;
     }
     const stripe = await getUncachableStripeClient();
     const session = await stripe.billingPortal.sessions.create({
-      customer: user.stripeCustomerId,
+      customer: customerId,
       return_url: safeReturnUrl(req, req.body?.returnUrl),
     });
     res.json({ url: session.url });

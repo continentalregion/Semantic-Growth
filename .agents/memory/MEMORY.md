@@ -6,6 +6,7 @@
 - [req.auth is a function in @clerk/express v2](clerk-req-auth-function.md) — req.auth?.userId is ALWAYS undefined; use getAuth(req).userId from @clerk/express
 - [SGI scoring model](sgi-scoring-model.md) — gpt-5-nano truncates scoring JSON at 512 tokens; use gpt-4o-mini + json_object mode
 - [Stripe connector + sync quirks](stripe-replit-sync-quirks.md) — connector key is settings.secret (not secret_key); syncBackfill needs {object:"all"} or syncs nothing
+- [Stripe test→live migration poisons data](stripe-test-to-live-migration.md) — stale test stripeCustomerId + test rows break live checkout/backfill; self-heal via retrieve() + startup purge by livemode (app code only; tool blocks stripe.* writes, prod DB read-only)
 - [Stripe connector multi-env](stripe-connector-multi-env.md) — credential proxy returns dev+prod connections in one items[]; filter by environment (REPL_IDENTITY=dev) or prod silently uses TEST keys
 - [SGI canonical brand logo](sgi-brand-logo.md) — one glyph mirrored in Logo.tsx + favicon.svg + social-card script (run it to regen opengraph.png); sgi-app/dist is gitignored (rebuilt on deploy)
 - [Host fonts & resvg](host-fonts-resvg.md) — only DejaVu fonts on host; Space Grotesk/Inter absent, resvg falls back — set font-family="DejaVu Sans" explicitly
