@@ -700,7 +700,8 @@ router.post("/battles/matches/:id/ai-join", async (req, res) => {
     const VALID_LEVELS: AiLevel[] = ["sfidante", "pensatore", "maestro"];
     const level: AiLevel = VALID_LEVELS.includes(rawLevel as AiLevel) ? (rawLevel as AiLevel) : "pensatore";
 
-    // Verify requester is slot1 of this match and match is still waiting.
+    // Atomically claim the waiting match and retrieve the server-side theme.
+    // We return `theme` here so we never trust client-supplied theme for AI generation.
     const claim = await db.execute(sql`
       UPDATE battle_matches
       SET status = 'active',
@@ -714,7 +715,7 @@ router.post("/battles/matches/:id/ai-join", async (req, res) => {
           SELECT 1 FROM battle_entries
           WHERE match_id = ${matchId} AND user_id = ${clerkId}
         )
-      RETURNING id
+      RETURNING id, theme
     `);
 
     if (!claim.rows?.length) {
@@ -723,8 +724,9 @@ router.post("/battles/matches/:id/ai-join", async (req, res) => {
       return;
     }
 
-    // Generate AI argument (non-blocking from user's perspective: AI is already "done").
-    const aiText = await generateAiArgument(req.body?.theme ?? "", level);
+    // Use server-side theme only — never trust req.body.theme.
+    const matchTheme = (claim.rows[0] as { theme: string }).theme;
+    const aiText = await generateAiArgument(matchTheme, level);
 
     await db.insert(battleEntries).values({
       matchId,
