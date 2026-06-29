@@ -1,0 +1,14 @@
+In Plan mode prima — analizza e proponi, applicheremo dopo la mia conferma. Obiettivo: aggiungere un avversario AI a livelli di difficoltà come fallback dichiarato quando non ci sono utenti umani in coda.
+Comportamento desiderato:
+	1.	Nel matchmaking (battles.ts), quando l’utente è in “waiting” e non c’è nessun umano, dopo un breve timeout (configurabile, ~20s) offri l’opzione di sfidare un avversario AI, chiaramente dichiarato come AI nella UI (non mascherato da umano).
+	2.	L’utente sceglie un livello di difficoltà: Sfidante (facile), Pensatore (medio), Maestro (difficile).
+	3.	Il livello regola la forza dell’argomentazione dell’AI avversaria, NON la soglia di punteggio:
+	•	Sfidante: l’AI argomenta in modo semplice, breve, con un solo punto principale, prevedibile.
+	•	Pensatore: argomentazione media, un paio di punti, struttura discreta.
+	•	Maestro: argomentazione densa, multi-punto, ben strutturata e persuasiva.
+	4.	Il punteggio resta onesto: riusa la logica di scoring esistente (pvpBattleScoring.ts) per valutare sia l’utente sia l’AI sulla qualità reale dell’argomentazione. La difficoltà influenza solo quanto è forte il testo prodotto dall’AI, non come viene calcolato il punteggio.
+	5.	La battle vs AI produce lo stesso output di una battle umana (card risultato, XP, punteggio), ma marcata internamente come “vs AI livello X” per le statistiche.
+	6.	Se durante l’attesa arriva un umano vero, l’umano ha la precedenza.
+	7.	La card del risultato deve mostrare il livello affrontato (es. “Vittoria vs AI — Maestro”), così è condivisibile come trofeo.
+Vincoli: NON cambiare la logica di scoring esistente né il timer 390s. NON dare handicap di punteggio all’utente — la vittoria deve essere reale. Riusa il codice esistente il più possibile. Mantieni il responsive già sistemato. Modalità Economy.
+Output in Plan: quali file toccheresti, come implementeresti i tre livelli (come istruisci l’AI a giocare più o meno forte), come gestisci la race condition umano-vs-AI, e i rischi. Non scrivere codice finché non confermo.

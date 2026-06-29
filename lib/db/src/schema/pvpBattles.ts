@@ -28,6 +28,7 @@ export const battleMatches = pgTable("battle_matches", {
   status: text("status").$type<PvpMatchStatus>().notNull().default("waiting"),
   winnerUserId: text("winner_user_id"), // clerk id of the winner (null until resolved / on tie)
   tie: boolean("tie").notNull().default(false),
+  vsAi: boolean("vs_ai").notNull().default(false),
   comparison: jsonb("comparison").$type<PvpComparison>(),
   resolvedAt: timestamp("resolved_at", { withTimezone: true }),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
