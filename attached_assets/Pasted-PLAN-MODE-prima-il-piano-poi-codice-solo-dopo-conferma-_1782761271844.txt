@@ -1,0 +1,26 @@
+PLAN MODE — prima il piano, poi codice solo dopo conferma.
+
+Confermata la diagnosi: i temi battaglia sono 16 hardcoded in THEME_POOL (battles.ts L41-58), pescati con Math.floor(Math.random()*length) con replacement e nessuna esclusione (pickTheme L60-62). battle_matches salva già theme/category (L431-434) ma non viene mai letto. Nessun tracking delle viste per-utente è usato.
+
+OBIETTIVO: ogni battaglia deve avere un tema sempre diverso per lo stesso utente, con varietà che non si esaurisca dopo 16 partite.
+
+Voglio una soluzione a due livelli nello stesso intervento:
+
+LIVELLO 1 — Generazione LLM del tema (motore primario)
+- Nuova funzione generateBattleTheme(userId) che genera a runtime un tema/domanda nuovo via LLM.
+- Nel prompt LLM passa come vincolo gli ultimi N temi già affrontati dall'utente (leggi da battle_matches per quel userId, ultimi ~20) con istruzione esplicita "genera un tema concettualmente diverso da questi, evita sovrapposizioni di argomento".
+- Il tema generato deve rispettare lo stesso formato { theme, category } usato oggi, con category presa dall'insieme delle 6 esistenti (philosophy, science, technology, art, history, economics, politics).
+- Usa un modello economico per questa generazione (Haiku) e tieni il costo dentro il sistema aiCostCents già esistente — il tema-generation NON deve bypassare il cost cap.
+
+LIVELLO 2 — Fallback sulla lista statica
+- Se la generazione LLM fallisce o va in timeout, ricadi su THEME_POOL MA con esclusione: filtra i temi già visti dall'utente (da battle_matches), pesca random tra i rimanenti.
+- Se tutti i 16 sono esauriti, pesca il meno recente (evita di ridare l'ultimo giocato).
+
+DIAGNOSI PRIMA DI IMPLEMENTARE — rispondimi a queste, poi proponi il piano file/righe:
+1. generateBattleAiAnswer usa la domanda DOPO la scelta del tema: cambiando il modo in cui il tema nasce, qualcosa a valle si rompe? (scoring, evaluatePvpBattle, formato salvato)
+2. Le battaglie PvP umano-vs-umano usano lo stesso THEME_POOL? Se sì, la generazione LLM va applicata anche lì o solo alle battaglie vs-AI?
+3. Quanto costa una generazione tema via Haiku (stima token) e quanto incide sul budget per-utente?
+4. Edge case: due battaglie avviate quasi simultaneamente dallo stesso utente (matchmake è già idempotente sul match aperto — la generazione tema rispetta quella idempotenza o rischia due temi diversi per lo stesso match?).
+5. Latenza: generare il tema via LLM aggiunge attesa all'avvio battaglia. Quanta? Va mostrato uno stato di loading?
+
+NIENTE codice finché non rispondi a 1-5 e non confermo.
