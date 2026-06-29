@@ -1,8 +1,8 @@
 import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { users, sgiSnapshots, leaderboardEntries, gamification, badges, missions, recommendations, semanticDomains } from "@workspace/db";
-import { eq, desc, gte, and, asc, sql } from "drizzle-orm";
+import { users, sgiSnapshots, leaderboardEntries, gamification, badges, missions, recommendations, semanticDomains, conversations, messages, threads, blockedAttempts } from "@workspace/db";
+import { eq, desc, gte, and, asc, sql, inArray } from "drizzle-orm";
 import { SyncUserBody } from "@workspace/api-zod";
 import { computeLevel, xpToNextLevel as xpToNext, levelProgress as lvlProgress, BADGE_DEFINITIONS, computeMacroDimensions } from "../lib/sgiScoring";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
@@ -512,6 +512,42 @@ router.get("/users/:clerkId/predictions", async (req, res) => {
   const realistic = { sgi30d: project(30, 1).sgi, rank30d: project(30, 1).rank, sgi90d: project(90, 1).sgi, rank90d: project(90, 1).rank, sgi180d: project(180, 1).sgi, rank180d: project(180, 1).rank };
   const optimistic = { sgi30d: project(30, 2).sgi, rank30d: project(30, 2).rank, sgi90d: project(90, 2).sgi, rank90d: project(90, 2).rank, sgi180d: project(180, 2).sgi, rank180d: project(180, 2).rank };
   res.json({ conservative, realistic, optimistic });
+});
+
+router.delete("/users/me", async (req, res) => {
+  try {
+    const authUserId = getAuth(req).userId;
+    if (!authUserId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    const [user] = await db.select().from(users).where(eq(users.clerkId, authUserId)).limit(1);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const userId = user.id;
+
+    await db.transaction(async (tx) => {
+      const userConvos = await tx.select({ id: conversations.id }).from(conversations).where(eq(conversations.userId, userId));
+      const convoIds = userConvos.map((c) => c.id);
+      if (convoIds.length > 0) {
+        await tx.delete(messages).where(inArray(messages.conversationId, convoIds));
+      }
+      await tx.delete(conversations).where(eq(conversations.userId, userId));
+      await tx.delete(threads).where(eq(threads.userId, userId));
+      await tx.delete(blockedAttempts).where(eq(blockedAttempts.userId, userId));
+      await tx.delete(recommendations).where(eq(recommendations.userId, userId));
+      await tx.delete(missions).where(eq(missions.userId, userId));
+      await tx.delete(badges).where(eq(badges.userId, userId));
+      await tx.delete(semanticDomains).where(eq(semanticDomains.userId, userId));
+      await tx.delete(sgiSnapshots).where(eq(sgiSnapshots.userId, userId));
+      await tx.delete(leaderboardEntries).where(eq(leaderboardEntries.userId, userId));
+      await tx.delete(gamification).where(eq(gamification.userId, userId));
+      await tx.delete(users).where(eq(users.id, userId));
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("[DELETE /users/me]", err);
+    res.status(500).json({ error: "Failed to delete account" });
+  }
 });
 
 export default router;

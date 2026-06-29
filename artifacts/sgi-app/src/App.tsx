@@ -30,6 +30,10 @@ import BattleSessionPage from "@/pages/battle-session";
 import BattleCardPage from "@/pages/battle-card";
 import BattlesPage from "@/pages/battles";
 import AdminPage from "@/pages/admin";
+import PrivacyPolicy from "@/pages/privacy-policy";
+import Terms from "@/pages/terms";
+import { CookieBanner } from "@/components/CookieBanner";
+import { OnboardingModal } from "@/components/OnboardingModal";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -388,8 +392,12 @@ function ClerkProviderWithRoutes() {
           <Route path="/threads/:id" component={() => <ProtectedRoute component={ThreadDetailPage} />} />
           <Route path="/battle-cards/:id" component={() => <ProtectedRoute component={BattleCardPage} />} />
           <Route path="/admin" component={() => <ProtectedRoute component={AdminPage} />} />
+          <Route path="/privacy-policy" component={PrivacyPolicy} />
+          <Route path="/terms" component={Terms} />
           <Route component={NotFound} />
         </Switch>
+        <CookieBanner />
+        <OnboardingModal />
       </QueryClientProvider>
     </ClerkProvider>
   );

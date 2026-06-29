@@ -277,6 +277,26 @@ export default function Home() {
           </Button>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="container mx-auto px-6 pb-10 relative z-10">
+        <div className="border-t border-border/50 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Semantic Growth Index — sgindex.work
+          </p>
+          <div className="flex items-center gap-5 text-xs text-muted-foreground">
+            <Link href="/privacy-policy" className="hover:text-foreground transition-colors no-underline">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="hover:text-foreground transition-colors no-underline">
+              Termini di Servizio
+            </Link>
+            <a href="mailto:support@sgindex.work" className="hover:text-foreground transition-colors">
+              Supporto
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

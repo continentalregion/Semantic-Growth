@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useUser } from "@clerk/react";
+import { useUser, useClerk } from "@clerk/react";
 import {
   useGetMyProfile,
   useCreateBillingCheckout,
@@ -12,19 +12,37 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Crown, User, Shield, CheckCircle2, Star, CreditCard, Loader2 } from "lucide-react";
+import { Crown, User, Shield, CheckCircle2, Star, CreditCard, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
 export default function Settings() {
   const { t } = useTranslation();
   const { user } = useUser();
+  const { signOut } = useClerk();
   const queryClient = useQueryClient();
   const { data: profile, isLoading } = useGetMyProfile();
   const [showUpgradeModal, setShowUpgradeModal] = useState<"premium" | "pro" | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
 
   const checkout = useCreateBillingCheckout();
   const portal = useCreateBillingPortal();
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== "ELIMINA") return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch("/api/users/me", { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      await user?.delete();
+      await signOut();
+    } catch {
+      toast.error("Errore durante l'eliminazione. Riprova o contatta support@sgindex.work");
+      setIsDeleting(false);
+    }
+  };
 
   const plan = profile?.plan ?? "free";
   const isPremium = plan === "premium";
@@ -314,6 +332,79 @@ export default function Settings() {
           <p className="text-xs text-muted-foreground leading-relaxed">{t("settings.privacyNotice")}</p>
         </CardContent>
       </Card>
+
+      {/* Danger zone */}
+      <Card className="bg-card/30 backdrop-blur" style={{ borderColor: "rgba(247,37,133,0.25)" }}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base text-red-400">
+            <Trash2 className="w-5 h-5" /> Zona pericolosa
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Eliminare l'account cancellerà permanentemente tutti i tuoi dati SGI — punteggio, conversazioni, storico, badge. L'operazione è <strong className="text-foreground">irreversibile</strong>.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+            onClick={() => { setShowDeleteModal(true); setDeleteConfirm(""); }}
+            data-testid="button-delete-account"
+          >
+            <Trash2 className="w-4 h-4" />
+            Elimina account
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Delete account confirmation modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md bg-card" style={{ border: "1px solid rgba(247,37,133,0.3)" }}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-red-400">
+                <Trash2 className="w-5 h-5" /> Elimina account
+              </CardTitle>
+              <CardDescription>
+                Questa operazione è irreversibile. Tutti i tuoi dati saranno cancellati definitivamente.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-xl p-4" style={{ background: "rgba(247,37,133,0.06)", border: "1px solid rgba(247,37,133,0.2)" }}>
+                <p className="text-sm text-muted-foreground">
+                  Per confermare, scrivi <strong className="text-foreground font-mono">ELIMINA</strong> nel campo qui sotto:
+                </p>
+                <input
+                  type="text"
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                  placeholder="ELIMINA"
+                  className="mt-3 w-full bg-transparent border border-border rounded-md px-3 py-2 text-sm font-mono outline-none focus:border-red-500/50 transition-colors"
+                  data-testid="input-delete-confirm"
+                />
+              </div>
+              <Button
+                className="w-full gap-2 font-semibold"
+                style={{ background: deleteConfirm === "ELIMINA" ? "#f72585" : "rgba(247,37,133,0.2)", color: "#fff" }}
+                disabled={isDeleting || deleteConfirm !== "ELIMINA"}
+                onClick={handleDeleteAccount}
+                data-testid="button-confirm-delete"
+              >
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {isDeleting ? "Eliminazione in corso..." : "Elimina definitivamente"}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={isDeleting}
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Annulla
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Upgrade / Checkout confirmation modal */}
       {showUpgradeModal && (

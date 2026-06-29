@@ -2,8 +2,9 @@ import { useGetMyProfile, useGetSgiHistory } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
-import { ArrowUpRight, ArrowDownRight, Activity, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Activity, TrendingUp, TrendingDown, Minus, Share2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 interface MacroDim {
   key: "profondita" | "connettivita" | "precisione" | "revisione";
@@ -59,6 +60,20 @@ export default function Dashboard() {
 
   const startScore = chartData[0]?.score;
 
+  const handleShare = async () => {
+    const text = `Il mio SGI è ${sgi.toFixed(1)} — misuro l'evoluzione della mia mente su sgindex.work`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Semantic Growth Index", text, url: "https://sgindex.work" });
+      } else {
+        await navigator.clipboard.writeText(text);
+        toast.success("Copiato negli appunti!");
+      }
+    } catch {
+      // user cancelled share
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-wrap justify-between items-end gap-2">
@@ -98,6 +113,13 @@ export default function Dashboard() {
                 {isPositiveDaily ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
                 {dailyDelta >= 0 ? '+' : ''}{dailyDelta.toFixed(2)} (24h)
               </div>
+              <button
+                onClick={handleShare}
+                className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                Condividi punteggio
+              </button>
             </div>
           </CardContent>
         </Card>
