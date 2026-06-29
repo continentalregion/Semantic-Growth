@@ -20,6 +20,12 @@ import {
   type PvpAnswerScore,
 } from "../lib/pvpBattleScoring";
 import { updateLeaderboardRank } from "./users";
+import {
+  AI_PLAYER_ID,
+  AI_USERNAME,
+  generateAiArgument,
+  type AiLevel,
+} from "../lib/aiOpponent";
 
 const router = Router();
 
@@ -93,6 +99,7 @@ function isExpired(entry: Pick<BattleEntry, "startedAt">): boolean {
 // of the *match* is guaranteed by the resolution claim, so this runs at most once.
 async function awardXp(clerkId: string, xp: number): Promise<void> {
   if (xp <= 0) return;
+  if (clerkId === AI_PLAYER_ID) return; // AI player has no DB user
   const user = await getOrCreateUser(clerkId);
   if (!user) return;
   const today = new Date().toISOString().split("T")[0]!;
@@ -114,6 +121,7 @@ async function awardXp(clerkId: string, xp: number): Promise<void> {
 // earned by beating a HUMAN opponent). badges has no (user,key) unique index, so
 // we guard with a read before insert.
 async function awardVictorBadge(clerkId: string): Promise<void> {
+  if (clerkId === AI_PLAYER_ID) return; // AI player has no DB user
   const user = await getOrCreateUser(clerkId);
   if (!user) return;
   const existing = await db.select({ id: badges.id }).from(badges)
@@ -357,6 +365,9 @@ async function buildMatchView(clerkId: string, matchId: string) {
     theme: match.theme,
     category: match.category,
     createdAt: match.createdAt,
+    waitingSince: match.status === "waiting" ? match.createdAt : null,
+    vsAi: match.vsAi,
+    aiLevel: match.aiLevel ?? null,
     mySlot: mine.slot,
     myEntryStatus: mine.status,
     startedAt: mine.startedAt,
@@ -364,7 +375,9 @@ async function buildMatchView(clerkId: string, matchId: string) {
     turnWindowSeconds: TURN_WINDOW_S,
     myMessages,
     opponentPresent: !!opponent,
-    opponentUsername: completed ? (opponent?.username ?? "Avversario") : (opponent ? "Avversario" : null),
+    opponentUsername: completed
+      ? (opponent?.username ?? "Avversario")
+      : (opponent ? (opponent.username ?? "Avversario") : null),
     opponentCompleted: opponent?.status === "completed" || opponent?.status === "forfeit",
     result,
   };
@@ -467,6 +480,8 @@ router.get("/battles/matches/me", async (req, res) => {
         timeRemaining: timeRemaining(e),
         result: myResult,
         myRawScore: m.status === "completed" ? (iAmSlot1 ? m.comparison?.slot1RawScore ?? 0 : m.comparison?.slot2RawScore ?? 0) : null,
+        vsAi: m.vsAi,
+        aiLevel: m.aiLevel ?? null,
       };
     }).filter(Boolean);
 
@@ -672,6 +687,66 @@ router.post("/battles/matches/:id/complete", async (req, res) => {
   }
 });
 
+// ─── POST /battles/matches/:id/ai-join — accept AI opponent at chosen level ───
+// Atomically claims a "waiting" match and inserts a pre-completed AI entry.
+// Returns 409 HUMAN_JOINED if a real human claimed the match in the meantime.
+router.post("/battles/matches/:id/ai-join", async (req, res) => {
+  try {
+    const clerkId = getAuth(req).userId;
+    if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const matchId = req.params.id!;
+
+    const rawLevel: unknown = req.body?.level;
+    const VALID_LEVELS: AiLevel[] = ["sfidante", "pensatore", "maestro"];
+    const level: AiLevel = VALID_LEVELS.includes(rawLevel as AiLevel) ? (rawLevel as AiLevel) : "pensatore";
+
+    // Verify requester is slot1 of this match and match is still waiting.
+    const claim = await db.execute(sql`
+      UPDATE battle_matches
+      SET status = 'active',
+          vs_ai  = true,
+          ai_level = ${level},
+          expires_at = now() + make_interval(secs => ${ACTIVE_TTL_MS / 1000}),
+          updated_at = now()
+      WHERE id = ${matchId}
+        AND status = 'waiting'
+        AND EXISTS (
+          SELECT 1 FROM battle_entries
+          WHERE match_id = ${matchId} AND user_id = ${clerkId}
+        )
+      RETURNING id
+    `);
+
+    if (!claim.rows?.length) {
+      // Match was taken by a human or no longer waiting — let frontend handle it.
+      res.status(409).json({ error: "Match not available for AI join", code: "HUMAN_JOINED" });
+      return;
+    }
+
+    // Generate AI argument (non-blocking from user's perspective: AI is already "done").
+    const aiText = await generateAiArgument(req.body?.theme ?? "", level);
+
+    await db.insert(battleEntries).values({
+      matchId,
+      userId: AI_PLAYER_ID,
+      username: AI_USERNAME,
+      slot: 2,
+      status: "completed",
+      userText: aiText,
+      messages: [],
+      startedAt: new Date(),
+      completedAt: new Date(),
+    });
+
+    const view = await buildMatchView(clerkId, matchId);
+    if (!view) { res.status(404).json({ error: "Match not found after AI join" }); return; }
+    res.json(view);
+  } catch (err) {
+    console.error("[battles] ai-join error", err);
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
 // ─── GET /battles/public — feed of resolved PvP matches ──────────────────────
 router.get("/battles/public", async (_req, res) => {
   try {
@@ -701,7 +776,7 @@ router.get("/battles/public", async (_req, res) => {
       return {
         id: m.id,
         createdAt: m.resolvedAt ?? m.createdAt,
-        isVsAi: false,
+        isVsAi: m.vsAi,
         theme: m.theme,
         category: m.category,
         player1: { username: e1.username ?? "Anonimo", rawScore: r1, isWinner: m.winnerUserId === e1.userId },

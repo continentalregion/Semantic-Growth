@@ -5,12 +5,16 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   Swords, Brain, Trophy, ArrowLeft, Crown, Zap, Clock, Send,
-  Loader2, Users, ChevronDown, Hourglass,
+  Loader2, Users, ChevronDown, Hourglass, Bot,
 } from "lucide-react";
 import MarkdownMessage from "@/components/MarkdownMessage";
 
 const API_BASE = "/api";
 const MIN_CHARS = 10;
+const AI_OFFER_AFTER_MS = 25_000;
+const AI_USERNAME = "Avversario AI";
+
+type AiLevel = "sfidante" | "pensatore" | "maestro";
 
 type Role = "user" | "assistant";
 interface Msg { role: Role; content: string; timestamp?: string }
@@ -31,6 +35,9 @@ interface MatchView {
   theme: string;
   category: string;
   createdAt: string;
+  waitingSince: string | null;
+  vsAi: boolean;
+  aiLevel: AiLevel | null;
   mySlot: 1 | 2;
   myEntryStatus: "matched" | "in_progress" | "completed" | "forfeit";
   startedAt: string | null;
@@ -119,6 +126,8 @@ export default function BattleSessionPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [showAiOffer, setShowAiOffer] = useState(false);
+  const [acceptingAi, setAcceptingAi] = useState(false);
 
   const arenaInit = useRef(false);
   const completing = useRef(false);
@@ -219,6 +228,41 @@ export default function BattleSessionPage() {
     }
   }, [input, sending, secondsLeft, authedFetch, matchId, handleComplete, t]);
 
+  const handleAiJoin = useCallback(async (level: AiLevel) => {
+    if (acceptingAi || !matchId || !view) return;
+    setAcceptingAi(true);
+    try {
+      const r = await authedFetch(`/battles/matches/${matchId}/ai-join`, {
+        method: "POST",
+        body: JSON.stringify({ level, theme: view.theme }),
+      });
+      if (r.status === 409) {
+        // A human joined while the user was deciding — dismiss offer and continue.
+        setShowAiOffer(false);
+        await load();
+        return;
+      }
+      if (!r.ok) throw new Error("ai-join failed");
+      const data: MatchView = await r.json();
+      setShowAiOffer(false);
+      setView(data);
+    } catch {
+      toast.error(t("battle.aiJoinError") ?? "Errore — riprova.");
+    } finally {
+      setAcceptingAi(false);
+    }
+  }, [acceptingAi, matchId, view, authedFetch, load, t]);
+
+  // Show AI offer after AI_OFFER_AFTER_MS of waiting.
+  useEffect(() => {
+    if (!view?.waitingSince || view.status !== "waiting") return;
+    const elapsed = Date.now() - new Date(view.waitingSince).getTime();
+    const remaining = Math.max(0, AI_OFFER_AFTER_MS - elapsed);
+    if (remaining === 0) { setShowAiOffer(true); return; }
+    const t = setTimeout(() => setShowAiOffer(true), remaining);
+    return () => clearTimeout(t);
+  }, [view?.waitingSince, view?.status]);
+
   useEffect(() => { load(); }, [load]);
 
   const phase: "loading" | "error" | "waitingOpponent" | "abandoned" | "result" | "scoring" | "waitingResult" | "ready" | "arena" =
@@ -293,6 +337,11 @@ export default function BattleSessionPage() {
 
   // ── Waiting for an opponent ──────────────────────────────────────────────────
   if (phase === "waitingOpponent") {
+    const AI_LEVELS: { level: AiLevel; label: string; desc: string; color: string }[] = [
+      { level: "sfidante", label: "🟢 Sfidante", desc: "Argomento semplice, un punto principale", color: TEAL },
+      { level: "pensatore", label: "🟡 Pensatore", desc: "Struttura discreta, due punti distinti", color: GOLD },
+      { level: "maestro",   label: "🔴 Maestro",   desc: "Denso, multi-punto, altamente persuasivo", color: PINK },
+    ];
     return (
       <div className="flex-1 overflow-y-auto" style={{ background: BG }}>
         <div className="max-w-[760px] mx-auto px-6 py-8">
@@ -308,6 +357,46 @@ export default function BattleSessionPage() {
             <h1 className="text-lg font-bold font-display mb-2" style={{ color: "#eeeeff" }}>{t("battle.waitingTitle")}</h1>
             <p className="text-sm max-w-md mx-auto" style={{ color: MUTED, lineHeight: 1.7 }}>{t("battle.waitingDesc")}</p>
           </div>
+
+          {showAiOffer && (
+            <div className="mt-4 rounded-2xl p-6" style={{ background: "rgba(255,209,102,0.06)", border: "1px solid rgba(255,209,102,0.25)" }}>
+              <div className="flex items-center gap-2 mb-1">
+                <Bot className="w-5 h-5" style={{ color: GOLD }} />
+                <h2 className="text-base font-bold font-display" style={{ color: "#eeeeff" }}>
+                  Nessun avversario umano trovato
+                </h2>
+              </div>
+              <p className="text-sm mb-5" style={{ color: MUTED }}>
+                Sfida l'Avversario AI — scegli il livello di difficoltà:
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                {AI_LEVELS.map(({ level, label, desc, color }) => (
+                  <button
+                    key={level}
+                    onClick={() => handleAiJoin(level)}
+                    disabled={acceptingAi}
+                    className="flex-1 rounded-xl px-4 py-3 text-left transition-all"
+                    style={{
+                      background: `${color}10`,
+                      border: `1px solid ${color}40`,
+                      opacity: acceptingAi ? 0.6 : 1,
+                    }}
+                  >
+                    <div className="font-bold text-sm mb-0.5" style={{ color }}>{label}</div>
+                    <div className="text-[11px]" style={{ color: MUTED }}>{desc}</div>
+                    {acceptingAi && <Loader2 className="w-3.5 h-3.5 animate-spin mt-1" style={{ color }} />}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setShowAiOffer(false)}
+                className="text-xs w-full text-center py-1.5"
+                style={{ color: MUTED }}
+              >
+                Continua ad aspettare un umano
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -402,7 +491,17 @@ export default function BattleSessionPage() {
     const isTie = res.outcome === "tie";
     const color = isWin ? TEAL : isTie ? GOLD : PINK;
     const label = isWin ? t("battle.win") : isTie ? t("battle.tie") : t("battle.loss");
-    const sub = isWin ? t("battle.winSub") : isTie ? t("battle.tieSub") : t("battle.lossSub");
+    const isAi = v.vsAi || res.opponentUsername === AI_USERNAME;
+    const aiLevelLabel: Record<string, string> = {
+      sfidante: "Sfidante", pensatore: "Pensatore", maestro: "Maestro",
+    };
+    const levelDisplay = v.aiLevel ? aiLevelLabel[v.aiLevel] ?? v.aiLevel : null;
+    const sub = isWin
+      ? (isAi && levelDisplay ? `Hai battuto l'AI — livello ${levelDisplay}` : t("battle.winSub"))
+      : isTie
+      ? t("battle.tieSub")
+      : (isAi && levelDisplay ? `Sconfitta vs AI — livello ${levelDisplay}` : t("battle.lossSub"));
+    const opponentColor = isAi ? GOLD : PINK;
     return (
       <div className="flex-1 overflow-y-auto" style={{ background: BG }}>
         <div className="max-w-[760px] mx-auto px-6 py-8">
@@ -413,7 +512,15 @@ export default function BattleSessionPage() {
               {isWin ? <Crown className="w-6 h-6" style={{ color }} /> : <Swords className="w-6 h-6" style={{ color }} />}
               <h1 className="text-2xl font-black font-display" style={{ color }}>{label}</h1>
             </div>
-            <p className="text-sm" style={{ color: MUTED }}>{sub}</p>
+            {isAi && levelDisplay && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full mt-2 mb-1"
+                style={{ background: `${GOLD}18`, border: `1px solid ${GOLD}40` }}>
+                <Bot className="w-3.5 h-3.5" style={{ color: GOLD }} />
+                <span className="text-xs font-bold" style={{ color: GOLD }}>vs AI — {levelDisplay}</span>
+              </div>
+            )}
+            {(!isAi || !levelDisplay) && <p className="text-sm" style={{ color: MUTED }}>{sub}</p>}
+            {isAi && levelDisplay && <p className="text-sm mt-1" style={{ color: MUTED }}>{sub}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-5">
@@ -423,10 +530,13 @@ export default function BattleSessionPage() {
               <p className="text-4xl font-black font-display" style={{ color: isWin ? TEAL : "#eeeeff" }}>{res.myRawScore.toFixed(0)}</p>
               <p className="text-[10px] mt-1" style={{ color: MUTED }}>/100 SGI</p>
             </div>
-            <div className="rounded-2xl p-5 text-center relative" style={{ background: res.outcome === "loss" ? "rgba(247,37,133,0.08)" : "rgba(255,255,255,0.02)", border: res.outcome === "loss" ? "1px solid rgba(247,37,133,0.3)" : "1px solid rgba(255,255,255,0.07)" }}>
+            <div className="rounded-2xl p-5 text-center relative" style={{ background: res.outcome === "loss" ? `${opponentColor}14` : "rgba(255,255,255,0.02)", border: res.outcome === "loss" ? `1px solid ${opponentColor}40` : "1px solid rgba(255,255,255,0.07)" }}>
               {res.outcome === "loss" && <Crown className="w-4 h-4 absolute top-3 right-3" style={{ color: GOLD }} />}
-              <p className="text-[10px] uppercase tracking-widest mb-1 truncate" style={{ color: MUTED }}>{res.opponentUsername}</p>
-              <p className="text-4xl font-black font-display" style={{ color: res.outcome === "loss" ? PINK : "#eeeeff" }}>{res.opponentRawScore.toFixed(0)}</p>
+              <div className="flex items-center justify-center gap-1 mb-1">
+                {isAi && <Bot className="w-3 h-3 flex-shrink-0" style={{ color: opponentColor }} />}
+                <p className="text-[10px] uppercase tracking-widest truncate" style={{ color: isAi ? opponentColor : MUTED }}>{res.opponentUsername}</p>
+              </div>
+              <p className="text-4xl font-black font-display" style={{ color: res.outcome === "loss" ? opponentColor : "#eeeeff" }}>{res.opponentRawScore.toFixed(0)}</p>
               <p className="text-[10px] mt-1" style={{ color: MUTED }}>/100 SGI</p>
             </div>
           </div>
@@ -451,7 +561,7 @@ export default function BattleSessionPage() {
             <Collapsible title={t("battle.yourConvo")} accent={PURPLE}>
               <Conversation messages={v.myMessages ?? []} t={t} />
             </Collapsible>
-            <Collapsible title={`${t("battle.opponentConvo")} · ${res.opponentUsername}`} accent={PINK}>
+            <Collapsible title={`${t("battle.opponentConvo")} · ${res.opponentUsername}`} accent={opponentColor}>
               <Conversation messages={res.opponentMessages ?? []} t={t} />
             </Collapsible>
           </div>

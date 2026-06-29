@@ -4,7 +4,7 @@ import { useAuth } from "@clerk/react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
-  Swords, Trophy, Crown, Clock, Loader2, ChevronRight, Hourglass, Zap, Users,
+  Swords, Trophy, Crown, Clock, Loader2, ChevronRight, Hourglass, Zap, Users, Bot,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,6 +40,8 @@ interface MyMatch {
   timeRemaining: number;
   result: "win" | "loss" | "tie" | null;
   myRawScore: number | null;
+  vsAi: boolean;
+  aiLevel: "sfidante" | "pensatore" | "maestro" | null;
 }
 
 interface PublicPlayer { username: string; rawScore: number; isWinner: boolean }
@@ -207,6 +209,12 @@ export default function BattlesPage() {
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${meta.color}1a`, color: meta.color }}>
                           {meta.label}
                         </span>
+                        {m.vsAi && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5" style={{ background: `${GOLD}1a`, color: GOLD }}>
+                            <Bot className="w-2.5 h-2.5" />
+                            {m.aiLevel ? m.aiLevel.charAt(0).toUpperCase() + m.aiLevel.slice(1) : "AI"}
+                          </span>
+                        )}
                         <span className="text-[10px] font-semibold flex items-center gap-0.5" style={{ color: actionable ? PINK : MUTED }}>
                           {actionable ? t("battles.resume") : t("battles.view")} <ChevronRight className="w-3 h-3" />
                         </span>
