@@ -80,6 +80,7 @@ const IT = {
     failedDelete: "Impossibile eliminare la conversazione",
     streamError: "Risposta interrotta — il messaggio non è stato conteggiato. Riprova.",
     usedFallback: "Il modello selezionato non era disponibile. Risposta generata con GPT-4o Mini.",
+    opusMonthlyCapReached: "Hai raggiunto il limite mensile di {{limit}} messaggi su Claude Opus. I messaggi successivi useranno Claude Sonnet.",
     retryLastMsg: "Riprova",
   },
   leaderboard: {
@@ -448,6 +449,7 @@ const EN = {
     failedDelete: "Failed to delete conversation",
     streamError: "Response interrupted — the message was not counted. Please retry.",
     usedFallback: "Selected model was unavailable. Response generated with GPT-4o Mini.",
+    opusMonthlyCapReached: "You've reached the monthly limit of {{limit}} messages on Claude Opus. Further messages will use Claude Sonnet.",
     retryLastMsg: "Retry",
   },
   leaderboard: {
@@ -815,6 +817,7 @@ const ES = {
     failedDelete: "No se pudo eliminar la conversación",
     streamError: "Respuesta interrumpida — el mensaje no fue contabilizado. Por favor, reintenta.",
     usedFallback: "El modelo seleccionado no estaba disponible. Respuesta generada con GPT-4o Mini.",
+    opusMonthlyCapReached: "Has alcanzado el límite mensual de {{limit}} mensajes en Claude Opus. Los siguientes mensajes usarán Claude Sonnet.",
     retryLastMsg: "Reintentar",
   },
   leaderboard: {

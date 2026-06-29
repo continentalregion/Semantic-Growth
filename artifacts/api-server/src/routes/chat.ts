@@ -18,6 +18,8 @@ import {
   ALLOWED_MODELS,
   GLOBAL_MONTHLY_BUDGET_CENTS,
   GLOBAL_BUDGET_DEGRADATION_THRESHOLD,
+  OPUS_MONTHLY_LIMIT,
+  OPUS_FALLBACK_MODEL,
 } from "../config/pricing";
 
 const OPENAI_MODELS = ["gpt-4o-mini", "gpt-4o", "o4-mini"] as const;
@@ -43,11 +45,11 @@ function currentMonthKey(): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
 }
 
-async function resetMonthlyIfNeeded(userId: number, user: { monthlyResetDate: string | null; monthlyMessagesUsed: number }) {
+async function resetMonthlyIfNeeded(userId: number, user: { monthlyResetDate: string | null; monthlyMessagesUsed: number; opusMessagesUsed: number }) {
   const thisMonth = currentMonthKey();
   if (user.monthlyResetDate !== thisMonth) {
     await db.update(users)
-      .set({ monthlyMessagesUsed: 0, monthlyResetDate: thisMonth })
+      .set({ monthlyMessagesUsed: 0, opusMessagesUsed: 0, monthlyResetDate: thisMonth })
       .where(eq(users.id, userId));
     return 0;
   }
@@ -281,7 +283,20 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
         chosenModel = safeModel;
       }
     }
-    // ── fine valvola ──────────────────────────────────────────────────────────
+
+    // ── FASE 6: sotto-limite Opus per piano Pro ───────────────────────────────
+    // Un Pro su Opus per 2000 msg costerebbe ~€120. Cap a 150 msg/mese → worst-case €10,85 (44% margine).
+    let opusDowngraded = false;
+    if (chosenModel === "claude-opus-4-8" && user.plan === "pro") {
+      // resetMonthlyIfNeeded was already called above; if month rolled over, opusMessagesUsed was reset to 0 in DB.
+      const currentOpusUsed = (user.monthlyResetDate === currentMonthKey()) ? user.opusMessagesUsed : 0;
+      if (currentOpusUsed >= OPUS_MONTHLY_LIMIT) {
+        console.warn(`[opus-cap] userId=${user.id} opusUsed=${currentOpusUsed}/${OPUS_MONTHLY_LIMIT} — degrading opus → ${OPUS_FALLBACK_MODEL}`);
+        chosenModel = OPUS_FALLBACK_MODEL as ModelId;
+        opusDowngraded = true;
+      }
+    }
+    // ── fine sotto-limite Opus ────────────────────────────────────────────────
 
     const openaiMessages: Array<{ role: "user" | "assistant" | "system"; content: string }> = [
       { role: "system", content: SYSTEM_PROMPT },
@@ -401,10 +416,15 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       .values({ conversationId: convoId, role: "assistant", content: fullContent, tokensUsed, costCents })
       .returning({ id: messages.id });
 
-    // Increment monthly usage counter
+    // Increment monthly usage counter (+ opus counter if Opus was actually used)
     const newUsed = currentUsed + 1;
+    const opusWasUsed = chosenModel === "claude-opus-4-8";
     await db.update(users)
-      .set({ monthlyMessagesUsed: newUsed, monthlyResetDate: currentMonthKey() })
+      .set({
+        monthlyMessagesUsed: newUsed,
+        monthlyResetDate: currentMonthKey(),
+        ...(opusWasUsed ? { opusMessagesUsed: sql`${users.opusMessagesUsed} + 1` } : {}),
+      })
       .where(eq(users.id, user.id));
 
     const historyForScoring = history.slice(-4).map(m => ({ role: m.role, content: m.content }));
@@ -521,6 +541,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       tokensUsed,
       costCents,
       usage: { used: newUsed, limit, remaining: remainingAfter, plan: user.plan },
+      ...(opusDowngraded ? { opusDowngraded: { from: "claude-opus-4-8", to: OPUS_FALLBACK_MODEL, opusLimit: OPUS_MONTHLY_LIMIT } } : {}),
       ...(streamError ? { streamError: true } : {}),
       ...(usedFallback ? { usedFallback: true } : {}),
       ...(newTitle ? { title: newTitle } : {}),

@@ -209,6 +209,9 @@ export default function Chat() {
               if (parsed.usedFallback) {
                 toast.info(t("chat.usedFallback"));
               }
+              if (parsed.opusDowngraded) {
+                toast.warning(t("chat.opusMonthlyCapReached", { limit: parsed.opusDowngraded.opusLimit }));
+              }
               setLastSgiDelta(parsed.sgiDelta ?? null);
               setLastDomains(parsed.domains ?? []);
               if (parsed.sgiDelta > 0) {

@@ -69,6 +69,12 @@ export const MONTHLY_LIMITS: Record<string, number> = {
 export const GLOBAL_MONTHLY_BUDGET_CENTS          = 8_000;  // €80 tetto AI globale (aggiornato per 2 tier)
 export const GLOBAL_BUDGET_DEGRADATION_THRESHOLD  = 0.85;
 
+// ─── Sotto-limite Opus per piano Pro ─────────────────────────────────────────
+// Un Pro che usa tutti i msg su Opus costerebbe ~€120. Con questo cap il
+// worst-case (150 Opus + 1850 Haiku) è €10,85 → margine ~44%.
+export const OPUS_MONTHLY_LIMIT   = 150;                   // msg/mese su claude-opus-4-8 (solo Pro)
+export const OPUS_FALLBACK_MODEL  = "claude-sonnet-4-6";   // modello dopo il cap
+
 // ─── Log blocchi ─────────────────────────────────────────────────────────────
 export const LOG_BLOCKS = true;
 
