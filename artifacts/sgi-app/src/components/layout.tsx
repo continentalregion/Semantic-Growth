@@ -7,7 +7,7 @@ import { loadLanguage, clearLangCache } from "../i18n";
 import {
   Activity, MessageSquare, Trophy, Network, User,
   LineChart, Lightbulb, Settings, LogOut, Zap, Gamepad2,
-  Languages, Loader2, RefreshCw, ChevronDown, Swords, Flame, ShieldCheck,
+  Languages, Loader2, RefreshCw, ChevronDown, Swords, Flame, ShieldCheck, Menu, X,
 } from "lucide-react";
 import { Logo } from "./Logo";
 
@@ -239,6 +239,7 @@ function LanguageSwitcher() {
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { signOut } = useClerk();
   const { user } = useUser();
   const { data: profile } = useGetMyProfile();
@@ -286,9 +287,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-20 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
       {/* Sidebar */}
       <aside
-        className="w-[214px] flex flex-col border-r flex-shrink-0"
+        className={`fixed md:static inset-y-0 left-0 z-30 w-[214px] flex flex-col border-r flex-shrink-0 transition-transform duration-200 ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
         style={{ background: "hsl(var(--sidebar))", borderColor: "rgba(255,255,255,0.07)" }}
       >
         {/* Logo */}
@@ -312,6 +320,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={() => setSidebarOpen(false)}
                     className="flex items-center gap-[10px] px-[18px] py-[9px] text-[12.5px] my-[1px] transition-all duration-150 no-underline"
                     style={{
                       color: active ? "#fff" : "rgba(144,144,184,1)",
@@ -397,14 +406,23 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 flex flex-col overflow-hidden relative">
         {/* Topbar */}
         <header
-          className="flex items-center justify-between px-6 py-3 flex-shrink-0 z-10"
+          className="flex items-center justify-between px-4 md:px-6 py-3 flex-shrink-0 z-10"
           style={{
             background: "hsl(var(--sidebar))",
             borderBottom: "1px solid rgba(255,255,255,0.07)",
           }}
         >
-          <div className="font-display text-[14px] font-semibold text-foreground">
-            {NAV_SECTIONS.flatMap((s) => s.items).find((i) => i.href === location)?.label ?? "SGI"}
+          <div className="flex items-center gap-3">
+            <button
+              className="md:hidden p-1.5 rounded-md hover:bg-white/10 transition-colors"
+              onClick={() => setSidebarOpen((o) => !o)}
+              aria-label="Toggle menu"
+            >
+              {sidebarOpen ? <X className="w-5 h-5 text-foreground" /> : <Menu className="w-5 h-5 text-foreground" />}
+            </button>
+            <div className="font-display text-[14px] font-semibold text-foreground">
+              {NAV_SECTIONS.flatMap((s) => s.items).find((i) => i.href === location)?.label ?? "SGI"}
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -465,7 +483,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           }}
         />
 
-        <div className="flex-1 overflow-y-auto relative z-10 p-6">
+        <div className="flex-1 overflow-y-auto relative z-10 p-4 md:p-6">
           {children}
         </div>
       </main>

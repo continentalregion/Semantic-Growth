@@ -246,12 +246,12 @@ export default function BattlesPage() {
                         </div>
                         <p className="text-sm font-semibold leading-snug" style={{ color: "#eeeeff" }}>{card.theme}</p>
                       </div>
-                      <div className="p-3 flex items-stretch gap-2">
+                      <div className="p-3 flex flex-col sm:flex-row items-stretch gap-2">
                         <PlayerColumn p={card.player1} side="left" t={t} />
-                        <div className="flex flex-col items-center justify-center gap-2 flex-shrink-0 px-1">
-                          <div className="w-px flex-1" style={{ background: "rgba(255,255,255,0.07)" }} />
+                        <div className="flex flex-row sm:flex-col items-center justify-center gap-2 flex-shrink-0 py-1 sm:py-0 sm:px-1">
+                          <div className="flex-1 h-px sm:h-auto sm:w-px" style={{ background: "rgba(255,255,255,0.07)" }} />
                           <div className="text-xs font-black px-2 py-1 rounded" style={{ background: "rgba(247,37,133,0.1)", color: PINK, border: "1px solid rgba(247,37,133,0.2)" }}>VS</div>
-                          <div className="w-px flex-1" style={{ background: "rgba(255,255,255,0.07)" }} />
+                          <div className="flex-1 h-px sm:h-auto sm:w-px" style={{ background: "rgba(255,255,255,0.07)" }} />
                         </div>
                         <PlayerColumn p={card.player2} side="right" t={t} />
                       </div>
@@ -275,19 +275,19 @@ function PlayerColumn({ p, side, t }: { p: PublicPlayer; side: "left" | "right";
   const isLeft = side === "left";
   return (
     <div
-      className={`flex-1 flex flex-col gap-2 p-4 rounded-xl relative overflow-hidden ${isLeft ? "items-start" : "items-end"}`}
+      className={`flex-1 flex flex-col gap-2 p-4 rounded-xl relative overflow-hidden items-start ${!isLeft ? "sm:items-end" : ""}`}
       style={{
         background: p.isWinner ? "linear-gradient(135deg, rgba(124,107,255,0.12), rgba(6,214,160,0.06))" : "rgba(255,255,255,0.02)",
         border: p.isWinner ? "1px solid rgba(124,107,255,0.25)" : "1px solid rgba(255,255,255,0.06)",
       }}
     >
       {p.isWinner && (
-        <div className={`absolute top-2 ${isLeft ? "right-2" : "left-2"} flex items-center gap-1`} style={{ color: GOLD }}>
+        <div className={`absolute top-2 right-2 ${!isLeft ? "sm:left-2 sm:right-auto" : ""} flex items-center gap-1`} style={{ color: GOLD }}>
           <Crown className="w-3.5 h-3.5" />
           <span className="text-[10px] font-bold">{t("battles.winner")}</span>
         </div>
       )}
-      <div className={`flex flex-col ${isLeft ? "items-start" : "items-end"} gap-0.5 mt-3`}>
+      <div className={`flex flex-col items-start ${!isLeft ? "sm:items-end" : ""} gap-0.5 mt-3`}>
         <span className="text-sm font-bold truncate max-w-full" style={{ color: p.isWinner ? "#a89fff" : "#eeeeff" }}>@{p.username}</span>
         <div className="flex items-center gap-1.5">
           <span className="text-2xl font-black" style={{ color: p.isWinner ? PURPLE : "#888" }}>{p.rawScore}</span>

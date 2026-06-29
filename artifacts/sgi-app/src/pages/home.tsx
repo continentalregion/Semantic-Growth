@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
@@ -11,6 +11,8 @@ import {
   PenLine,
   GraduationCap,
   Megaphone,
+  Menu,
+  X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -88,6 +90,7 @@ function ScorePreview() {
 
 export default function Home() {
   const { t, i18n } = useTranslation();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/healthz").catch(() => {});
@@ -124,9 +127,10 @@ export default function Home() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
       </div>
 
-      <header className="container mx-auto px-6 py-6 flex flex-wrap items-center justify-between gap-y-3 relative z-10">
+      <header className="container mx-auto px-6 py-5 flex items-center justify-between relative z-10">
         <Logo size={34} />
-        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+        {/* Desktop nav */}
+        <div className="hidden md:flex items-center gap-x-4">
           <div className="flex items-center gap-1">
             {LANGS.map((l) => (
               <button
@@ -152,6 +156,46 @@ export default function Home() {
             <Link href="/sign-up">{t("home.initConnection")}</Link>
           </Button>
         </div>
+        {/* Mobile nav */}
+        <div className="flex md:hidden items-center gap-2">
+          <div className="flex items-center gap-1">
+            {LANGS.map((l) => (
+              <button
+                key={l.code}
+                onClick={() => handleLang(l.code)}
+                className="px-1.5 py-1 rounded text-sm transition-colors hover:bg-white/10"
+                style={{ opacity: i18n.language === l.code ? 1 : 0.5 }}
+                aria-label={l.name}
+              >
+                <span aria-hidden="true">{l.flag}</span>
+              </button>
+            ))}
+          </div>
+          <button
+            className="p-2 rounded-md hover:bg-white/10 transition-colors text-foreground"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label="Menu"
+          >
+            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
+        {/* Mobile dropdown */}
+        {menuOpen && (
+          <div
+            className="absolute top-full left-0 right-0 z-50 flex flex-col gap-1 px-4 pb-4 md:hidden"
+            style={{ background: "hsl(var(--background))", borderBottom: "1px solid rgba(255,255,255,0.1)" }}
+          >
+            <Button variant="ghost" className="justify-start" asChild>
+              <Link href="/how-it-works" onClick={() => setMenuOpen(false)}>{t("howItWorks.badge")}</Link>
+            </Button>
+            <Button variant="ghost" className="justify-start" asChild>
+              <Link href="/sign-in" onClick={() => setMenuOpen(false)}>{t("home.signIn")}</Link>
+            </Button>
+            <Button className="justify-start" asChild>
+              <Link href="/sign-up" onClick={() => setMenuOpen(false)}>{t("home.initConnection")}</Link>
+            </Button>
+          </div>
+        )}
       </header>
 
       {/* Hero — pitch + live score preview */}
@@ -162,7 +206,7 @@ export default function Home() {
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" aria-hidden="true" />
               {t("home.live")}
             </div>
-            <h1 className="text-5xl md:text-6xl xl:text-7xl font-extrabold tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-br from-white to-gray-500">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl xl:text-7xl font-extrabold tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-br from-white to-gray-500">
               {t("home.headline")}
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-9 leading-relaxed">

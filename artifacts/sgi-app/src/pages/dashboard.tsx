@@ -61,7 +61,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex justify-between items-end">
+      <div className="flex flex-wrap justify-between items-end gap-2">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">{t("dashboard.title")}</h2>
           <p className="text-muted-foreground mt-1">{t("dashboard.subtitle")}</p>
@@ -79,8 +79,8 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col items-center justify-center py-4">
-              <div className="relative w-36 h-36 flex items-center justify-center">
-                <svg className="absolute inset-0" width="144" height="144" viewBox="0 0 144 144">
+              <div className="relative w-28 h-28 sm:w-36 sm:h-36 flex items-center justify-center">
+                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 144 144">
                   <circle cx="72" cy="72" r="60" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
                   <circle cx="72" cy="72" r="60" fill="none" stroke="hsl(var(--primary))" strokeWidth="8"
                     strokeDasharray={`${2 * Math.PI * 60}`}
@@ -214,7 +214,7 @@ export default function Dashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="h-[380px] w-full">
+          <div className="h-[220px] sm:h-[300px] md:h-[380px] w-full">
             {chartData.length < 2 ? (
               <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
                 {t("dashboard.chatMore")}

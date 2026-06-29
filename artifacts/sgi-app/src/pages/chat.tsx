@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { MessageSquarePlus, Trash2, Send, Bot, User, TrendingUp, TrendingDown, Minus, Zap, ChevronDown, Lock } from "lucide-react";
+import { MessageSquarePlus, Trash2, Send, Bot, User, TrendingUp, TrendingDown, Minus, Zap, ChevronDown, Lock, Menu, X } from "lucide-react";
 import MarkdownMessage from "@/components/MarkdownMessage";
 import { useTranslation } from "react-i18next";
 
@@ -50,6 +50,7 @@ export default function Chat() {
   const [lastDomains, setLastDomains] = useState<string[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [streamErrored, setStreamErrored] = useState(false);
+  const [chatSidebarOpen, setChatSidebarOpen] = useState(false);
   const lastInputRef = useRef<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -254,9 +255,19 @@ export default function Chat() {
   const messages = activeConvo?.messages ?? [];
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] gap-4 animate-in fade-in duration-300">
+    <div className="flex flex-col h-[calc(100vh-4rem)] animate-in fade-in duration-300">
+      {/* Mobile conversations toggle */}
+      <button
+        className="md:hidden self-start flex items-center gap-1.5 mb-2 px-1 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        onClick={() => setChatSidebarOpen((o) => !o)}
+        aria-label="Toggle conversations"
+      >
+        {chatSidebarOpen ? <X className="w-3.5 h-3.5" /> : <Menu className="w-3.5 h-3.5" />}
+        <span className="ml-0.5">Conversazioni</span>
+      </button>
+      <div className="flex flex-1 min-h-0 gap-4">
       {/* Sidebar */}
-      <div className="w-64 flex flex-col gap-2 flex-shrink-0">
+      <div className={`${chatSidebarOpen ? "flex" : "hidden"} md:flex w-64 flex-col gap-2 flex-shrink-0`}>
         <Button
           onClick={() => handleNewConversation()}
           className="w-full gap-2"
@@ -632,6 +643,7 @@ export default function Chat() {
           </>
         )}
       </Card>
+      </div>
     </div>
   );
 }
