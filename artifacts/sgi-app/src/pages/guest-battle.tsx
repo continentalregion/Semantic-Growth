@@ -109,6 +109,10 @@ export default function GuestBattlePage() {
       if (!r.ok) {
         const body = await r.json().catch(() => ({})) as { code?: string };
         if (body.code === "TIME_UP") { setTimeLeft(0); setTurnsLeft(0); }
+        if (body.code === "BUDGET_EXHAUSTED") {
+          setErrorCode("BUDGET_EXHAUSTED");
+          setPhase("error");
+        }
         setSending(false);
         return;
       }

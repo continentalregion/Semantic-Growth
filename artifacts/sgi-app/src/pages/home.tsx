@@ -127,7 +127,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
       </div>
 
-      <header className="container mx-auto px-6 py-5 flex items-center justify-between relative z-10">
+      <header className="container mx-auto px-6 py-5 flex items-center justify-between relative z-20">
         <Logo size={34} />
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-x-4">

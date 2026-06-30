@@ -338,7 +338,7 @@ function UserSync() {
         body: JSON.stringify({ guestId }),
       });
     }).then(r => {
-      if (r?.ok) localStorage.removeItem("sgi-guest-claim");
+      if (r?.ok || [400, 403, 409].includes(r?.status ?? 0)) localStorage.removeItem("sgi-guest-claim");
     }).catch(err => {
       console.warn("[guest-claim] failed:", err);
     });
