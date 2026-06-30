@@ -70,30 +70,19 @@ export function Logo({
     <div className={`flex items-center gap-2.5 ${className ?? ""}`.trim()}>
       <LogoMark size={size} />
       {wordmark && (
-        <div className="leading-none">
-          <div
-            className="font-display font-bold leading-none"
-            style={{
-              fontSize: Math.round(size * 0.44),
-              background: "linear-gradient(135deg, #a89fff, #06d6a0)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
-            Semantic Growth
-          </div>
-          <span
-            className="block uppercase font-medium mt-[3px]"
-            style={{
-              fontSize: Math.round(size * 0.27),
-              letterSpacing: "0.7px",
-              color: "rgba(144,144,184,0.6)",
-            }}
-          >
-            sgindex.work
-          </span>
-        </div>
+        <span
+          className="font-display font-bold tracking-tight leading-none"
+          style={{
+            fontSize: Math.round(size * 0.52),
+            background: "linear-gradient(135deg, #a89fff 0%, #06d6a0 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          sgindex.work
+        </span>
       )}
     </div>
   );

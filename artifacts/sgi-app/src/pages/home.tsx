@@ -182,8 +182,12 @@ export default function Home() {
         {/* Mobile dropdown */}
         {menuOpen && (
           <div
-            className="absolute top-full left-0 right-0 z-50 flex flex-col gap-1 px-4 pb-4 md:hidden"
-            style={{ background: "hsl(var(--background))", borderBottom: "1px solid rgba(255,255,255,0.1)" }}
+            className="absolute top-full left-0 right-0 z-50 flex flex-col gap-1 px-4 pt-2 pb-4 md:hidden"
+            style={{
+              background: "hsl(var(--background))",
+              borderBottom: "1px solid rgba(255,255,255,0.12)",
+              boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+            }}
           >
             <Button variant="ghost" className="justify-start" asChild>
               <Link href="/how-it-works" onClick={() => setMenuOpen(false)}>{t("howItWorks.badge")}</Link>
@@ -198,27 +202,30 @@ export default function Home() {
         )}
       </header>
 
+      {/* Spacer: pushes hero below the absolute-positioned mobile dropdown when open */}
+      {menuOpen && <div className="h-40 md:hidden" aria-hidden="true" />}
+
       {/* Hero — pitch + live score preview */}
-      <section className="container mx-auto px-6 relative z-10 pt-10 md:pt-16 pb-20">
+      <section className="container mx-auto px-6 relative z-10 pt-14 md:pt-20 pb-20">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div className="text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-6">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" aria-hidden="true" />
               {t("home.live")}
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-6xl xl:text-7xl font-extrabold tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-br from-white to-gray-500">
+            <h1 className="text-4xl sm:text-4xl md:text-6xl xl:text-7xl font-extrabold tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-br from-white to-gray-500">
               {t("home.headline")}
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-9 leading-relaxed">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-6 md:mb-9 leading-relaxed">
               {t("home.sub")}
             </p>
             <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4">
-              <Button size="lg" className="h-14 px-8 text-lg rounded-full" asChild>
+              <Button size="lg" className="h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg rounded-full" asChild>
                 <Link href="/guest-battle">
                   {t("home.ctaGuest")} <ChevronRight className="ml-2 w-5 h-5" aria-hidden="true" />
                 </Link>
               </Button>
-              <Button size="lg" variant="ghost" className="h-14 px-6 text-lg rounded-full hover:bg-primary/10" asChild>
+              <Button size="lg" variant="ghost" className="h-12 sm:h-14 px-5 sm:px-6 text-base sm:text-lg rounded-full hover:bg-primary/10" asChild>
                 <Link href="/sign-up">{t("home.ctaPrimary")}</Link>
               </Button>
             </div>
