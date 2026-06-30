@@ -29,6 +29,7 @@ import ThreadDetailPage from "@/pages/thread-detail";
 import BattleSessionPage from "@/pages/battle-session";
 import BattleCardPage from "@/pages/battle-card";
 import BattlesPage from "@/pages/battles";
+import GuestBattlePage from "@/pages/guest-battle";
 import AdminPage from "@/pages/admin";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import Terms from "@/pages/terms";
@@ -282,6 +283,7 @@ function ClerkQueryClientCacheInvalidator() {
 
 function UserSync() {
   const { user, isLoaded, isSignedIn } = useUser();
+  const { getToken } = useAuth();
   const syncUser = useSyncUser();
   const attemptRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -317,6 +319,30 @@ function UserSync() {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [isLoaded, isSignedIn, user?.id]);
+
+  // Claim a pending guest battle after the user signs up / signs in.
+  // The guestId is stored in localStorage by the guest-battle page after completion.
+  // The HttpOnly cookie (sgi_guest_session) is sent automatically — the server
+  // validates that cookie === body.guestId before reassigning battle_entries.
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !user) return;
+    const guestId = localStorage.getItem("sgi-guest-claim");
+    if (!guestId?.startsWith("guest_")) return;
+
+    void getToken().then(token => {
+      if (!token) return null;
+      return fetch("/api/battles/guest/claim", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ guestId }),
+      });
+    }).then(r => {
+      if (r?.ok) localStorage.removeItem("sgi-guest-claim");
+    }).catch(err => {
+      console.warn("[guest-claim] failed:", err);
+    });
+  }, [isLoaded, isSignedIn, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return null;
 }
@@ -395,6 +421,7 @@ function ClerkProviderWithRoutes() {
           <Route path="/threads/:id" component={() => <ProtectedRoute component={ThreadDetailPage} />} />
           <Route path="/battle-cards/:id" component={() => <ProtectedRoute component={BattleCardPage} />} />
           <Route path="/admin" component={() => <ProtectedRoute component={AdminPage} />} />
+          <Route path="/guest-battle" component={GuestBattlePage} />
           <Route path="/privacy-policy" component={PrivacyPolicy} />
           <Route path="/terms" component={Terms} />
           <Route component={NotFound} />

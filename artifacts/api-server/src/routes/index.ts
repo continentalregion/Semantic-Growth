@@ -8,6 +8,7 @@ import chatRouter from "./chat";
 import translateRouter from "./translate";
 import threadsRouter from "./threads";
 import battlesRouter from "./battles";
+import guestBattlesRouter from "./guestBattles";
 import adminRouter from "./admin";
 import authRouter from "./auth";
 import billingRouter from "./billing";
@@ -24,6 +25,7 @@ router.use(chatRouter);
 router.use(translateRouter);
 router.use(threadsRouter);
 router.use(battlesRouter);
+router.use(guestBattlesRouter);
 router.use(adminRouter);
 router.use(billingRouter);
 

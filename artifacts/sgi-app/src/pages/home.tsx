@@ -214,12 +214,12 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4">
               <Button size="lg" className="h-14 px-8 text-lg rounded-full" asChild>
-                <Link href="/sign-up">
-                  {t("home.ctaPrimary")} <ChevronRight className="ml-2 w-5 h-5" aria-hidden="true" />
+                <Link href="/guest-battle">
+                  {t("home.ctaGuest")} <ChevronRight className="ml-2 w-5 h-5" aria-hidden="true" />
                 </Link>
               </Button>
               <Button size="lg" variant="ghost" className="h-14 px-6 text-lg rounded-full hover:bg-primary/10" asChild>
-                <Link href="/how-it-works">{t("home.ctaSecondary")}</Link>
+                <Link href="/sign-up">{t("home.ctaPrimary")}</Link>
               </Button>
             </div>
           </div>
