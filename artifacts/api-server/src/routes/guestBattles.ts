@@ -29,6 +29,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { evaluatePvpBattle } from "../lib/pvpBattleScoring";
 import { AI_PLAYER_ID, AI_USERNAME, generateAiArgument } from "../lib/aiOpponent";
+import { generateBattleTheme } from "./battles.js";
 import { randomUUID } from "crypto";
 
 const router = Router();
@@ -200,7 +201,14 @@ router.post("/battles/guest/start", async (req, res) => {
     }
 
     // ── Build theme + AI argument BEFORE writing to DB ────────────────────────
-    const picked  = pickGuestTheme();
+    // LLM generates theme in the user's language; 2s timeout inside generateBattleTheme
+    // rejects and the catch falls back to pickGuestTheme() (Italian static pool).
+    let picked: { theme: string; category: string };
+    try {
+      picked = await generateBattleTheme(null, lang);
+    } catch {
+      picked = pickGuestTheme();
+    }
     const aiText  = await generateAiArgument(picked.theme, "pensatore");
     await chargeGuestBudget(COST_AI_ARGUMENT_CENTS);
 

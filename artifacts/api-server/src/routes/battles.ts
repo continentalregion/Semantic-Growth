@@ -89,24 +89,29 @@ function pickThemeFor(seen: string[]): { theme: string; category: string } {
 // This is absorbed by GLOBAL_MONTHLY_BUDGET_CENTS as platform infrastructure cost —
 // NOT charged to the user's aiCostCents — analogous to the auto-title generation
 // in chat.ts. Tracking sub-cent per-user cost would add complexity with no margin benefit.
-async function generateBattleTheme(clerkId: string, lang = "it"): Promise<{ theme: string; category: string }> {
-  // Read last 20 themes and last 3 categories for this user (most recent first).
-  const historyResult = await db.execute(sql`
-    SELECT m.theme, m.category
-    FROM battle_entries e
-    JOIN battle_matches m ON m.id = e.match_id
-    WHERE e.user_id = ${clerkId}
-      AND m.status IN ('completed', 'active', 'waiting', 'scoring')
-    ORDER BY m.created_at DESC
-    LIMIT 20
-  `);
-  const rows = (historyResult.rows ?? []) as Array<{ theme: string; category: string }>;
-  const seenThemes = rows.map(r => r.theme);
-  const recentCategories = [...new Set(rows.slice(0, 3).map(r => r.category))];
+export async function generateBattleTheme(clerkId: string | null, lang = "it"): Promise<{ theme: string; category: string }> {
+  // Guests (clerkId=null) have no history — skip DB query, pass empty arrays to LLM.
+  // First-time auth users also skip LLM (no history) → fallback pool.
+  let seenThemes: string[] = [];
+  let recentCategories: string[] = [];
 
-  // First-time users (no history) skip LLM and go straight to the fallback pool —
-  // any theme is new to them, so variety is guaranteed without an extra LLM call.
-  if (seenThemes.length > 0) {
+  if (clerkId !== null) {
+    const historyResult = await db.execute(sql`
+      SELECT m.theme, m.category
+      FROM battle_entries e
+      JOIN battle_matches m ON m.id = e.match_id
+      WHERE e.user_id = ${clerkId}
+        AND m.status IN ('completed', 'active', 'waiting', 'scoring')
+      ORDER BY m.created_at DESC
+      LIMIT 20
+    `);
+    const rows = (historyResult.rows ?? []) as Array<{ theme: string; category: string }>;
+    seenThemes = rows.map(r => r.theme);
+    recentCategories = [...new Set(rows.slice(0, 3).map(r => r.category))];
+  }
+
+  // Always call LLM for guests (clerkId=null); for auth users only when history exists.
+  if (clerkId === null || seenThemes.length > 0) {
     try {
       const seenList = seenThemes.map((t, i) => `${i + 1}. ${t}`).join("\n");
       const recentCatList = recentCategories.join(", ") || "none";
@@ -151,7 +156,7 @@ Return ONLY the JSON object, nothing else.`;
         : (BATTLE_THEME_CATEGORIES.find(c => !recentCategories.includes(c)) ?? "philosophy");
 
       if (theme.length >= 10 && theme.length <= 300) {
-        console.info(`[theme-gen] ok for ${clerkId.slice(0, 8)}: "${theme.slice(0, 60)}…" (${category})`);
+        console.info(`[theme-gen] ok for ${clerkId ? clerkId.slice(0, 8) : "guest"}: "${theme.slice(0, 60)}…" (${category})`);
         return { theme, category };
       }
       console.warn("[theme-gen] LLM returned invalid theme shape, using fallback");
