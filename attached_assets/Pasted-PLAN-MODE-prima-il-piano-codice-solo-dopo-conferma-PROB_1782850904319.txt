@@ -1,0 +1,24 @@
+PLAN MODE — prima il piano, codice solo dopo conferma.
+
+PROBLEMA CRITICO: chi arriva su sgindex.work dal link di una storia trova "Inizia"/"Misura il tuo SGI" che portano DIRETTAMENTE a "Create your account" (email/password/Google). La registrazione è richiesta PRIMA di provare qualsiasi cosa. Questo è un signup-wall a freddo che fa abbandonare la quasi totalità dei visitatori nuovi.
+
+OBIETTIVO: permettere a un utente non autenticato di fare un'esperienza completa — una battaglia/misurazione SGI fino al punteggio — SENZA creare un account. La registrazione va spostata DOPO, come step per salvare il risultato.
+
+PARTE 1 — DIAGNOSI (rispondi prima di proporre, cita file e righe):
+1. Quali endpoint e funzioni richiedono autenticazione oggi nel flusso di una battaglia? (matchmake, generazione risposta AI, scoring, salvataggio risultato) — elenca dove c'è un check di auth/clerkId che blocca un utente anonimo.
+2. La battaglia ha bisogno di un userId per funzionare end-to-end? Dove esattamente viene usato (DB writes su battle_matches/battle_entries, aiCostCents, ecc.)?
+3. Il punteggio SGI può essere calcolato e mostrato senza un account persistente?
+4. Cosa minimo va salvato perché una battaglia anonima funzioni? Si può usare una sessione temporanea / utente "guest" lato server?
+5. Il cost cap e la valvola globale: come si applicano a un utente anonimo? (un guest non ha un piano — va trattato come Free? con quale budget? quale modello?)
+
+PARTE 2 — PROPOSTA (non implementare ancora):
+Progetta un flusso "guest battle":
+- Un visitatore non autenticato può avviare UNA battaglia (o un numero limitato, es. 1-3) e vedere il punteggio SGI completo.
+- Usa il modello più economico (Haiku/gpt-4o-mini) per i guest, con un cap rigido per sessione/IP per evitare abuso.
+- Al termine della battaglia, mostra il risultato + una CTA chiara tipo "Crea un account per salvare questo risultato e tracciare la tua crescita nel tempo".
+- Se possibile, alla registrazione successiva associa la battaglia guest appena fatta al nuovo account (così non perde il risultato).
+- Landing: rendi il bottone primario "Prova una battaglia" (guest, zero attrito) invece di "Inizia"→registrazione.
+
+Considera e dimmi: rischio abuso (battaglie guest illimitate che bruciano budget), come limiti per IP/sessione, e l'impatto sulla valvola globale €500.
+
+OUTPUT: prima le risposte 1-5, poi la proposta con file/righe da toccare e modifiche schema se servono. NIENTE codice finché non confermo.
