@@ -1,0 +1,17 @@
+PLAN MODE — solo audit, NON modificare codice. Voglio una caccia ai bug logici sul flusso guest battle appena implementato, più un fix CSS.
+
+CONTESTO: ho appena aggiunto il flusso "Sfida Ospite" (/guest-battle, vs-AI, cookie sgi_guest_session, tabelle guest_rate_limits e guest_budget, claim al login via /battles/guest/claim). Voglio verificare che la logica sia corretta prima di portarci traffico.
+
+PARTE 1 — BUG CSS HEADER (Home.tsx):
+Nella landing per utenti non autenticati, i link header "Come funziona / Accedi / Inizia" si sovrappongono visivamente al titolo "Traccia l'evoluzione della tua mente" e al badge "Telemetria cognitiva live online". Diagnostica il problema di layout/z-index e proponi il fix. Dimmi quale file/righe e cosa cambieresti, NON applicare ancora.
+
+PARTE 2 — AUDIT LOGICO guest battle. Per OGNI punto, dimmi se è corretto o se c'è un bug, citando file e righe:
+1. Rate limit IP (guest_rate_limits): cosa conta esattamente come "1 sessione"? L'avvio del match o il completamento? Se un guest avvia ma abbandona a metà, consuma una sessione? Un utente dietro NAT condiviso (es. rete aziendale/uni) viene bloccato ingiustamente?
+2. Budget guest (guest_budget €30/mese): viene incrementato col costo reale dopo OGNI chiamata AI (tema + argument + sparring + scoring), o solo a fine battaglia? Cosa succede a una battaglia GIÀ in corso quando il budget si esaurisce a metà? L'utente resta bloccato con un match a metà?
+3. Claim ownership: /battles/guest/claim verifica che il guestId passato corrisponda al cookie HttpOnly della sessione corrente? O un utente può rivendicare battaglie di un guestId altrui passandolo manualmente? Questo è il bug di sicurezza che più mi preoccupa.
+4. Cookie vs localStorage: il guestId è in cookie HttpOnly E in localStorage. Se i due divergono (es. cookie scaduto ma localStorage no), cosa succede al claim? Quale fonte è autoritativa?
+5. Idempotenza: se il guest ricarica la pagina a metà battaglia, riprende lo stesso match o ne crea uno nuovo? Se preme "completa" due volte (doppio submit), il punteggio viene calcolato/salvato due volte?
+6. Reset mensile: guest_budget e guest_rate_limits si resettano correttamente? Con quale meccanismo (cron, lazy-check su richiesta)? C'è un caso in cui non si resettano mai e bloccano tutto?
+7. Math.round su rawScore: è stato applicato in TUTTI i punti dove rawScore viene salvato, o solo in alcuni? Un float residuo altrove può ancora rompere l'insert integer?
+
+OUTPUT: prima la diagnosi CSS, poi i 7 punti uno per uno con verdetto (OK / BUG + descrizione + file:righe). NIENTE codice finché non confermo quali fix applicare.
