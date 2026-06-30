@@ -287,6 +287,10 @@ const IT = {
     statusAbandoned: "Annullata",
     resume: "Riprendi",
     view: "Vedi",
+    categories: {
+      philosophy: "Filosofia", science: "Scienza", technology: "Tecnologia",
+      art: "Arte", history: "Storia", economics: "Economia", politics: "Politica",
+    },
   },
   battle: {
     back: "Torna alle battaglie",
@@ -688,6 +692,10 @@ const EN = {
     statusAbandoned: "Cancelled",
     resume: "Resume",
     view: "View",
+    categories: {
+      philosophy: "Philosophy", science: "Science", technology: "Technology",
+      art: "Art", history: "History", economics: "Economics", politics: "Politics",
+    },
   },
   battle: {
     back: "Back to battles",
@@ -1089,6 +1097,10 @@ const ES = {
     statusAbandoned: "Cancelada",
     resume: "Reanudar",
     view: "Ver",
+    categories: {
+      philosophy: "Filosofía", science: "Ciencia", technology: "Tecnología",
+      art: "Arte", history: "Historia", economics: "Economía", politics: "Política",
+    },
   },
   battle: {
     back: "Volver a las batallas",

@@ -370,7 +370,7 @@ export default function BattleSessionPage() {
   const v = view!;
   const themeBlock = (
     <div className="rounded-2xl p-6 mb-5" style={{ background: "rgba(124,107,255,0.07)", border: "1px solid rgba(124,107,255,0.2)" }}>
-      <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: PINK }}>{v.category}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: PINK }}>{t(`battles.categories.${v.category}`, { defaultValue: v.category })}</span>
       <h2 className="text-xl font-bold font-display leading-snug mt-1" style={{ color: "#eeeeff" }}>{v.theme}</h2>
     </div>
   );
@@ -691,7 +691,7 @@ export default function BattleSessionPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-widest flex-shrink-0" style={{ color: PINK }}>{v.category}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest flex-shrink-0" style={{ color: PINK }}>{t(`battles.categories.${v.category}`, { defaultValue: v.category })}</span>
             <p className="text-sm font-semibold truncate" style={{ color: "#eeeeff" }}>{v.theme}</p>
           </div>
         </div>

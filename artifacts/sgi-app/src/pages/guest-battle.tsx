@@ -220,7 +220,7 @@ export default function GuestBattlePage() {
               <div className="rounded-2xl p-5" style={{ background: "rgba(124,107,255,0.08)", border: "1px solid rgba(124,107,255,0.2)" }}>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-[10px] uppercase tracking-widest font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(124,107,255,0.2)", color: PURPLE }}>
-                    {category}
+                    {t(`battles.categories.${category}`, { defaultValue: category })}
                   </span>
                   <span className="text-[10px]" style={{ color: MUTED }}>{t("guestBattle.theme")}</span>
                 </div>

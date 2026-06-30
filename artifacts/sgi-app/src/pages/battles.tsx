@@ -200,7 +200,7 @@ export default function BattlesPage() {
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[9px] font-semibold uppercase tracking-wider flex-shrink-0" style={{ color: catColor }}>{m.category}</span>
+                          <span className="text-[9px] font-semibold uppercase tracking-wider flex-shrink-0" style={{ color: catColor }}>{t(`battles.categories.${m.category}`, { defaultValue: m.category })}</span>
                           <span className="text-[9px] opacity-30">{timeAgo(m.createdAt)}</span>
                         </div>
                         <p className="text-sm font-medium truncate" style={{ color: "#eeeeff" }}>{m.theme}</p>
@@ -249,7 +249,7 @@ export default function BattlesPage() {
                     <div key={card.id} className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" }}>
                       <div className="px-4 py-3" style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: catColor }}>{card.category}</span>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: catColor }}>{t(`battles.categories.${card.category}`, { defaultValue: card.category })}</span>
                           <span className="text-[10px] opacity-30">{timeAgo(card.createdAt)}</span>
                         </div>
                         <p className="text-sm font-semibold leading-snug" style={{ color: "#eeeeff" }}>{card.theme}</p>
