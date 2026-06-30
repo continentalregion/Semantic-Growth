@@ -79,7 +79,7 @@ function myStatusMeta(m: MyMatch, t: (k: string) => string): { label: string; co
 }
 
 export default function BattlesPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [, setLocation] = useLocation();
   const { getToken } = useAuth();
   const [matchmaking, setMatchmaking] = useState(false);
@@ -120,7 +120,7 @@ export default function BattlesPage() {
     if (matchmaking) return;
     setMatchmaking(true);
     try {
-      const r = await authedFetch("/battles/matchmake", { method: "POST" });
+      const r = await authedFetch("/battles/matchmake", { method: "POST", body: JSON.stringify({ lang: i18n.language }) });
       if (!r.ok) throw new Error();
       const view = await r.json();
       await refetchMine();

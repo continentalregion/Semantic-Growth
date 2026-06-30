@@ -89,7 +89,7 @@ function pickThemeFor(seen: string[]): { theme: string; category: string } {
 // This is absorbed by GLOBAL_MONTHLY_BUDGET_CENTS as platform infrastructure cost —
 // NOT charged to the user's aiCostCents — analogous to the auto-title generation
 // in chat.ts. Tracking sub-cent per-user cost would add complexity with no margin benefit.
-async function generateBattleTheme(clerkId: string): Promise<{ theme: string; category: string }> {
+async function generateBattleTheme(clerkId: string, lang = "it"): Promise<{ theme: string; category: string }> {
   // Read last 20 themes and last 3 categories for this user (most recent first).
   const historyResult = await db.execute(sql`
     SELECT m.theme, m.category
@@ -115,7 +115,7 @@ async function generateBattleTheme(clerkId: string): Promise<{ theme: string; ca
 
 RULES:
 - Output ONLY valid JSON: {"theme": "...", "category": "..."}
-- "theme" must be a single open-ended question in ITALIAN, 15-25 words, rich and genuinely debatable.
+- "theme" must be a single open-ended question in the language: ${lang}, 15-25 words, rich and genuinely debatable.
 - "category" must be exactly one of: philosophy, science, technology, art, history, economics, politics
 - The theme must be CONCEPTUALLY DIFFERENT from every entry in SEEN_THEMES — do not overlap in subject, angle, or domain.
 - AVOID all categories in RECENT_CATEGORIES — choose a different category to prevent repeating the same discipline.
@@ -548,7 +548,8 @@ router.post("/battles/matchmake", async (req, res) => {
     // ── Phase 3: nobody waiting → generate unique theme via LLM, open new match ─
     // generateBattleTheme reads this user's battle history, calls gpt-4o-mini with
     // a 2s timeout, and falls back to pickThemeFor(seenThemes) on any failure.
-    const picked = await generateBattleTheme(clerkId);
+    const lang = typeof req.body?.lang === "string" ? req.body.lang.slice(0, 10) : "it";
+    const picked = await generateBattleTheme(clerkId, lang);
 
     const [created] = await db.insert(battleMatches).values({
       theme: picked.theme, category: picked.category, status: "waiting",

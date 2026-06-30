@@ -39,7 +39,7 @@ function fmtTime(s: number): string {
 }
 
 export default function GuestBattlePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [phase, setPhase]           = useState<Phase>("loading");
   const [errorCode, setErrorCode]   = useState<string>("");
@@ -70,7 +70,7 @@ export default function GuestBattlePage() {
 
   // Start the battle on mount
   useEffect(() => {
-    guestFetch("/battles/guest/start", { method: "POST" })
+    guestFetch("/battles/guest/start", { method: "POST", body: JSON.stringify({ lang: i18n.language }) })
       .then(async r => {
         if (!r.ok) {
           const body = await r.json().catch(() => ({})) as { code?: string };

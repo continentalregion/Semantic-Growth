@@ -183,6 +183,9 @@ router.post("/battles/guest/start", async (req, res) => {
       }
     }
 
+    // ── Language (sent by frontend, used for future LLM theme generation) ────
+    const lang = typeof req.body?.lang === "string" ? req.body.lang.slice(0, 10) : "it";
+
     // ── Rate limit (IP-based, Postgres-backed) ────────────────────────────────
     const ip = getClientIp(req as Parameters<typeof getClientIp>[0]);
     if (!(await checkRateLimit(ip))) {
