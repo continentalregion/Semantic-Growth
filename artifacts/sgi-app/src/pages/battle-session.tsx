@@ -17,6 +17,7 @@ import {
 const API_BASE = "/api";
 const MIN_CHARS = 10;
 const AI_OFFER_AFTER_MS = 25_000;
+const AUTO_ACCEPT_SECONDS = 10; // countdown before auto-accepting AI at "pensatore" level
 const AI_USERNAME = "Avversario AI";
 
 type AiLevel = "sfidante" | "pensatore" | "maestro";
@@ -134,6 +135,7 @@ export default function BattleSessionPage() {
   const [starting, setStarting] = useState(false);
   const [showAiOffer, setShowAiOffer] = useState(false);
   const [acceptingAi, setAcceptingAi] = useState(false);
+  const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
   const [sharing, setSharing] = useState<"story" | "square" | null>(null);
   const [showShareMenu, setShowShareMenu] = useState(false);
 
@@ -303,6 +305,20 @@ export default function BattleSessionPage() {
     return () => clearTimeout(t);
   }, [view?.waitingSince, view?.status]);
 
+  // Start AUTO_ACCEPT_SECONDS countdown the moment the AI offer appears.
+  useEffect(() => {
+    if (!showAiOffer) { setAutoCountdown(null); return; }
+    setAutoCountdown(AUTO_ACCEPT_SECONDS);
+  }, [showAiOffer]);
+
+  // Tick the countdown; auto-accept at 0.
+  useEffect(() => {
+    if (autoCountdown === null) return;
+    if (autoCountdown <= 0) { void handleAiJoin("pensatore"); return; }
+    const id = setTimeout(() => setAutoCountdown(c => (c ?? 1) - 1), 1000);
+    return () => clearTimeout(id);
+  }, [autoCountdown, handleAiJoin]);
+
   useEffect(() => { load(); }, [load]);
 
   const phase: "loading" | "error" | "waitingOpponent" | "abandoned" | "result" | "scoring" | "waitingResult" | "ready" | "arena" =
@@ -400,11 +416,21 @@ export default function BattleSessionPage() {
 
           {showAiOffer && (
             <div className="mt-4 rounded-2xl p-6" style={{ background: "rgba(255,209,102,0.06)", border: "1px solid rgba(255,209,102,0.25)" }}>
-              <div className="flex items-center gap-2 mb-1">
-                <Bot className="w-5 h-5" style={{ color: GOLD }} />
-                <h2 className="text-base font-bold font-display" style={{ color: "#eeeeff" }}>
-                  Nessun avversario umano trovato
-                </h2>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <div className="flex items-center gap-2">
+                  <Bot className="w-5 h-5 flex-shrink-0" style={{ color: GOLD }} />
+                  <h2 className="text-base font-bold font-display" style={{ color: "#eeeeff" }}>
+                    Nessun avversario umano trovato
+                  </h2>
+                </div>
+                {autoCountdown !== null && autoCountdown > 0 && (
+                  <span
+                    className="text-xs font-mono font-bold px-2.5 py-1 rounded-full flex-shrink-0"
+                    style={{ background: "rgba(255,209,102,0.15)", color: GOLD }}
+                  >
+                    AI tra {autoCountdown}s
+                  </span>
+                )}
               </div>
               <p className="text-sm mb-5" style={{ color: MUTED }}>
                 Sfida l'Avversario AI — scegli il livello di difficoltà:
@@ -413,7 +439,7 @@ export default function BattleSessionPage() {
                 {AI_LEVELS.map(({ level, label, desc, color }) => (
                   <button
                     key={level}
-                    onClick={() => handleAiJoin(level)}
+                    onClick={() => { setAutoCountdown(null); void handleAiJoin(level); }}
                     disabled={acceptingAi}
                     className="flex-1 rounded-xl px-4 py-3 text-left transition-all"
                     style={{
@@ -429,11 +455,11 @@ export default function BattleSessionPage() {
                 ))}
               </div>
               <button
-                onClick={() => setShowAiOffer(false)}
+                onClick={() => { setShowAiOffer(false); setAutoCountdown(null); }}
                 className="text-xs w-full text-center py-1.5"
                 style={{ color: MUTED }}
               >
-                Continua ad aspettare un umano
+                Annulla — continua ad aspettare un umano
               </button>
             </div>
           )}

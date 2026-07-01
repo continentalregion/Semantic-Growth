@@ -31,7 +31,8 @@ const router = Router();
 
 // ─── Tunables ────────────────────────────────────────────────────────────────
 const TURN_WINDOW_S = 390;                 // 6:30 server-enforced conversation window
-const WAITING_TTL_MS = 48 * 60 * 60 * 1000; // a lone "waiting" match expires after 48h
+const WAITING_TTL_MS           = 30 * 60 * 1000; // a lone "waiting" match expires after 30min
+const WAITING_AI_ESCALATION_MS = 10 * 60 * 1000; // auto-escalate to vs-AI after 10min with no human
 const ACTIVE_TTL_MS = 24 * 60 * 60 * 1000;  // once paired, each player has 24h to finish
 const MIN_TEXT = 10;                        // below this, a player's contribution is degenerate
 const SPARRING_MODEL = "gpt-4o-mini";
@@ -373,7 +374,42 @@ async function resolveForfeit(match: BattleMatch, winnerEntry: BattleEntry, lose
 async function reconcileExpiredMatches(): Promise<void> {
   const now = new Date();
   try {
-    // Lone "waiting" matches that timed out → abandoned, free the lone entry.
+    // Waiting matches older than WAITING_AI_ESCALATION_MS → auto-escalate to vs-AI.
+    // Fired non-blocking (void) so the LLM call never delays the matchmake request.
+    const escalationCutoff = new Date(Date.now() - WAITING_AI_ESCALATION_MS);
+    const toEscalate = await db.select({ id: battleMatches.id, theme: battleMatches.theme })
+      .from(battleMatches)
+      .where(and(eq(battleMatches.status, "waiting"), lt(battleMatches.createdAt, escalationCutoff)))
+      .limit(5);
+    for (const m of toEscalate) {
+      void (async () => {
+        try {
+          const claim = await db.execute(sql`
+            UPDATE battle_matches
+            SET status    = 'active',
+                vs_ai     = true,
+                ai_level  = 'pensatore',
+                expires_at = now() + make_interval(secs => ${ACTIVE_TTL_MS / 1000}),
+                updated_at = now()
+            WHERE id = ${m.id} AND status = 'waiting'
+            RETURNING id, theme
+          `);
+          if (!claim.rows?.length) return; // human joined in the meantime — ignore
+          const theme  = (claim.rows[0] as { theme: string }).theme;
+          const aiText = await generateAiArgument(theme, "pensatore");
+          await db.insert(battleEntries).values({
+            matchId: m.id, userId: AI_PLAYER_ID, username: AI_USERNAME,
+            slot: 2, status: "completed", userText: aiText, messages: [],
+            startedAt: now, completedAt: now,
+          });
+          console.log(`[battles] auto-escalated waiting match ${m.id} to vs-AI`);
+        } catch (err) {
+          console.warn(`[battles] auto-escalation failed for match ${m.id}:`, err instanceof Error ? err.message : err);
+        }
+      })();
+    }
+
+    // Lone "waiting" matches past their TTL → abandoned (fallback if escalation failed).
     const staleWaiting = await db.select().from(battleMatches)
       .where(and(eq(battleMatches.status, "waiting"), lt(battleMatches.expiresAt, now))).limit(20);
     for (const m of staleWaiting) {
