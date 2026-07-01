@@ -78,6 +78,13 @@ export const MONTHLY_LIMITS: Record<string, number> = {
   pro:     Math.min(Math.floor(aiBudgetProForMsgCap     / costPerMsgHaiku), CAP_PRO),
 };
 
+// ─── Budget mensile chiamate LLM per battle auth-user ────────────────────────
+// Copre: generateBattleTheme, generateAiArgument (auto-escalation + ai-join),
+// e sparring turns. Separato dal GLOBAL_MONTHLY_BUDGET_CENTS (chat only).
+// Formula: ~0.07¢/battle × N_battles. A 1000 battle/mese = €0.70 → margine ampio.
+// Alzare proporzionalmente al crescere del traffico battle.
+export const BATTLE_MONTHLY_BUDGET_CENTS = 5_000;  // €50/mese
+
 // ─── Valvola globale di spesa mensile cross-tenant (Fase 5 — anti-abuso) ──────
 // Questa valvola è un firewall di emergenza, NON il meccanismo principale di
 // protezione margine (che è ora il cost cap per-utente, FASE 4).

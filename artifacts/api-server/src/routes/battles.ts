@@ -26,6 +26,13 @@ import {
   generateAiArgument,
   type AiLevel,
 } from "../lib/aiOpponent";
+import {
+  isBattleBudgetOk,
+  chargeBattleBudget,
+  COST_BATTLE_THEME_CENTS,
+  COST_BATTLE_ARGUMENT_CENTS,
+  COST_BATTLE_SPARRING_CENTS,
+} from "../lib/battleBudget.js";
 
 const router = Router();
 
@@ -384,6 +391,11 @@ async function reconcileExpiredMatches(): Promise<void> {
     for (const m of toEscalate) {
       void (async () => {
         try {
+          // Pre-flight budget check — abort silently if monthly battle budget is exhausted.
+          if (!(await isBattleBudgetOk())) {
+            console.warn(`[battles] budget exhausted — skipping auto-escalation for match ${m.id}`);
+            return;
+          }
           const claim = await db.execute(sql`
             UPDATE battle_matches
             SET status    = 'active',
@@ -397,6 +409,7 @@ async function reconcileExpiredMatches(): Promise<void> {
           if (!claim.rows?.length) return; // human joined in the meantime — ignore
           const theme  = (claim.rows[0] as { theme: string }).theme;
           const aiText = await generateAiArgument(theme, "pensatore");
+          void chargeBattleBudget(COST_BATTLE_ARGUMENT_CENTS);
           await db.insert(battleEntries).values({
             matchId: m.id, userId: AI_PLAYER_ID, username: AI_USERNAME,
             slot: 2, status: "completed", userText: aiText, messages: [],
@@ -594,7 +607,14 @@ router.post("/battles/matchmake", async (req, res) => {
     // generateBattleTheme reads this user's battle history, calls gpt-4o-mini with
     // a 2s timeout, and falls back to pickThemeFor(seenThemes) on any failure.
     const lang = typeof req.body?.lang === "string" ? req.body.lang.slice(0, 10) : "it";
-    const picked = await generateBattleTheme(clerkId, lang);
+    let picked: { theme: string; category: string };
+    if (await isBattleBudgetOk()) {
+      picked = await generateBattleTheme(clerkId, lang);
+      void chargeBattleBudget(COST_BATTLE_THEME_CENTS);
+    } else {
+      console.warn("[battles] budget exhausted — using static theme pool for matchmake");
+      picked = pickThemeFor([]); // skip LLM call entirely; static pool is sufficient
+    }
 
     const [created] = await db.insert(battleMatches).values({
       theme: picked.theme, category: picked.category, status: "waiting",
@@ -774,6 +794,7 @@ router.post("/battles/matches/:id/turn", async (req, res) => {
         messages: modelMessages,
       });
       reply = completion.choices[0]?.message?.content?.trim() ?? "";
+      if (reply) void chargeBattleBudget(COST_BATTLE_SPARRING_CENTS);
     } catch (err) {
       console.error("[battles] sparring model error", err);
     }
@@ -893,7 +914,14 @@ router.post("/battles/matches/:id/ai-join", async (req, res) => {
 
     // Use server-side theme only — never trust req.body.theme.
     const matchTheme = (claim.rows[0] as { theme: string }).theme;
-    const aiText = await generateAiArgument(matchTheme, level);
+    let aiText: string;
+    if (await isBattleBudgetOk()) {
+      aiText = await generateAiArgument(matchTheme, level);
+      void chargeBattleBudget(COST_BATTLE_ARGUMENT_CENTS);
+    } else {
+      console.warn("[battles] budget exhausted — ai-join using static fallback argument");
+      aiText = "Il sistema è temporaneamente sotto carico. La posizione avversaria sarà considerata neutra ai fini della valutazione.";
+    }
 
     await db.insert(battleEntries).values({
       matchId,
