@@ -408,7 +408,7 @@ function ClerkProviderWithRoutes() {
           <Route path="/how-it-works" component={HowItWorks} />
           <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
           <Route path="/chat" component={() => <ProtectedRoute component={Chat} />} />
-          <Route path="/leaderboard" component={Leaderboard} />
+          <Route path="/leaderboard" component={() => <ProtectedRoute component={Leaderboard} />} />
           <Route path="/map" component={() => <ProtectedRoute component={MapPage} />} />
           <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
           <Route path="/predictions" component={() => <ProtectedRoute component={Predictions} />} />
