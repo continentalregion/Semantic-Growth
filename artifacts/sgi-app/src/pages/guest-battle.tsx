@@ -279,7 +279,7 @@ export default function GuestBattlePage() {
                       {charCount > 0 && charCount < MIN_CHARS
                         ? t("guestBattle.minChars", { n: MIN_CHARS })
                         : turnsLeft <= 0 ? t("guestBattle.maxTurns")
-                        : `${charCount} chars • ⌘↵`}
+                        : <>{charCount} {t("guestBattle.charUnit")}<span className="hidden md:inline"> · ⌘↵</span></>}
                     </span>
                     <button
                       onClick={() => void handleSend()}

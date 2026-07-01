@@ -26,7 +26,7 @@ export default function Terms() {
             <h2 className="text-base font-semibold text-foreground mb-3">2. Descrizione del Servizio</h2>
             <p>SGI è una piattaforma SaaS che misura e traccia la crescita semantica e cognitiva degli utenti tramite conversazioni AI. Il Servizio offre:</p>
             <ul className="mt-2 space-y-1 ml-4">
-              <li>Calcolo del punteggio SGI su 13 dimensioni semantiche.</li>
+              <li>Calcolo del punteggio SGI su 11 metriche semantiche.</li>
               <li>Classifiche globali e predizioni di crescita (piani Premium/Pro).</li>
               <li>Battaglie intellettuali e sfide con altri utenti.</li>
               <li>Raccomandazioni personalizzate per la crescita cognitiva (piani Premium/Pro).</li>

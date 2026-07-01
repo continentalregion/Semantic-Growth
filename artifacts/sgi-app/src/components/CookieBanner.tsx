@@ -1,16 +1,19 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function CookieBanner() {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const consent = localStorage.getItem("sgi-cookie-consent");
     if (!consent) {
-      const t = setTimeout(() => setVisible(true), 800);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => setVisible(true), 800);
+      return () => clearTimeout(timer);
     }
+    return undefined;
   }, []);
 
   const accept = (type: "all" | "essential") => {
@@ -27,7 +30,7 @@ export function CookieBanner() {
     >
       <div className="container mx-auto px-4 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <p className="text-xs text-muted-foreground flex-1 leading-relaxed">
-          Usiamo cookie essenziali per il funzionamento dell'app e, con il tuo consenso, cookie analitici per migliorare il servizio.{" "}
+          {t("cookie.text")}{" "}
           <Link href="/privacy-policy" className="text-primary underline hover:opacity-80 transition-opacity">
             Privacy Policy
           </Link>
@@ -37,19 +40,19 @@ export function CookieBanner() {
             onClick={() => accept("essential")}
             className="px-3 py-1.5 rounded-md text-xs border border-border text-muted-foreground hover:bg-white/5 transition-colors"
           >
-            Solo essenziali
+            {t("cookie.essential")}
           </button>
           <button
             onClick={() => accept("all")}
             className="px-4 py-1.5 rounded-md text-xs font-semibold text-white transition-opacity hover:opacity-90"
             style={{ background: "hsl(var(--primary))" }}
           >
-            Accetta tutto
+            {t("cookie.acceptAll")}
           </button>
           <button
             onClick={() => accept("essential")}
             className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Chiudi"
+            aria-label={t("cookie.close")}
           >
             <X className="w-3.5 h-3.5" />
           </button>

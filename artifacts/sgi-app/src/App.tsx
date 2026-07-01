@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ClerkProvider, SignIn, SignUp, Show, useAuth, useUser, useClerk } from "@clerk/react";
+import { itIT, esES } from "@clerk/localizations";
+import { useTranslation } from "react-i18next";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
@@ -86,17 +88,17 @@ const clerkAppearance = {
   },
 };
 
-const AUTH_FEATURES = [
-  { icon: "◈", label: "Cognitive telemetry", desc: "13 semantic dimensions tracked in real time" },
-  { icon: "◉", label: "Global leaderboard", desc: "Rank your growth among thousands of thinkers" },
-  { icon: "◆", label: "Predictive simulation", desc: "AI forecast of your semantic growth curve" },
-];
-
 function AuthLayout({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
+  const authFeatures = [
+    { icon: "◈", label: t("auth.f1Label"), desc: t("auth.f1Desc") },
+    { icon: "◉", label: t("auth.f2Label"), desc: t("auth.f2Desc") },
+    { icon: "◆", label: t("auth.f3Label"), desc: t("auth.f3Desc") },
+  ];
   return (
     <div className="flex min-h-[100dvh] bg-background">
       <div
-        className="hidden lg:flex flex-col justify-between w-[44%] shrink-0 px-14 py-12 relative overflow-hidden"
+        className="hidden lg:flex flex-col justify-start w-[44%] shrink-0 px-14 py-12 relative overflow-hidden"
         style={{
           background: "linear-gradient(145deg, #0d0c1f 0%, #12103a 55%, #0e1a2e 100%)",
           borderRight: "1px solid rgba(124,107,255,0.15)",
@@ -128,7 +130,7 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
             className="text-4xl font-extrabold leading-tight mb-5 font-display"
             style={{ color: "#eeeeff" }}
           >
-            Track the evolution
+            {t("auth.headline1")}
             <br />
             <span
               style={{
@@ -137,15 +139,15 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
                 WebkitTextFillColor: "transparent",
               }}
             >
-              of your mind.
+              {t("auth.headline2")}
             </span>
           </h2>
           <p className="text-sm leading-relaxed mb-12" style={{ color: "#9090b8" }}>
-            A platform for measuring cognitive growth across 13 semantic dimensions — in real time.
+            {t("auth.sub")}
           </p>
 
           <div className="flex flex-col gap-5">
-            {AUTH_FEATURES.map((f) => (
+            {authFeatures.map((f) => (
               <div key={f.label} className="flex items-start gap-4">
                 <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-base font-bold"
@@ -164,24 +166,6 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
               </div>
             ))}
           </div>
-        </div>
-
-        <div className="relative z-10">
-          <div className="flex items-center gap-1.5 mb-3">
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className="w-2 h-2 rounded-full"
-                style={{ background: i < 4 ? "#7c6bff" : "rgba(124,107,255,0.3)" }}
-              />
-            ))}
-          </div>
-          <p className="text-xs italic leading-relaxed" style={{ color: "#9090b8" }}>
-            "SGI made me realize how narrow my thinking was — now I actively seek out new domains."
-          </p>
-          <p className="text-xs mt-1.5 font-semibold" style={{ color: "#7c6bff" }}>
-            — Community member, Level 12
-          </p>
         </div>
       </div>
 
@@ -202,6 +186,7 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
 }
 
 function ConnectingScreen() {
+  const { t } = useTranslation();
   return (
     <div
       className="h-screen w-screen flex flex-col items-center justify-center gap-6"
@@ -230,7 +215,7 @@ function ConnectingScreen() {
           SGI
         </p>
         <p className="text-xs" style={{ color: "rgba(144,144,184,0.7)" }}>
-          Connecting to intelligence engine…
+          {t("auth.connecting")}
         </p>
       </div>
       <div className="flex gap-1.5 mt-2">
@@ -387,10 +372,13 @@ function HomeRedirect() {
 
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
+  const { i18n } = useTranslation();
+  const clerkLocale = i18n.language === "it" ? itIT : i18n.language === "es" ? esES : undefined;
 
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
+      localization={clerkLocale}
       proxyUrl={clerkProxyUrl}
       appearance={clerkAppearance}
       signInUrl={`${basePath}/sign-in`}

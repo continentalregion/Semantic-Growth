@@ -307,7 +307,7 @@ export default function Home() {
               Privacy Policy
             </Link>
             <Link href="/terms" className="hover:text-foreground transition-colors no-underline">
-              Termini di Servizio
+              {t("home.termsLink")}
             </Link>
             <a href="mailto:support@sgindex.work" className="hover:text-foreground transition-colors">
               Supporto

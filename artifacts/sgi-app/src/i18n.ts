@@ -39,7 +39,7 @@ const IT = {
     ucCreatorsDesc: "Dimostra l'evoluzione delle tue idee e fai emergere la qualità del tuo pensiero.",
     catPhilosophy: "Filosofia", catScience: "Scienza", catTechnology: "Tecnologia", catArt: "Arte", catHistory: "Storia", catEconomics: "Economia", catPolitics: "Politica",
     finalCtaTitle: "Pronto a vedere il tuo numero?",
-    finalCtaSub: "Inizia gratis e ottieni il tuo primo punteggio SGI in pochi minuti.",
+    finalCtaSub: "Inizia gratis e ottieni il tuo primo punteggio SGI in pochi minuti.", termsLink: "Termini di Servizio",
   },
   guestBattle: {
     loading: "Avvio della sfida…",
@@ -52,6 +52,7 @@ const IT = {
     theme: "Tema",
     turnN: "Turno {{n}} di {{max}}",
     placeholder: "La mia tesi è che… e questo implica necessariamente che…",
+    charUnit: "caratteri",
     send: "Invia",
     finish: "Completa la sfida",
     finishing: "Valutazione in corso…",
@@ -408,6 +409,28 @@ const IT = {
     errorTitle: "Errore di caricamento", errorDesc: "Riprova o torna alla home.",
     retryBtn: "Riprova", homeBtn: "Torna alla Home",
   },
+  auth: {
+    headline1: "Un compagno di pensiero,",
+    headline2: "non un chatbot.",
+    sub: "11 metriche semantiche, 4 macro-dimensioni, tracciate in tempo reale.",
+    f1Label: "Telemetria cognitiva", f1Desc: "11 metriche tracciate in tempo reale",
+    f2Label: "Classifica globale", f2Desc: "Confronta la crescita con migliaia di pensatori",
+    f3Label: "Simulazione predittiva", f3Desc: "Previsione AI della tua curva di crescita semantica",
+    connecting: "Connessione al motore di intelligenza…",
+  },
+  onboarding: {
+    skip: "Salta introduzione", next: "Avanti", start: "Inizia la tua prima chat →",
+    s1Title: "Benvenuto in SGI",
+    s1Desc: "SGI misura la crescita cognitiva in tempo reale attraverso le tue conversazioni. Ogni chat analizza la profondità, varietà e precisione del tuo ragionamento su 11 metriche semantiche.",
+    s2Title: "Come funziona il punteggio",
+    s2Desc: "Dopo ogni conversazione, l'AI legge la qualità dei tuoi ragionamenti e aggiorna il tuo punteggio SGI. Più esplori argomenti diversi — filosofia, scienza, arte, tecnologia — più il punteggio riflette la tua crescita reale.",
+    s3Title: "Pronto per iniziare?",
+    s3Desc: "Apri una chat e inizia a conversare su qualsiasi argomento. Il tuo SGI partirà subito a registrare la tua evoluzione mentale — niente quiz, niente test, solo dialogo.",
+  },
+  cookie: {
+    text: "Usiamo cookie essenziali per il funzionamento dell'app e, con il tuo consenso, cookie analitici per migliorare il servizio.",
+    essential: "Solo essenziali", acceptAll: "Accetta tutto", close: "Chiudi",
+  },
 };
 
 // ─── English (pre-cached) ─────────────────────────────────────────────────────
@@ -422,7 +445,7 @@ const EN = {
     upgrade: "Upgrade ✦",
   },
   home: {
-    signIn: "Sign In", initConnection: "Initialize Connection",
+    signIn: "Sign In", initConnection: "Get started",
     live: "Live cognitive telemetry online",
     headline: "A thinking partner, not a chatbot.",
     sub: "Chat with an AI about philosophy, science or ethics. The SGI index measures depth, coherence and originality of your reasoning in real time, and tracks its growth — battle mode lets you challenge a friend on the same topic.",
@@ -447,7 +470,7 @@ const EN = {
     ucCreatorsDesc: "Prove how your ideas evolve and make the quality of your thinking stand out.",
     catPhilosophy: "Philosophy", catScience: "Science", catTechnology: "Technology", catArt: "Art", catHistory: "History", catEconomics: "Economics", catPolitics: "Politics",
     finalCtaTitle: "Ready to see your number?",
-    finalCtaSub: "Start free and get your first SGI score in minutes.",
+    finalCtaSub: "Start free and get your first SGI score in minutes.", termsLink: "Terms of Service",
   },
   guestBattle: {
     loading: "Starting your battle…",
@@ -460,6 +483,7 @@ const EN = {
     theme: "Theme",
     turnN: "Turn {{n}} of {{max}}",
     placeholder: "My argument is that… which necessarily implies that…",
+    charUnit: "chars",
     send: "Send",
     finish: "Complete the battle",
     finishing: "Evaluating…",
@@ -814,6 +838,28 @@ const EN = {
     errorTitle: "Loading Error", errorDesc: "Try again or go back home.",
     retryBtn: "Retry", homeBtn: "Go Home",
   },
+  auth: {
+    headline1: "A thinking partner,",
+    headline2: "not a chatbot.",
+    sub: "11 semantic metrics, 4 macro-dimensions, tracked in real time.",
+    f1Label: "Cognitive telemetry", f1Desc: "11 metrics tracked in real time",
+    f2Label: "Global leaderboard", f2Desc: "Rank your growth among thousands of thinkers",
+    f3Label: "Predictive simulation", f3Desc: "AI forecast of your semantic growth curve",
+    connecting: "Connecting to intelligence engine…",
+  },
+  onboarding: {
+    skip: "Skip introduction", next: "Next", start: "Start your first chat →",
+    s1Title: "Welcome to SGI",
+    s1Desc: "SGI measures cognitive growth in real time through your conversations. Each chat analyses the depth, variety and precision of your reasoning across 11 semantic metrics.",
+    s2Title: "How scoring works",
+    s2Desc: "After each conversation, the AI reads the quality of your reasoning and updates your SGI score. The more you explore different topics — philosophy, science, art, technology — the more the score reflects your real growth.",
+    s3Title: "Ready to start?",
+    s3Desc: "Open a chat and start conversing on any topic. Your SGI will immediately begin recording your mental evolution — no quizzes, no tests, just dialogue.",
+  },
+  cookie: {
+    text: "We use essential cookies to operate the app and, with your consent, analytics cookies to improve the service.",
+    essential: "Essential only", acceptAll: "Accept all", close: "Close",
+  },
 };
 
 // ─── Spanish (pre-cached) ─────────────────────────────────────────────────────
@@ -829,7 +875,7 @@ const ES = {
     upgrade: "Mejorar ✦",
   },
   home: {
-    signIn: "Iniciar sesión", initConnection: "Iniciar Conexión",
+    signIn: "Iniciar sesión", initConnection: "Empieza ahora",
     live: "Telemetría cognitiva en vivo",
     headline: "Un compañero de pensamiento, no un chatbot.",
     sub: "Conversa con una IA sobre filosofía, ciencia o ética. El índice SGI mide profundidad, coherencia y originalidad de tu razonamiento en tiempo real, y rastrea su crecimiento — el modo batalla te permite desafiar a un amigo sobre el mismo tema.",
@@ -854,7 +900,7 @@ const ES = {
     ucCreatorsDesc: "Demuestra cómo evolucionan tus ideas y destaca la calidad de tu pensamiento.",
     catPhilosophy: "Filosofía", catScience: "Ciencia", catTechnology: "Tecnología", catArt: "Arte", catHistory: "Historia", catEconomics: "Economía", catPolitics: "Política",
     finalCtaTitle: "¿Listo para ver tu número?",
-    finalCtaSub: "Empieza gratis y obtén tu primera puntuación SGI en minutos.",
+    finalCtaSub: "Empieza gratis y obtén tu primera puntuación SGI en minutos.", termsLink: "Términos de Servicio",
   },
   guestBattle: {
     loading: "Iniciando tu batalla…",
@@ -867,6 +913,7 @@ const ES = {
     theme: "Tema",
     turnN: "Turno {{n}} de {{max}}",
     placeholder: "Mi argumento es que… lo que implica necesariamente que…",
+    charUnit: "caracteres",
     send: "Enviar",
     finish: "Completar la batalla",
     finishing: "Evaluando…",
@@ -1219,6 +1266,28 @@ const ES = {
     free: "Gratuito", premium: "Premium", pro: "Pro", sgi: "SGI", loading: "Cargando...",
     errorTitle: "Error de carga", errorDesc: "Reintenta o vuelve al inicio.",
     retryBtn: "Reintentar", homeBtn: "Ir al Inicio",
+  },
+  auth: {
+    headline1: "Un compañero de pensamiento,",
+    headline2: "no un chatbot.",
+    sub: "11 métricas semánticas, 4 macro-dimensiones, rastreadas en tiempo real.",
+    f1Label: "Telemetría cognitiva", f1Desc: "11 métricas rastreadas en tiempo real",
+    f2Label: "Clasificación global", f2Desc: "Compara tu crecimiento con miles de pensadores",
+    f3Label: "Simulación predictiva", f3Desc: "Pronóstico IA de tu curva de crecimiento semántico",
+    connecting: "Conectando al motor de inteligencia…",
+  },
+  onboarding: {
+    skip: "Saltar introducción", next: "Siguiente", start: "Inicia tu primer chat →",
+    s1Title: "Bienvenido a SGI",
+    s1Desc: "SGI mide el crecimiento cognitivo en tiempo real a través de tus conversaciones. Cada chat analiza la profundidad, variedad y precisión de tu razonamiento en 11 métricas semánticas.",
+    s2Title: "Cómo funciona la puntuación",
+    s2Desc: "Después de cada conversación, la IA lee la calidad de tus razonamientos y actualiza tu puntuación SGI. Cuanto más explores temas distintos — filosofía, ciencia, arte, tecnología — más refleja el puntaje tu crecimiento real.",
+    s3Title: "¿Listo para empezar?",
+    s3Desc: "Abre un chat y empieza a conversar sobre cualquier tema. Tu SGI comenzará de inmediato a registrar tu evolución mental — sin cuestionarios, sin tests, solo diálogo.",
+  },
+  cookie: {
+    text: "Usamos cookies esenciales para el funcionamiento de la app y, con tu consentimiento, cookies analíticas para mejorar el servicio.",
+    essential: "Solo esenciales", acceptAll: "Aceptar todo", close: "Cerrar",
   },
 };
 

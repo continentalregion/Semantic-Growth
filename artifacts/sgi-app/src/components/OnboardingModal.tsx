@@ -1,35 +1,26 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/react";
 import { Link } from "wouter";
-
-const STEPS = [
-  {
-    icon: "◈",
-    title: "Benvenuto in SGI",
-    desc: "SGI misura la crescita cognitiva in tempo reale attraverso le tue conversazioni. Ogni chat analizza la profondità, varietà e precisione del tuo ragionamento su 13 dimensioni semantiche.",
-  },
-  {
-    icon: "◉",
-    title: "Come funziona il punteggio",
-    desc: "Dopo ogni conversazione, l'AI legge la qualità dei tuoi ragionamenti e aggiorna il tuo punteggio SGI. Più esplori argomenti diversi — filosofia, scienza, arte, tecnologia — più il punteggio riflette la tua crescita reale.",
-  },
-  {
-    icon: "◆",
-    title: "Pronto per iniziare?",
-    desc: "Apri una chat e inizia a conversare su qualsiasi argomento. Il tuo SGI partirà subito a registrare la tua evoluzione mentale — niente quiz, niente test, solo dialogo.",
-  },
-];
+import { useTranslation } from "react-i18next";
 
 export function OnboardingModal() {
+  const { t } = useTranslation();
   const { isSignedIn } = useAuth();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
 
+  const STEPS = [
+    { icon: "◈", title: t("onboarding.s1Title"), desc: t("onboarding.s1Desc") },
+    { icon: "◉", title: t("onboarding.s2Title"), desc: t("onboarding.s2Desc") },
+    { icon: "◆", title: t("onboarding.s3Title"), desc: t("onboarding.s3Desc") },
+  ];
+
   useEffect(() => {
     if (isSignedIn && !localStorage.getItem("sgi-onboarded")) {
-      const t = setTimeout(() => setOpen(true), 1500);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => setOpen(true), 1500);
+      return () => clearTimeout(timer);
     }
+    return undefined;
   }, [isSignedIn]);
 
   const dismiss = () => {
@@ -55,7 +46,7 @@ export function OnboardingModal() {
         <button
           onClick={dismiss}
           className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors text-lg"
-          aria-label="Salta"
+          aria-label={t("onboarding.skip")}
         >
           ✕
         </button>
@@ -95,7 +86,7 @@ export function OnboardingModal() {
               className="w-full py-3 rounded-xl font-semibold text-white transition-opacity hover:opacity-90"
               style={{ background: "linear-gradient(135deg, #7c6bff, #06d6a0)" }}
             >
-              Inizia la tua prima chat →
+              {t("onboarding.start")}
             </button>
           </Link>
         ) : (
@@ -104,13 +95,13 @@ export function OnboardingModal() {
             className="w-full py-3 rounded-xl font-semibold text-white transition-opacity hover:opacity-90"
             style={{ background: "linear-gradient(135deg, #7c6bff, #5b4de0)" }}
           >
-            Avanti
+            {t("onboarding.next")}
           </button>
         )}
 
         {!isLast && (
           <button onClick={dismiss} className="w-full mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors">
-            Salta introduzione
+            {t("onboarding.skip")}
           </button>
         )}
       </div>

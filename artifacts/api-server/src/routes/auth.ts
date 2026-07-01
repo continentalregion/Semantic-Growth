@@ -1,8 +1,58 @@
 import { Router } from "express";
+import { db } from "@workspace/db";
+import { sql } from "drizzle-orm";
 
 const router = Router();
 
 const CLERK_BAPI = "https://api.clerk.com/v1";
+const AUTH_MAX_ATTEMPTS = 5;
+const AUTH_WINDOW_MINUTES = 15;
+
+// ─── Rate limiting ─────────────────────────────────────────────────────────────
+// Table created idempotently at module load — not managed by Drizzle migrations.
+void (async () => {
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS auth_rate_limits (
+        ip      TEXT NOT NULL,
+        win_key TEXT NOT NULL,
+        count   INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (ip, win_key)
+      )
+    `);
+  } catch (err) {
+    console.error("[auth] rate-limit table init error:", err);
+  }
+})();
+
+function getClientIp(req: { ip?: string; headers: Record<string, string | string[] | undefined> }): string {
+  const forwarded = req.headers["x-forwarded-for"];
+  const first = Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(",")[0];
+  return first?.trim() ?? req.ip ?? "unknown";
+}
+
+function currentWindowKey(): string {
+  const now = new Date();
+  const quarter = Math.floor(now.getUTCMinutes() / AUTH_WINDOW_MINUTES) * AUTH_WINDOW_MINUTES;
+  return `${now.toISOString().slice(0, 13)}:${String(quarter).padStart(2, "0")}`;
+}
+
+async function checkAuthRateLimit(ip: string): Promise<boolean> {
+  const win = currentWindowKey();
+  const row = await db.execute(sql`
+    SELECT count FROM auth_rate_limits WHERE ip = ${ip} AND win_key = ${win}
+  `);
+  const count = (row.rows?.[0] as { count?: number } | undefined)?.count ?? 0;
+  return count < AUTH_MAX_ATTEMPTS;
+}
+
+async function incrementAuthRateLimit(ip: string): Promise<void> {
+  const win = currentWindowKey();
+  await db.execute(sql`
+    INSERT INTO auth_rate_limits (ip, win_key, count) VALUES (${ip}, ${win}, 1)
+    ON CONFLICT (ip, win_key) DO UPDATE SET count = auth_rate_limits.count + 1
+  `);
+}
 
 // POST /api/auth/mobile-signin
 //
@@ -11,10 +61,11 @@ const CLERK_BAPI = "https://api.clerk.com/v1";
 // ClerkExpoModule is mocked.
 //
 // Flow:
-//  1. Find Clerk user by email via Admin API
-//  2. Verify password via Admin API  (/v1/users/{id}/verify_password)
-//  3. Create one-time sign-in token  (/v1/sign_in_tokens)
-//  4. Return token — mobile app uses strategy:"ticket" to complete sign-in
+//  1. Rate-check IP (5 attempts per 15-minute window → 429)
+//  2. Find Clerk user by email via Admin API
+//  3. Verify password via Admin API  (/v1/users/{id}/verify_password)
+//  4. Create one-time sign-in token  (/v1/sign_in_tokens)
+//  5. Return token — mobile app uses strategy:"ticket" to complete sign-in
 //
 // The "ticket" strategy goes through FAPI but proves the user was authenticated
 // via a server-side verified token, bypassing the dev-browser trust check.
@@ -23,6 +74,18 @@ router.post("/auth/mobile-signin", async (req, res) => {
   if (!email || typeof email !== "string" || !password || typeof password !== "string") {
     res.status(400).json({ error: "Email e password sono richiesti." });
     return;
+  }
+
+  // ── Rate limit by IP ──
+  const ip = getClientIp(req as Parameters<typeof getClientIp>[0]);
+  try {
+    if (!(await checkAuthRateLimit(ip))) {
+      res.status(429).json({ error: "Troppi tentativi. Riprova tra qualche minuto." });
+      return;
+    }
+    await incrementAuthRateLimit(ip);
+  } catch {
+    // fail-open: don't block legitimate users on DB errors
   }
 
   const secretKey = process.env.CLERK_SECRET_KEY;
@@ -36,6 +99,9 @@ router.post("/auth/mobile-signin", async (req, res) => {
     "Content-Type": "application/json",
   };
 
+  // Unified error message for all auth failures — prevents user enumeration
+  const INVALID_CREDS = "Credenziali non valide.";
+
   try {
     // 1. Find user by email
     const usersResp = await fetch(
@@ -48,7 +114,7 @@ router.post("/auth/mobile-signin", async (req, res) => {
     }
     const users = (await usersResp.json()) as Array<{ id: string }>;
     if (!users || users.length === 0) {
-      res.status(401).json({ error: "Nessun account trovato con questa email." });
+      res.status(401).json({ error: INVALID_CREDS });
       return;
     }
     const userId = users[0]!.id;
@@ -63,14 +129,12 @@ router.post("/auth/mobile-signin", async (req, res) => {
       }
     );
     if (!verifyResp.ok) {
-      const errBody = await verifyResp.json().catch(() => ({})) as { errors?: Array<{ message?: string }> };
-      const errMsg = errBody?.errors?.[0]?.message ?? "Password non corretta.";
-      res.status(401).json({ error: errMsg });
+      res.status(401).json({ error: INVALID_CREDS });
       return;
     }
     const verifyData = (await verifyResp.json()) as { verified?: boolean };
     if (!verifyData.verified) {
-      res.status(401).json({ error: "Password non corretta." });
+      res.status(401).json({ error: INVALID_CREDS });
       return;
     }
 
@@ -93,7 +157,8 @@ router.post("/auth/mobile-signin", async (req, res) => {
 
     res.json({ token });
   } catch (err) {
-    console.error("[mobile-signin] error:", err);
+    // Never log request body — password must not appear in logs
+    console.error("[mobile-signin] unexpected error:", (err instanceof Error) ? err.message : "unknown");
     res.status(500).json({ error: "Errore interno. Riprova tra qualche istante." });
   }
 });
