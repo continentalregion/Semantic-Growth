@@ -216,9 +216,20 @@ export default function Home() {
             <h1 className="text-4xl sm:text-4xl md:text-6xl xl:text-7xl font-extrabold tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-br from-white to-gray-500">
               {t("home.headline")}
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-6 md:mb-9 leading-relaxed">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-6 leading-relaxed">
               {t("home.sub")}
             </p>
+            {/* Category pills — philosophy prominent */}
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mb-8">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
+                ◆ {t("home.catPhilosophy")}
+              </span>
+              {(["home.catScience","home.catTechnology","home.catArt","home.catHistory","home.catEconomics","home.catPolitics"] as const).map((k) => (
+                <span key={k} className="inline-flex items-center px-3 py-1 rounded-full border border-border/60 text-muted-foreground text-xs font-medium">
+                  {t(k)}
+                </span>
+              ))}
+            </div>
             <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4">
               <Button size="lg" className="h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg rounded-full" asChild>
                 <Link href="/guest-battle">
