@@ -236,7 +236,7 @@ export default function Home() {
                   {t("home.ctaPrimary")} <ChevronRight className="ml-2 w-5 h-5" aria-hidden="true" />
                 </Link>
               </Button>
-              <Button size="lg" variant="ghost" className="h-12 sm:h-14 px-5 sm:px-6 text-base sm:text-lg rounded-full hover:bg-primary/10" asChild>
+              <Button size="lg" variant="outline" className="h-12 sm:h-14 px-5 sm:px-6 text-base sm:text-lg rounded-full" asChild>
                 <Link href="/guest-battle">{t("home.ctaGuest")}</Link>
               </Button>
             </div>
