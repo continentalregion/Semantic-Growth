@@ -31,13 +31,13 @@ const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
 const MIN_CHARS = 10;
 
 const CATEGORY_META: Record<string, { labelKey: string; color: string; icon: string }> = {
-  philosophy:    { labelKey: "battles.categoryPhilosophy",    color: palette.primary,      icon: "telescope-outline" },
-  science:       { labelKey: "battles.categoryScience",       color: palette.teal,         icon: "flask-outline" },
-  ethics:        { labelKey: "battles.categoryEthics",        color: palette.pink,         icon: "heart-outline" },
-  technology:    { labelKey: "battles.categoryTechnology",    color: palette.primaryLight, icon: "hardware-chip-outline" },
-  society:       { labelKey: "battles.categorySociety",       color: palette.warning,      icon: "people-outline" },
-  knowledge:     { labelKey: "battles.categoryKnowledge",     color: palette.teal,         icon: "library-outline" },
-  consciousness: { labelKey: "battles.categoryConsciousness", color: palette.primary,      icon: "infinite-outline" },
+  philosophy: { labelKey: "battles.categoryPhilosophy", color: palette.primary,      icon: "telescope-outline" },
+  science:    { labelKey: "battles.categoryScience",    color: palette.teal,         icon: "flask-outline" },
+  technology: { labelKey: "battles.categoryTechnology", color: palette.primaryLight, icon: "hardware-chip-outline" },
+  art:        { labelKey: "battles.categoryArt",        color: palette.pink,         icon: "color-palette-outline" },
+  history:    { labelKey: "battles.categoryHistory",    color: palette.warning,      icon: "book-outline" },
+  economics:  { labelKey: "battles.categoryEconomics",  color: palette.teal,         icon: "bar-chart-outline" },
+  politics:   { labelKey: "battles.categoryPolitics",   color: palette.primary,      icon: "flag-outline" },
 };
 
 type Role = "user" | "assistant";
@@ -176,7 +176,7 @@ function BattlePvpModal({
   colors: ReturnType<typeof useColors>;
   getToken: () => Promise<string | null>;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
 
   const [view, setView] = useState<MatchView | null>(null);
@@ -340,7 +340,9 @@ function BattlePvpModal({
 
   const themeBlock = view && (
     <View style={[styles.themeCard, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "30" }]}>
-      <Text style={[styles.themeCat, { color: colors.pink }]}>{view.category}</Text>
+      <Text style={[styles.themeCat, { color: colors.pink }]}>
+        {CATEGORY_META[view.category] ? t(CATEGORY_META[view.category].labelKey) : view.category}
+      </Text>
       <Text style={[styles.themeText, { color: colors.foreground }]}>{view.theme}</Text>
     </View>
   );
@@ -369,7 +371,7 @@ function BattlePvpModal({
           {themeBlock}
           <View style={[styles.stateCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={[styles.stateTitle, { color: colors.foreground }]}>In cerca di un avversario</Text>
+            <Text style={[styles.stateTitle, { color: colors.foreground }]}>{t("battles.stSearching")}</Text>
             <Text style={[styles.stateDesc, { color: colors.mutedForeground }]}>{t("battles.stWaiting")}</Text>
           </View>
         </ScrollView>
@@ -404,7 +406,7 @@ function BattlePvpModal({
           <View style={[styles.instrBox, { backgroundColor: colors.teal + "0d", borderColor: colors.teal + "22" }]}>
             <Ionicons name="bulb-outline" size={18} color={colors.teal} />
             <Text style={[styles.instrText, { color: colors.foreground }]}>
-              Hai 6:30 di confronto con uno sparring partner AI su questo tema. Argomenta con densità e forza: la tua conversazione sarà poi confrontata con quella dell'avversario su densità e capacità di convincere.
+              {t("battles.arenaInstructions")}
             </Text>
           </View>
           <Pressable
@@ -415,7 +417,7 @@ function BattlePvpModal({
             {starting
               ? <ActivityIndicator size="small" color={palette.white} />
               : <Ionicons name="time-outline" size={16} color={palette.white} />}
-            <Text style={styles.submitBtnText}>Inizia · 6:30</Text>
+            <Text style={styles.submitBtnText}>{t("battles.arenaStart")}</Text>
           </Pressable>
         </ScrollView>
       );
@@ -429,13 +431,13 @@ function BattlePvpModal({
           <View style={[styles.stateCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.stateTitle, { color: colors.foreground }]}>
-              {scoring ? t("battles.stScoring") : "Hai concluso"}
+              {scoring ? t("battles.stScoring") : t("battles.stCompleted")}
             </Text>
             <Text style={[styles.stateDesc, { color: colors.mutedForeground }]}>
-              {scoring ? "Confronto tra le due conversazioni in corso." : t("battles.stWaitingResult")}
+              {scoring ? t("battles.stScoringDesc") : t("battles.stWaitingResult")}
             </Text>
           </View>
-          <Collapsible title="La tua conversazione" accent={colors.primary} messages={v.myMessages ?? []} colors={colors} t={t} />
+          <Collapsible title={t("battles.myConversation")} accent={colors.primary} messages={v.myMessages ?? []} colors={colors} t={t} />
         </ScrollView>
       );
     }
@@ -597,7 +599,7 @@ function BattlePvpModal({
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function BattlesScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
@@ -641,6 +643,7 @@ export default function BattlesScreen() {
       const r = await fetch(`${BASE}/api/battles/matchmake`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ lang: i18n.language }),
       });
       if (!r.ok) throw new Error();
       const view = await r.json() as MatchView;
