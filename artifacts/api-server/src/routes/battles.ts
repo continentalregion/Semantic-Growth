@@ -110,10 +110,14 @@ export async function generateBattleTheme(clerkId: string | null, lang = "it"): 
     recentCategories = [...new Set(rows.slice(0, 3).map(r => r.category))];
   }
 
-  // Always call LLM for guests (clerkId=null); for auth users only when history exists.
-  if (clerkId === null || seenThemes.length > 0) {
+  // Always attempt LLM so the theme is generated in the user's requested language.
+  // For guests (clerkId=null) and first-time auth users, seenThemes is [] — the LLM
+  // still produces a fresh theme; the Italian pool is only a last-resort fallback.
+  {
     try {
-      const seenList = seenThemes.map((t, i) => `${i + 1}. ${t}`).join("\n");
+      const seenList = seenThemes.length
+        ? seenThemes.map((t, i) => `${i + 1}. ${t}`).join("\n")
+        : "(none yet — first battle)";
       const recentCatList = recentCategories.join(", ") || "none";
 
       const prompt = `Generate ONE unique intellectual debate theme for a user on SGI, a semantic growth platform.

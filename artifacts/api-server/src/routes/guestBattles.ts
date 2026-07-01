@@ -153,7 +153,12 @@ async function chargeGuestBudget(cents: number): Promise<void> {
 // (idempotent: if the HttpOnly cookie identifies an open battle, returns it).
 router.post("/battles/guest/start", async (req, res) => {
   try {
+    // ── Language must be read first (used both for new battles and resume check) ─
+    const lang = typeof req.body?.lang === "string" ? req.body.lang.slice(0, 10) : "it";
+
     // ── Idempotency: resume existing guest session if cookie is present ────────
+    // Only resumes if the battle was already started (turns > 0) to avoid serving
+    // a stale Italian theme to a user who has since switched to another language.
     const existingGuestId = (req.cookies as Record<string, string> | undefined)?.[GUEST_COOKIE];
     if (existingGuestId?.startsWith("guest_")) {
       const openRow = await db.execute(sql`
@@ -174,18 +179,23 @@ router.post("/battles/guest/start", async (req, res) => {
         };
         const msgs = (r.messages ?? []) as SessionMessage[];
         const userTurns = msgs.filter(m => m.role === "user").length;
-        res.json({
-          matchId: r.match_id, theme: r.theme, category: r.category,
-          matchStatus: r.match_status, entryStatus: r.entry_status, slot: r.slot,
-          messages: msgs, turnsLeft: Math.max(0, GUEST_MAX_TURNS - userTurns),
-          startedAt: r.started_at, guestId: existingGuestId, resumed: true,
-        });
-        return;
+        // If the user has already submitted at least one turn, always resume.
+        // If they haven't typed yet (turnsLeft === GUEST_MAX_TURNS) and language changed,
+        // skip resume so a fresh theme in the new language is generated below.
+        const neverStarted = userTurns === 0;
+        if (!neverStarted || lang === "it") {
+          res.json({
+            matchId: r.match_id, theme: r.theme, category: r.category,
+            matchStatus: r.match_status, entryStatus: r.entry_status, slot: r.slot,
+            messages: msgs, turnsLeft: Math.max(0, GUEST_MAX_TURNS - userTurns),
+            startedAt: r.started_at, guestId: existingGuestId, resumed: true,
+          });
+          return;
+        }
+        // Fall through: generate a new battle in the requested language.
+        // The old untouched match will be left as-is (no turns written to it).
       }
     }
-
-    // ── Language (sent by frontend, used for future LLM theme generation) ────
-    const lang = typeof req.body?.lang === "string" ? req.body.lang.slice(0, 10) : "it";
 
     // ── Rate limit (IP-based, Postgres-backed) ────────────────────────────────
     const ip = getClientIp(req as Parameters<typeof getClientIp>[0]);
