@@ -232,12 +232,12 @@ export default function Home() {
             </div>
             <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4">
               <Button size="lg" className="h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg rounded-full" asChild>
-                <Link href="/guest-battle">
-                  {t("home.ctaGuest")} <ChevronRight className="ml-2 w-5 h-5" aria-hidden="true" />
+                <Link href="/sign-up">
+                  {t("home.ctaPrimary")} <ChevronRight className="ml-2 w-5 h-5" aria-hidden="true" />
                 </Link>
               </Button>
               <Button size="lg" variant="ghost" className="h-12 sm:h-14 px-5 sm:px-6 text-base sm:text-lg rounded-full hover:bg-primary/10" asChild>
-                <Link href="/sign-up">{t("home.ctaPrimary")}</Link>
+                <Link href="/guest-battle">{t("home.ctaGuest")}</Link>
               </Button>
             </div>
           </div>
