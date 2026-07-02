@@ -1,11 +1,12 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Network, ChevronRight, Sparkles, Layers, Gauge, Swords, Trophy } from "lucide-react";
+import { Network, ChevronRight, Sparkles, Layers, Gauge, Swords, Trophy, Crown } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useTranslation } from "react-i18next";
 
 type NameDesc = { name: string; desc: string };
 type Macro = { name: string; formula: string; desc: string };
+type Plan = { name: string; price: string; features: string[] };
 
 export default function HowItWorks() {
   const { t, i18n } = useTranslation();
@@ -26,6 +27,7 @@ export default function HowItWorks() {
   const scorePoints = t("howItWorks.scorePoints", { returnObjects: true }) as string[];
   const battleSteps = t("howItWorks.battleSteps", { returnObjects: true }) as string[];
   const gamPoints = t("howItWorks.gamPoints", { returnObjects: true }) as string[];
+  const plans = t("howItWorks.plans", { returnObjects: true }) as Plan[];
   const sections = t("howItWorks.sections", { returnObjects: true }) as NameDesc[];
 
   return (
@@ -154,6 +156,32 @@ export default function HowItWorks() {
           >
             {t("howItWorks.xpIndependent")}
           </div>
+        </Section>
+
+        {/* Pricing */}
+        <Section icon={<Crown className="w-5 h-5 text-primary" />} title={t("howItWorks.pricingTitle")} intro={t("howItWorks.pricingIntro")}>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {plans.map((p, i) => (
+              <div
+                key={p.name}
+                className={`p-6 rounded-2xl backdrop-blur-sm flex flex-col ${i === 1 ? "card-glow border" : "bg-card/50 border border-border"}`}
+              >
+                <h3 className="text-lg font-semibold mb-1 font-display">{p.name}</h3>
+                <p className="text-2xl font-extrabold mb-4" style={{ color: i === 1 ? "hsl(var(--primary))" : undefined }}>{p.price}</p>
+                <ul className="space-y-2 mt-auto">
+                  {p.features.map((f) => (
+                    <li key={f} className="text-sm text-muted-foreground flex items-start gap-2">
+                      <ChevronRight className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed mt-5 text-center max-w-2xl mx-auto">
+            {t("howItWorks.pricingNote")}
+          </p>
         </Section>
 
         {/* Platform sections */}

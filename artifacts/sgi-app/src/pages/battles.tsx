@@ -4,7 +4,7 @@ import { useAuth } from "@clerk/react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
-  Swords, Trophy, Crown, Clock, Loader2, ChevronRight, Hourglass, Zap, Users, Bot,
+  Swords, Trophy, Crown, Clock, Loader2, ChevronRight, Hourglass, Zap, Users, Bot, Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -96,6 +96,8 @@ export default function BattlesPage() {
     });
   }, [getToken]);
 
+  const [battleLimitInfo, setBattleLimitInfo] = useState<{ used: number; limit: number; plan: string } | null>(null);
+
   const { data: myMatches = [], isLoading: loadingMine, refetch: refetchMine } = useQuery<MyMatch[]>({
     queryKey: ["battles-me"],
     queryFn: async () => {
@@ -121,15 +123,24 @@ export default function BattlesPage() {
     setMatchmaking(true);
     try {
       const r = await authedFetch("/battles/matchmake", { method: "POST", body: JSON.stringify({ lang: i18n.language }) });
+      if (r.status === 429) {
+        const body = await r.json().catch(() => ({}));
+        setBattleLimitInfo({ used: body.used ?? 0, limit: body.limit ?? 0, plan: body.plan ?? "free" });
+        setMatchmaking(false);
+        return;
+      }
       if (!r.ok) throw new Error();
       const view = await r.json();
+      if (view.battleUsage?.warning) {
+        toast.warning(t("battles.warningToast", { used: view.battleUsage.used, limit: view.battleUsage.limit }));
+      }
       await refetchMine();
       setLocation(`/battles/${view.matchId}`);
     } catch {
       toast.error(t("battles.matchmakeError"));
       setMatchmaking(false);
     }
-  }, [matchmaking, authedFetch, refetchMine, setLocation, t]);
+  }, [matchmaking, authedFetch, refetchMine, setLocation, t, i18n.language]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -148,29 +159,70 @@ export default function BattlesPage() {
         <div className="max-w-[820px] mx-auto flex flex-col gap-7">
 
           {/* Matchmaking CTA */}
-          <button
-            onClick={handleMatchmake}
-            disabled={matchmaking}
-            className="w-full rounded-2xl px-6 py-5 flex items-center justify-between gap-4 transition-all"
-            style={{
-              background: "linear-gradient(135deg, rgba(247,37,133,0.18), rgba(124,107,255,0.18))",
-              border: "1px solid rgba(247,37,133,0.3)",
-              opacity: matchmaking ? 0.7 : 1,
-            }}
-          >
-            <div className="flex items-center gap-3 text-left">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(247,37,133,0.2)" }}>
-                {matchmaking ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: PINK }} /> : <Users className="w-5 h-5" style={{ color: PINK }} />}
+          {battleLimitInfo ? (
+            <div
+              className="rounded-2xl p-4 flex flex-col gap-2"
+              style={{ background: "rgba(247,37,133,0.08)", border: "1px solid rgba(247,37,133,0.25)" }}
+            >
+              <div className="flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: PINK }} />
+                <p className="text-sm font-semibold" style={{ color: PINK }}>{t("battles.limitReachedTitle")}</p>
               </div>
-              <div>
-                <div className="text-base font-bold" style={{ color: "#eeeeff" }}>
-                  {matchmaking ? t("battles.matchmaking") : t("battles.findOpponent")}
+              <p className="text-xs" style={{ color: MUTED }}>
+                {t("battles.limitReachedDesc", { used: battleLimitInfo.used, limit: battleLimitInfo.limit })}
+              </p>
+              {battleLimitInfo.plan === "premium" ? (
+                <button
+                  className="text-xs py-1.5 px-3 rounded-full font-semibold transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94] self-start"
+                  style={{ background: "linear-gradient(135deg, #f0c040, #e08020)", color: "#fff" }}
+                  onClick={() => setLocation("/settings")}
+                >
+                  {t("battles.upgradeProBtn")}
+                </button>
+              ) : (
+                <div className="flex gap-1.5">
+                  <button
+                    className="text-xs py-1.5 px-3 rounded-full font-semibold transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94]"
+                    style={{ background: "linear-gradient(135deg, #7c6bff, #5b4de0)", color: "#fff" }}
+                    onClick={() => setLocation("/settings")}
+                  >
+                    {t("battles.upgradePremiumBtn")}
+                  </button>
+                  <button
+                    className="text-xs py-1.5 px-3 rounded-full font-semibold transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94]"
+                    style={{ background: "linear-gradient(135deg, #f0c040, #e08020)", color: "#fff" }}
+                    onClick={() => setLocation("/settings")}
+                  >
+                    {t("battles.upgradeProBtn")}
+                  </button>
                 </div>
-                <div className="text-[11px] opacity-50" style={{ color: "#eeeeff" }}>{t("battles.pvpSubtitle")}</div>
-              </div>
+              )}
             </div>
-            {!matchmaking && <ChevronRight className="w-5 h-5 flex-shrink-0" style={{ color: PINK }} />}
-          </button>
+          ) : (
+            <button
+              onClick={handleMatchmake}
+              disabled={matchmaking}
+              className="w-full rounded-2xl px-6 py-5 flex items-center justify-between gap-4 transition-all"
+              style={{
+                background: "linear-gradient(135deg, rgba(247,37,133,0.18), rgba(124,107,255,0.18))",
+                border: "1px solid rgba(247,37,133,0.3)",
+                opacity: matchmaking ? 0.7 : 1,
+              }}
+            >
+              <div className="flex items-center gap-3 text-left">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(247,37,133,0.2)" }}>
+                  {matchmaking ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: PINK }} /> : <Users className="w-5 h-5" style={{ color: PINK }} />}
+                </div>
+                <div>
+                  <div className="text-base font-bold" style={{ color: "#eeeeff" }}>
+                    {matchmaking ? t("battles.matchmaking") : t("battles.findOpponent")}
+                  </div>
+                  <div className="text-[11px] opacity-50" style={{ color: "#eeeeff" }}>{t("battles.pvpSubtitle")}</div>
+                </div>
+              </div>
+              {!matchmaking && <ChevronRight className="w-5 h-5 flex-shrink-0" style={{ color: PINK }} />}
+            </button>
+          )}
 
           {/* My battles */}
           <section>

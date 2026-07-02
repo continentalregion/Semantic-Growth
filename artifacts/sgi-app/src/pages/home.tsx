@@ -283,6 +283,22 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Plans teaser — free vs paid, no scary talk */}
+      <section className="container mx-auto px-6 relative z-10 pb-20">
+        <div className="rounded-3xl border border-border bg-card/40 backdrop-blur-sm p-8 md:p-10 max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-5 text-center sm:text-left">
+          <div>
+            <h3 className="text-xl md:text-2xl font-bold tracking-tight mb-2">{t("home.plansTeaserTitle")}</h3>
+            <p className="text-muted-foreground text-sm md:text-base max-w-lg">{t("home.plansTeaserSub")}</p>
+          </div>
+          <Link
+            href="/how-it-works"
+            className="inline-flex items-center gap-1.5 text-primary font-semibold text-sm whitespace-nowrap hover:underline underline-offset-4"
+          >
+            {t("home.plansTeaserLink")}
+          </Link>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="container mx-auto px-6 relative z-10 pb-24">
         <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 to-blue-600/10 p-10 md:p-16 text-center max-w-4xl mx-auto">

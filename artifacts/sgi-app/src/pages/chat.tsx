@@ -68,7 +68,7 @@ export default function Chat() {
   const autoStartDoneRef = useRef(false);
 
   const { data: usageData, refetch: refetchUsage } = useQuery<{
-    used: number; limit: number; remaining: number; plan: string; totalCostCents: number;
+    used: number; limit: number; remaining: number; plan: string; totalCostCents: number; warning?: boolean;
   }>({
     queryKey: ["openai-usage"],
     queryFn: async () => {
@@ -393,7 +393,7 @@ export default function Chat() {
                 }}
               />
             </div>
-            {usageData.remaining <= 5 && usageData.remaining > 0 && (
+            {usageData.warning && usageData.remaining > 0 && (
               <p className="text-xs mt-1" style={{ color: "#f72585" }}>
                 {t("chat.fewLeft", { n: usageData.remaining })}
               </p>

@@ -42,6 +42,9 @@ const IT = {
     catPhilosophy: "Filosofia", catScience: "Scienza", catTechnology: "Tecnologia", catArt: "Arte", catHistory: "Storia", catEconomics: "Economia", catPolitics: "Politica",
     finalCtaTitle: "Pronto a vedere il tuo numero?",
     finalCtaSub: "Inizia gratis e ottieni il tuo primo punteggio SGI in pochi minuti.", termsLink: "Termini di Servizio",
+    plansTeaserTitle: "Gratis per iniziare, illimitato quando sei pronto",
+    plansTeaserSub: "Il piano Free include conversazioni e battaglie ogni mese, senza carta di credito. Passa a Premium o Pro quando vuoi di più.",
+    plansTeaserLink: "Confronta i piani →",
   },
   guestBattle: {
     loading: "Avvio della sfida…",
@@ -174,12 +177,12 @@ const IT = {
     portalError: "Impossibile aprire la gestione dell'abbonamento.",
     planFeatures: {
       premium: [
-        "600 messaggi al mese", "Claude Haiku + Sonnet",
+        "600 messaggi al mese", "80 battaglie al mese", "Claude Haiku + Sonnet",
         "Predizioni di crescita (30/90/180 giorni)", "Mappa domini semantici avanzata",
         "Storico SGI 90 giorni", "Report mensile dettagliato",
       ],
       pro: [
-        "2.000 messaggi al mese", "Tutti i modelli: Haiku, Sonnet, Opus, GPT-4o",
+        "2.000 messaggi al mese", "250 battaglie al mese", "Tutti i modelli: Haiku, Sonnet, Opus, GPT-4o",
         "Accesso prioritario all'AI", "Predizioni avanzate illimitate",
         "Storico SGI completo", "Export dati e analisi personalizzata",
       ],
@@ -304,6 +307,11 @@ const IT = {
     threadOpen: "Thread aperto",
     detail: "Dettaglio",
     pvpSubtitle: "Sfide 1-contro-1 tra menti umane",
+    limitReachedTitle: "Limite battaglie raggiunto",
+    limitReachedDesc: "Hai raggiunto il limite di {{used}}/{{limit}} battaglie di questo mese.",
+    warningToast: "Ti restano poche battaglie questo mese ({{used}}/{{limit}}).",
+    upgradePremiumBtn: "Upgrade a Premium — €9.99",
+    upgradeProBtn: "Upgrade a Pro — €19.99",
     findOpponent: "Trova un avversario",
     matchmaking: "Preparazione della sfida…",
     matchmakeError: "Matchmaking non riuscito. Riprova.",
@@ -440,6 +448,14 @@ const IT = {
       "Streak giornaliera, badge e missioni settimanali tengono viva la tua progressione.",
     ],
     xpIndependent: "Importante: XP e livello sono completamente indipendenti dal tuo punteggio SGI e dalla classifica. La gamification premia la costanza; l'SGI misura la qualità del pensiero.",
+    pricingTitle: "Piani",
+    pricingIntro: "SGI è gratis per iniziare. Ecco cosa include ogni piano.",
+    pricingNote: "Il tuo primo messaggio e la tua prima battaglia sono sempre gratuiti, qualunque sia il tuo piano — così puoi provare SGI prima di iscriverti.",
+    plans: [
+      { name: "Free", price: "€0", features: ["20 messaggi di chat al mese", "8 battaglie al mese", "Claude Haiku", "Classifica, badge e streak inclusi"] },
+      { name: "Premium", price: "€9.99/mese", features: ["600 messaggi di chat al mese", "80 battaglie al mese", "Claude Haiku + Sonnet", "Predizioni di crescita", "Storico SGI 90 giorni"] },
+      { name: "Pro", price: "€19.99/mese", features: ["2.000 messaggi di chat al mese", "250 battaglie al mese", "Tutti i modelli, incluso Opus e GPT-4o", "Accesso prioritario, storico completo, export dati"] },
+    ],
     sectionsTitle: "Le sezioni della piattaforma",
     sectionsIntro: "L'SGI è organizzato in aree dedicate, ciascuna con una funzione precisa.",
     sections: [
@@ -475,7 +491,7 @@ const IT = {
   onboarding: {
     skip: "Salta introduzione", next: "Avanti", start: "Inizia la tua prima chat →",
     s1Title: "Benvenuto in SGI",
-    s1Desc: "SGI misura la crescita cognitiva in tempo reale attraverso le tue conversazioni. Ogni chat analizza la profondità, varietà e precisione del tuo ragionamento su 11 metriche semantiche.",
+    s1Desc: "SGI misura la crescita cognitiva in tempo reale attraverso le tue conversazioni. Ogni chat analizza la profondità, varietà e precisione del tuo ragionamento su 11 metriche semantiche. Il piano Free include chat e battaglie ogni mese, gratis per sempre.",
     s2Title: "Come funziona il punteggio",
     s2Desc: "Dopo ogni conversazione, l'AI legge la qualità dei tuoi ragionamenti e aggiorna il tuo punteggio SGI. Più esplori argomenti diversi — filosofia, scienza, arte, tecnologia — più il punteggio riflette la tua crescita reale.",
     s3Title: "Pronto per iniziare?",
@@ -527,6 +543,9 @@ const EN = {
     catPhilosophy: "Philosophy", catScience: "Science", catTechnology: "Technology", catArt: "Art", catHistory: "History", catEconomics: "Economics", catPolitics: "Politics",
     finalCtaTitle: "Ready to see your number?",
     finalCtaSub: "Start free and get your first SGI score in minutes.", termsLink: "Terms of Service",
+    plansTeaserTitle: "Free to start, unlimited when you're ready",
+    plansTeaserSub: "The Free plan includes conversations and battles every month, no credit card required. Upgrade to Premium or Pro whenever you want more.",
+    plansTeaserLink: "Compare plans →",
   },
   guestBattle: {
     loading: "Starting your battle…",
@@ -658,12 +677,12 @@ const EN = {
     portalError: "Could not open subscription management.",
     planFeatures: {
       premium: [
-        "600 messages per month", "Claude Haiku + Sonnet",
+        "600 messages per month", "80 battles per month", "Claude Haiku + Sonnet",
         "Growth predictions (30/90/180 days)", "Advanced semantic domain map",
         "90-day SGI history", "Detailed monthly report",
       ],
       pro: [
-        "2,000 messages per month", "All models: Haiku, Sonnet, Opus, GPT-4o",
+        "2,000 messages per month", "250 battles per month", "All models: Haiku, Sonnet, Opus, GPT-4o",
         "Priority AI access", "Unlimited advanced predictions",
         "Full SGI history", "Data export and custom analytics",
       ],
@@ -787,6 +806,11 @@ const EN = {
     threadOpen: "Open thread",
     detail: "Detail",
     pvpSubtitle: "1-on-1 duels between human minds",
+    limitReachedTitle: "Battle limit reached",
+    limitReachedDesc: "You've reached your limit of {{used}}/{{limit}} battles this month.",
+    warningToast: "You have few battles left this month ({{used}}/{{limit}}).",
+    upgradePremiumBtn: "Upgrade to Premium — €9.99",
+    upgradeProBtn: "Upgrade to Pro — €19.99",
     findOpponent: "Find an opponent",
     matchmaking: "Preparing your challenge…",
     matchmakeError: "Matchmaking failed. Try again.",
@@ -923,6 +947,14 @@ const EN = {
       "Daily streaks, badges and weekly missions keep your progression alive.",
     ],
     xpIndependent: "Important: XP and level are completely independent of your SGI score and ranking. Gamification rewards consistency; the SGI measures the quality of your thinking.",
+    pricingTitle: "Plans",
+    pricingIntro: "SGI is free to start. Here's what each plan includes.",
+    pricingNote: "Your first message and your first battle are always free, whatever your plan — so you can try SGI before signing up.",
+    plans: [
+      { name: "Free", price: "€0", features: ["20 chat messages per month", "8 battles per month", "Claude Haiku", "Leaderboard, badges and streaks included"] },
+      { name: "Premium", price: "€9.99/mo", features: ["600 chat messages per month", "80 battles per month", "Claude Haiku + Sonnet", "Growth predictions", "90-day SGI history"] },
+      { name: "Pro", price: "€19.99/mo", features: ["2,000 chat messages per month", "250 battles per month", "All models, including Opus and GPT-4o", "Priority access, full history, data export"] },
+    ],
     sectionsTitle: "The platform sections",
     sectionsIntro: "SGI is organized into dedicated areas, each with a precise purpose.",
     sections: [
@@ -958,7 +990,7 @@ const EN = {
   onboarding: {
     skip: "Skip introduction", next: "Next", start: "Start your first chat →",
     s1Title: "Welcome to SGI",
-    s1Desc: "SGI measures cognitive growth in real time through your conversations. Each chat analyses the depth, variety and precision of your reasoning across 11 semantic metrics.",
+    s1Desc: "SGI measures cognitive growth in real time through your conversations. Each chat analyses the depth, variety and precision of your reasoning across 11 semantic metrics. The Free plan includes chat and battles every month, free forever.",
     s2Title: "How scoring works",
     s2Desc: "After each conversation, the AI reads the quality of your reasoning and updates your SGI score. The more you explore different topics — philosophy, science, art, technology — the more the score reflects your real growth.",
     s3Title: "Ready to start?",
@@ -1011,6 +1043,9 @@ const ES = {
     catPhilosophy: "Filosofía", catScience: "Ciencia", catTechnology: "Tecnología", catArt: "Arte", catHistory: "Historia", catEconomics: "Economía", catPolitics: "Política",
     finalCtaTitle: "¿Listo para ver tu número?",
     finalCtaSub: "Empieza gratis y obtén tu primera puntuación SGI en minutos.", termsLink: "Términos de Servicio",
+    plansTeaserTitle: "Gratis para empezar, ilimitado cuando estés listo",
+    plansTeaserSub: "El plan Free incluye conversaciones y batallas cada mes, sin tarjeta de crédito. Mejora a Premium o Pro cuando quieras más.",
+    plansTeaserLink: "Comparar planes →",
   },
   guestBattle: {
     loading: "Iniciando tu batalla…",
@@ -1141,12 +1176,12 @@ const ES = {
     portalError: "No se pudo abrir la gestión de la suscripción.",
     planFeatures: {
       premium: [
-        "600 mensajes al mes", "Claude Haiku + Sonnet",
+        "600 mensajes al mes", "80 batallas al mes", "Claude Haiku + Sonnet",
         "Predicciones de crecimiento (30/90/180 días)", "Mapa avanzado de dominios semánticos",
         "Historial SGI 90 días", "Informe mensual detallado",
       ],
       pro: [
-        "2.000 mensajes al mes", "Todos los modelos: Haiku, Sonnet, Opus, GPT-4o",
+        "2.000 mensajes al mes", "250 batallas al mes", "Todos los modelos: Haiku, Sonnet, Opus, GPT-4o",
         "Acceso prioritario a la AI", "Predicciones avanzadas ilimitadas",
         "Historial SGI completo", "Exportación de datos y analítica personalizada",
       ],
@@ -1270,6 +1305,11 @@ const ES = {
     threadOpen: "Hilo abierto",
     detail: "Detalle",
     pvpSubtitle: "Duelos 1 contra 1 entre mentes humanas",
+    limitReachedTitle: "Límite de batallas alcanzado",
+    limitReachedDesc: "Has alcanzado tu límite de {{used}}/{{limit}} batallas este mes.",
+    warningToast: "Te quedan pocas batallas este mes ({{used}}/{{limit}}).",
+    upgradePremiumBtn: "Mejorar a Premium — €9.99",
+    upgradeProBtn: "Mejorar a Pro — €19.99",
     findOpponent: "Buscar un rival",
     matchmaking: "Preparando tu desafío…",
     matchmakeError: "Emparejamiento fallido. Inténtalo de nuevo.",
@@ -1406,6 +1446,14 @@ const ES = {
       "Rachas diarias, insignias y misiones semanales mantienen viva tu progresión.",
     ],
     xpIndependent: "Importante: los XP y el nivel son completamente independientes de tu puntuación SGI y de la clasificación. La gamificación premia la constancia; el SGI mide la calidad del pensamiento.",
+    pricingTitle: "Planes",
+    pricingIntro: "SGI es gratis para empezar. Esto es lo que incluye cada plan.",
+    pricingNote: "Tu primer mensaje y tu primera batalla son siempre gratis, sea cual sea tu plan — así puedes probar SGI antes de registrarte.",
+    plans: [
+      { name: "Free", price: "€0", features: ["20 mensajes de chat al mes", "8 batallas al mes", "Claude Haiku", "Clasificación, insignias y racha incluidas"] },
+      { name: "Premium", price: "€9.99/mes", features: ["600 mensajes de chat al mes", "80 batallas al mes", "Claude Haiku + Sonnet", "Predicciones de crecimiento", "Historial SGI 90 días"] },
+      { name: "Pro", price: "€19.99/mes", features: ["2.000 mensajes de chat al mes", "250 batallas al mes", "Todos los modelos, incluido Opus y GPT-4o", "Acceso prioritario, historial completo, exportación de datos"] },
+    ],
     sectionsTitle: "Las secciones de la plataforma",
     sectionsIntro: "El SGI está organizado en áreas dedicadas, cada una con una función precisa.",
     sections: [
@@ -1441,7 +1489,7 @@ const ES = {
   onboarding: {
     skip: "Saltar introducción", next: "Siguiente", start: "Inicia tu primer chat →",
     s1Title: "Bienvenido a SGI",
-    s1Desc: "SGI mide el crecimiento cognitivo en tiempo real a través de tus conversaciones. Cada chat analiza la profundidad, variedad y precisión de tu razonamiento en 11 métricas semánticas.",
+    s1Desc: "SGI mide el crecimiento cognitivo en tiempo real a través de tus conversaciones. Cada chat analiza la profundidad, variedad y precisión de tu razonamiento en 11 métricas semánticas. El plan Free incluye chat y batallas cada mes, gratis para siempre.",
     s2Title: "Cómo funciona la puntuación",
     s2Desc: "Después de cada conversación, la IA lee la calidad de tus razonamientos y actualiza tu puntuación SGI. Cuanto más explores temas distintos — filosofía, ciencia, arte, tecnología — más refleja el puntaje tu crecimiento real.",
     s3Title: "¿Listo para empezar?",
