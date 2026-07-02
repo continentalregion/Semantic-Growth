@@ -8,6 +8,7 @@
 - [Stripe connector + sync quirks](stripe-replit-sync-quirks.md) — connector key is settings.secret (not secret_key); syncBackfill needs {object:"all"} or syncs nothing
 - [Stripe test→live migration poisons data](stripe-test-to-live-migration.md) — stale test stripeCustomerId + test rows break live checkout/backfill; self-heal via retrieve() + startup purge by livemode (app code only; tool blocks stripe.* writes, prod DB read-only)
 - [Stripe connector multi-env](stripe-connector-multi-env.md) — credential proxy returns dev+prod connections in one items[]; filter by environment (REPL_IDENTITY=dev) or prod silently uses TEST keys
+- [SGI battle/chat rate limiting](sgi-battle-rate-limit.md) — shared monthly reset gate, first-use lifetime carve-out, charge battles once at matchmake not per-turn, drizzle push drops raw guest_* tables
 - [SGI canonical brand logo](sgi-brand-logo.md) — one glyph mirrored in Logo.tsx + favicon.svg + social-card script (run it to regen opengraph.png); sgi-app/dist is gitignored (rebuilt on deploy)
 - [Host fonts & resvg](host-fonts-resvg.md) — only DejaVu fonts on host; Space Grotesk/Inter absent, resvg falls back — set font-family="DejaVu Sans" explicitly
 - [captureRef story-card sizing](captureref-story-card-sizing.md) — fixed 9:16 (1080×1920) capture box silently CROPS overflow; budget content height, use compact diverging bars

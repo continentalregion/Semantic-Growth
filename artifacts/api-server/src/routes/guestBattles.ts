@@ -31,6 +31,8 @@ import { evaluatePvpBattle } from "../lib/pvpBattleScoring";
 import { AI_PLAYER_ID, AI_USERNAME, generateAiArgument } from "../lib/aiOpponent";
 import { generateBattleTheme } from "./battles.js";
 import { randomUUID } from "crypto";
+import { users } from "@workspace/db";
+import { recordGuestBattleUsage, getGuestFirstBattleAt, clearGuestUsage } from "../lib/userBattleUsage.js";
 
 const router = Router();
 
@@ -227,6 +229,11 @@ router.post("/battles/guest/start", async (req, res) => {
 
     // ── Create match + both entries ────────────────────────────────────────────
     const guestId   = `guest_${randomUUID()}`;
+    // Informational only — guest_usage does NOT gate frequency (that remains the
+    // job of guest_rate_limits/guest_budget above). It exists solely so /claim
+    // can transfer the "already used a first battle" state to a newly-registered
+    // user, preventing a second free first-battle carve-out after signup.
+    void recordGuestBattleUsage(guestId);
     const now       = new Date();
     const expiresAt = new Date(Date.now() + ACTIVE_TTL_MS);
 
@@ -501,6 +508,19 @@ router.post("/battles/guest/claim", async (req, res) => {
       UPDATE battle_matches SET winner_user_id = ${clerkId}
       WHERE winner_user_id = ${cookieGuestId}
     `);
+
+    // ── First-battle carve-out transfer ────────────────────────────────────────
+    // If this guest already played a battle, stamp firstBattleUsedAt on the newly
+    // registered user so they don't get a SECOND free first-battle carve-out.
+    // Deliberately NOT summed into monthlyBattlesUsed — only the double carve-out
+    // is prevented, per plan (guest battles were never counted against a quota).
+    const guestFirstBattleAt = await getGuestFirstBattleAt(cookieGuestId);
+    if (guestFirstBattleAt) {
+      await db.update(users)
+        .set({ firstBattleUsedAt: guestFirstBattleAt })
+        .where(and(eq(users.clerkId, clerkId), sql`${users.firstBattleUsedAt} IS NULL`));
+    }
+    await clearGuestUsage(cookieGuestId);
 
     // Clear the guest cookie
     res.clearCookie(GUEST_COOKIE, { path: "/" });

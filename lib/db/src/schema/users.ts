@@ -14,6 +14,12 @@ export const users = pgTable("users", {
   monthlyResetDate: date("monthly_reset_date"),
   opusMessagesUsed: integer("opus_messages_used").notNull().default(0),
   aiCostCents: integer("ai_cost_cents").notNull().default(0),
+  // ─── Per-user battle rate limiting (separate from the aggregate battle_budget) ──
+  monthlyBattlesUsed: integer("monthly_battles_used").notNull().default(0),
+  // Lifetime carve-out flags: first chat message / first battle are never rate-limited,
+  // regardless of monthly counters. Set once, never reset.
+  firstChatUsedAt: timestamp("first_chat_used_at", { withTimezone: true }),
+  firstBattleUsedAt: timestamp("first_battle_used_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

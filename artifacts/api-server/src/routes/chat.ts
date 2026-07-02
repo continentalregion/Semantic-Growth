@@ -24,6 +24,7 @@ import {
   PRO_AI_BUDGET_CENTS,
   COST_CAP_FALLBACK_MODEL,
 } from "../config/pricing";
+import { currentMonthKey, resetAllMonthlyCountersIfNeeded, type MonthlyCountersUser } from "../lib/monthlyReset.js";
 
 // o4-mini rimosso: era in ALLOWED_MODELS.pro ma assente dal selettore UI —
 // incoerenza chiusa rimuovendo la voce server-side (Opzione A).
@@ -44,21 +45,12 @@ function calcCostCents(model: string, tokens: number): number {
   return Math.round((tokens / 1000) * rate * 1000) / 1000;
 }
 
-// Returns today's YYYY-MM-01 (start of month) as string
-function currentMonthKey(): string {
-  const d = new Date();
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
-}
-
-async function resetMonthlyIfNeeded(userId: number, user: { monthlyResetDate: string | null; monthlyMessagesUsed: number; opusMessagesUsed: number; aiCostCents: number }) {
-  const thisMonth = currentMonthKey();
-  if (user.monthlyResetDate !== thisMonth) {
-    await db.update(users)
-      .set({ monthlyMessagesUsed: 0, opusMessagesUsed: 0, aiCostCents: 0, monthlyResetDate: thisMonth })
-      .where(eq(users.id, userId));
-    return 0;
-  }
-  return user.monthlyMessagesUsed;
+// Shared with userBattleUsage.ts: ALL monthly counters (messages/opus/aiCost/battles)
+// reset together off the single users.monthly_reset_date gate column — see
+// lib/monthlyReset.ts for why this must be a single shared function.
+async function resetMonthlyIfNeeded(userId: number, user: MonthlyCountersUser): Promise<number> {
+  const { messagesUsed } = await resetAllMonthlyCountersIfNeeded(userId, user);
+  return messagesUsed;
 }
 
 const router = Router();
@@ -122,7 +114,8 @@ router.get("/openai/usage", async (req, res) => {
       ));
     const totalCostCents = Number(costRow[0]?.total ?? 0);
 
-    res.json({ used: currentUsed, limit, remaining, plan: user.plan, totalCostCents });
+    const warning = !user.firstChatUsedAt ? false : remaining > 0 && currentUsed / limit >= 0.75;
+    res.json({ used: currentUsed, limit, remaining, plan: user.plan, totalCostCents, warning });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal error" });
@@ -223,9 +216,12 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
 
     // ── HARD STOP: controllo mensile PRIMA che la chiamata AI parta ─────────
     // Questo blocco avviene lato server — non è aggirabile dal client.
+    // Carve-out: il primo messaggio in assoluto dell'utente non viene mai bloccato
+    // né conteggiato ai fini del limite mensile (users.first_chat_used_at).
+    const isFirstChatMessage = !user.firstChatUsedAt;
     const currentUsed = await resetMonthlyIfNeeded(user.id, user);
     const limit = MONTHLY_LIMITS[user.plan] ?? MONTHLY_LIMITS.free;
-    if (currentUsed >= limit) {
+    if (!isFirstChatMessage && currentUsed >= limit) {
       if (LOG_BLOCKS) {
         await db.insert(blockedAttempts).values({
           userId: user.id,
@@ -459,10 +455,11 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       .returning({ id: messages.id });
 
     // Increment monthly usage counters atomically:
-    // - monthlyMessagesUsed: always +1
+    // - monthlyMessagesUsed: +1, EXCEPT the user's lifetime-first message (carve-out —
+    //   doesn't consume a monthly slot, only stamps firstChatUsedAt once)
     // - opusMessagesUsed: +1 only if Opus was actually served (after all downgrades)
     // - aiCostCents: +costCents (real tokens from API, not estimated) — used by FASE 4 cost cap
-    const newUsed = currentUsed + 1;
+    const newUsed = isFirstChatMessage ? currentUsed : currentUsed + 1;
     const opusWasUsed = chosenModel === "claude-opus-4-8";
     const costCentsInt = Math.ceil(costCents); // round up to avoid accumulating rounding debt
     await db.update(users)
@@ -471,6 +468,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
         monthlyResetDate: currentMonthKey(),
         aiCostCents: sql`${users.aiCostCents} + ${costCentsInt}`,
         ...(opusWasUsed ? { opusMessagesUsed: sql`${users.opusMessagesUsed} + 1` } : {}),
+        ...(isFirstChatMessage ? { firstChatUsedAt: new Date() } : {}),
       })
       .where(eq(users.id, user.id));
 

@@ -33,6 +33,7 @@ import {
   COST_BATTLE_ARGUMENT_CENTS,
   COST_BATTLE_SPARRING_CENTS,
 } from "../lib/battleBudget.js";
+import { checkUserBattleAllowed, recordUserBattleUsage } from "../lib/userBattleUsage.js";
 
 const router = Router();
 
@@ -572,6 +573,24 @@ router.post("/battles/matchmake", async (req, res) => {
       return;
     }
 
+    // ── Per-user battle rate limit (8/80/250 per month by plan, first-battle
+    // carve-out exempt). Checked ONCE here — before either Phase 2 (join) or
+    // Phase 3 (create) — because both create a NEW battle_entries row for this
+    // user, i.e. this is the single moment a "battle" is actually consumed.
+    // See lib/userBattleUsage.ts header comment for why ai-join, auto-escalation,
+    // and sparring turns deliberately do NOT re-check/re-charge this counter.
+    const battleUsage = await checkUserBattleAllowed(user);
+    if (!battleUsage.allowed) {
+      res.status(429).json({
+        error: "Monthly battle limit reached",
+        code: "BATTLE_LIMIT_REACHED",
+        used: battleUsage.used,
+        limit: battleUsage.limit,
+        plan: user.plan,
+      });
+      return;
+    }
+
     // ── Phase 2: join a waiting match (locked transaction, no LLM) ───────────
     let joinedMatchId: string | null = null;
     await db.transaction(async (tx) => {
@@ -598,8 +617,9 @@ router.post("/battles/matchmake", async (req, res) => {
     });
 
     if (joinedMatchId) {
+      await recordUserBattleUsage(user.id, battleUsage.isFirstBattle);
       const view = await buildMatchView(clerkId, joinedMatchId);
-      res.json(view);
+      res.json({ ...view, battleUsage: { used: battleUsage.used, limit: battleUsage.limit, warning: battleUsage.warning } });
       return;
     }
 
@@ -625,8 +645,9 @@ router.post("/battles/matchmake", async (req, res) => {
       matchId: created!.id, userId: clerkId, username, slot: 1, status: "matched",
     });
 
+    await recordUserBattleUsage(user.id, battleUsage.isFirstBattle);
     const view = await buildMatchView(clerkId, created!.id);
-    res.json(view);
+    res.json({ ...view, battleUsage: { used: battleUsage.used, limit: battleUsage.limit, warning: battleUsage.warning } });
   } catch (err) {
     console.error("[battles] matchmake error", err);
     res.status(500).json({ error: "Matchmaking failed" });

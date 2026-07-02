@@ -1,0 +1,40 @@
+BUILD MODE — procedi con l'implementazione del piano discusso in plan mode.
+
+Conferma numeri: 8 (free) / 80 (premium) / 250 (pro) battaglie/mese, 
+con carve-out "prima battaglia gratis" per free e guest (nessun limite 
+di frequenza al primo utilizzo, solo modello forzato a Haiku).
+
+AGGIUNTA rispetto al piano: prima dell'hard-stop a 8/80/250, introduci 
+un soft warning quando l'utente raggiunge circa il 75% della soglia 
+(es. free: avviso a 6/8 battaglie usate) — stesso principio già 
+applicato lato chat/homepage: mostrare il conteggio "hai usato X/8 
+battaglie questo mese" in modo non invasivo, PRIMA di arrivare al 
+blocco, con CTA upgrade in framing positivo (non ansiogeno).
+
+Implementa in ordine:
+1. lib/db/schema/users.ts: +3 colonne (monthlyBattlesUsed, 
+   firstChatUsedAt, firstBattleUsedAt)
+2. Nuova tabella guest_usage (guest_id PK, battles_used, 
+   first_battle_at) — nessuna colonna mese, i guest non hanno 
+   ciclo di fatturazione
+3. config/pricing.ts: + MONTHLY_BATTLE_LIMITS (free 8 / premium 80 / 
+   pro 250), configurabile via env
+4. lib/userBattleUsage.ts (analogo a battleBudget.ts): 
+   isUserBattleAllowed(), incrementUserBattleUsage(), fail-open 
+   coerente con lo stile esistente
+5. routes/chat.ts: ramo "prima esperienza" prima dell'hard-stop 
+   esistente (nessuna modifica alla logica attuale)
+6. routes/battles.ts: seconda chiamata di check/charge accanto a 
+   quelle di battleBudget.ts nei 4 call site (generateBattleTheme, 
+   generateAiArgument escalation, generateAiArgument join, sparring 
+   turn) — con soft warning al 75% della soglia
+7. routes/guestBattles.ts claim endpoint: gestione firstBattleUsedAt 
+   + cleanup guest_usage nella transazione esistente, senza sommare 
+   monthlyBattlesUsed del guest al contatore del neo-registrato 
+   (evita solo la doppia carve-out, non serve altro)
+
+Nessuna modifica al fail-open del budget globale (isBattleBudgetOk / 
+GLOBAL_MONTHLY_BUDGET_CENTS), resta la valvola aggregata invariata.
+
+Mostrami lo schema Postgres finale e i punti di call site prima di 
+girare a produzione.

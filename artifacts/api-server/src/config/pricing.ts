@@ -78,6 +78,21 @@ export const MONTHLY_LIMITS: Record<string, number> = {
   pro:     Math.min(Math.floor(aiBudgetProForMsgCap     / costPerMsgHaiku), CAP_PRO),
 };
 
+// ─── Limiti mensili per-utente numero battaglie (hard stop) ──────────────────
+// Distinto dal BATTLE_MONTHLY_BUDGET_CENTS (valvola aggregata di costo €): questo
+// è un contatore per singolo utente, unità = 1 battaglia (match), non per-turno.
+// Configurabile via env per aggiustamenti rapidi senza redeploy del codice.
+export const MONTHLY_BATTLE_LIMITS: Record<string, number> = {
+  free:    Number(process.env.BATTLE_LIMIT_FREE    ?? 8),
+  premium: Number(process.env.BATTLE_LIMIT_PREMIUM ?? 80),
+  pro:     Number(process.env.BATTLE_LIMIT_PRO     ?? 250),
+};
+
+// ─── Soglia soft-warning (frazione del limite mensile) ───────────────────────
+// A questa frazione del limite (es. free: 6/8) l'API include un flag di warning
+// non bloccante nella risposta, PRIMA dell'hard-stop, con framing positivo upgrade.
+export const BATTLE_LIMIT_WARNING_RATIO = 0.75;
+
 // ─── Budget mensile chiamate LLM per battle auth-user ────────────────────────
 // Copre: generateBattleTheme, generateAiArgument (auto-escalation + ai-join),
 // e sparring turns. Separato dal GLOBAL_MONTHLY_BUDGET_CENTS (chat only).
