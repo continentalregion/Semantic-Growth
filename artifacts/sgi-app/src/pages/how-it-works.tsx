@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Network, ChevronRight, Sparkles, Layers, Gauge, Swords, Trophy } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { useTranslation } from "react-i18next";
 
 type NameDesc = { name: string; desc: string };
@@ -39,8 +40,7 @@ export default function HowItWorks() {
       {/* Header */}
       <header className="container mx-auto px-6 py-6 flex items-center justify-between relative z-10">
         <Link href="/" className="flex items-center gap-2 hover-elevate rounded-lg px-1 py-1 -ml-1">
-          <Network className="w-8 h-8 text-primary" />
-          <span className="text-xl font-bold tracking-tight font-display">SGI</span>
+          <Logo size={32} />
         </Link>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1">
@@ -56,6 +56,9 @@ export default function HowItWorks() {
               </button>
             ))}
           </div>
+          <Button variant="ghost" asChild size="sm">
+            <Link href="/sign-in">{t("home.signIn")}</Link>
+          </Button>
           <Button asChild>
             <Link href="/sign-up">{t("howItWorks.startCta")}</Link>
           </Button>

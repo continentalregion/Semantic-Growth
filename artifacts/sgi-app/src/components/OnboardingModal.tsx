@@ -81,7 +81,7 @@ export function OnboardingModal() {
         <p className="text-sm text-muted-foreground text-center leading-relaxed mb-8">{current.desc}</p>
 
         {isLast ? (
-          <Link href="/chat" onClick={dismiss}>
+          <Link href="/chat?start=1" onClick={dismiss}>
             <button
               className="w-full py-3 rounded-xl font-semibold text-white transition-opacity hover:opacity-90"
               style={{ background: "linear-gradient(135deg, #7c6bff, #06d6a0)" }}

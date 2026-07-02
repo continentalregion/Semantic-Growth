@@ -61,13 +61,13 @@ export default function Dashboard() {
   const startScore = chartData[0]?.score;
 
   const handleShare = async () => {
-    const text = `Il mio SGI è ${sgi.toFixed(1)} — misuro l'evoluzione della mia mente su sgindex.work`;
+    const text = t("dashboard.shareText", { score: sgi.toFixed(1) });
     try {
       if (navigator.share) {
         await navigator.share({ title: "Semantic Growth Index", text, url: "https://sgindex.work" });
       } else {
         await navigator.clipboard.writeText(text);
-        toast.success("Copiato negli appunti!");
+        toast.success(t("dashboard.copied"));
       }
     } catch {
       // user cancelled share

@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { MessageSquarePlus, Trash2, Send, Bot, User, TrendingUp, TrendingDown, Minus, Zap, ChevronDown, Lock, Menu, X } from "lucide-react";
 import MarkdownMessage from "@/components/MarkdownMessage";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "wouter";
 
 const MODELS = [
   { id: "claude-haiku-4-5",  label: "Claude Haiku 4",  provider: "Anthropic", badge: "Fast",         minPlan: "free"    },
@@ -39,9 +40,10 @@ export default function Chat() {
   const { t } = useTranslation();
   const { getToken } = useAuth();
   const qc = useQueryClient();
+  const [, setLocation] = useLocation();
 
   const [activeConvoId, setActiveConvoId] = useState<number | null>(null);
-  const [selectedModel, setSelectedModel] = useState<ModelId>("claude-opus-4-8");
+  const [selectedModel, setSelectedModel] = useState<ModelId>("claude-haiku-4-5");
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const [input, setInput] = useState("");
   const [streamingContent, setStreamingContent] = useState("");
@@ -53,6 +55,8 @@ export default function Chat() {
   const [chatSidebarOpen, setChatSidebarOpen] = useState(false);
   const lastInputRef = useRef<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const modelInitializedRef = useRef(false);
+  const autoStartDoneRef = useRef(false);
 
   const { data: usageData, refetch: refetchUsage } = useQuery<{
     used: number; limit: number; remaining: number; plan: string; totalCostCents: number;
@@ -69,6 +73,13 @@ export default function Chat() {
     staleTime: 0,
     refetchInterval: 60_000,
   });
+
+  useEffect(() => {
+    if (modelInitializedRef.current || !usageData?.plan) return;
+    modelInitializedRef.current = true;
+    const d: ModelId = usageData.plan === "pro" ? "claude-opus-4-8" : usageData.plan === "premium" ? "claude-sonnet-4-6" : "claude-haiku-4-5";
+    setSelectedModel(d);
+  }, [usageData?.plan]);
 
   // limitBlocked is DERIVED from server data — never stale local state.
   // If the server says remaining > 0, the chat is always unlocked.
@@ -117,6 +128,16 @@ export default function Chat() {
       setIsCreating(false);
     }
   }, [isCreating, selectedModel, getToken, qc, t]);
+
+  useEffect(() => {
+    if (autoStartDoneRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("start") !== "1") return;
+    if (conversations === undefined) return;
+    autoStartDoneRef.current = true;
+    window.history.replaceState({}, "", window.location.pathname);
+    void handleNewConversation();
+  }, [conversations, handleNewConversation]);
 
   const handleDeleteConversation = useCallback((id: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -329,7 +350,7 @@ export default function Chat() {
                 <button
                   className="text-xs py-1.5 px-3 rounded-full font-semibold transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94]"
                   style={{ background: "linear-gradient(135deg, #f0c040, #e08020)", color: "#fff" }}
-                  onClick={() => toast.info("Vai su Impostazioni per attivare Pro!")}
+                  onClick={() => setLocation("/settings")}
                 >
                   {t("chat.upgradeProBtn")}
                 </button>
@@ -341,14 +362,14 @@ export default function Chat() {
                   <button
                     className="text-xs py-1.5 px-3 rounded-full font-semibold transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94]"
                     style={{ background: "linear-gradient(135deg, #7c6bff, #5b4de0)", color: "#fff" }}
-                    onClick={() => toast.info("Vai su Impostazioni per attivare Premium!")}
+                    onClick={() => setLocation("/settings")}
                   >
                     {t("chat.upgradePremiumBtn")}
                   </button>
                   <button
                     className="text-xs py-1.5 px-3 rounded-full font-semibold transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94]"
                     style={{ background: "linear-gradient(135deg, #f0c040, #e08020)", color: "#fff" }}
-                    onClick={() => toast.info("Vai su Impostazioni per attivare Pro!")}
+                    onClick={() => setLocation("/settings")}
                   >
                     {t("chat.upgradeProBtn")}
                   </button>
@@ -362,7 +383,7 @@ export default function Chat() {
           {convosLoading ? (
             Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)
           ) : conversations?.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center pt-8 px-2">No conversations yet. Start a new exploration.</p>
+            <p className="text-xs text-muted-foreground text-center pt-8 px-2">{t("chat.noConversationsYet")}</p>
           ) : (
             conversations?.map(c => (
               <div
@@ -400,11 +421,11 @@ export default function Chat() {
           <div className="flex-1 flex flex-col items-center justify-center text-center px-8 gap-4">
             <Bot className="w-12 h-12 text-muted-foreground/50" />
             <div>
-              <p className="text-lg font-medium">No conversation selected</p>
-              <p className="text-sm text-muted-foreground mt-1">Start a new exploration or select an existing one.</p>
+              <p className="text-lg font-medium">{t("chat.noConvoSelected")}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t("chat.noConvoSubtitle")}</p>
             </div>
             <Button onClick={() => handleNewConversation()} data-testid="button-start-exploration">
-              Start New Exploration
+              {t("chat.newExploration")}
             </Button>
           </div>
         ) : (

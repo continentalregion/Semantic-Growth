@@ -256,8 +256,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       items: [
         { href: "/dashboard", label: t("nav.dashboard"), icon: Activity },
         { href: "/chat", label: t("nav.chat"), icon: MessageSquare },
-        { href: "/threads", label: "Thread Aperti", icon: Swords, badge: "NEW" },
-        { href: "/battles", label: "Feed Battaglie", icon: Flame, badge: "LIVE" },
+        { href: "/threads", label: t("nav.threads"), icon: Swords, badge: "NEW" },
+        { href: "/battles", label: t("nav.battles"), icon: Flame, badge: "LIVE" },
       ],
     },
     {

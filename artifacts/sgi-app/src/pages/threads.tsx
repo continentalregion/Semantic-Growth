@@ -93,7 +93,7 @@ export default function ThreadsPage() {
   function handleShare(battleCardId: string, e: React.MouseEvent) {
     e.stopPropagation();
     const url = `${window.location.origin}/battle-card/${battleCardId}`;
-    navigator.clipboard.writeText(url).then(() => toast.success("Link copiato!")).catch(() => {});
+    navigator.clipboard.writeText(url).then(() => toast.success(t("threads.linkCopied"))).catch(() => {});
   }
 
   return (
@@ -183,7 +183,7 @@ export default function ThreadsPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <Flame className="w-3.5 h-3.5" style={{ color: "#f72585" }} />
                   <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#f72585" }}>
-                    Thread Aperti
+                    {t("threads.openThreads")}
                   </span>
                   <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: "rgba(247,37,133,0.12)", color: "#f72585" }}>
                     {openThreads.length}
@@ -242,7 +242,7 @@ export default function ThreadsPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <Trophy className="w-3.5 h-3.5" style={{ color: "#f0c040" }} />
                   <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#f0c040" }}>
-                    Battle Completate
+                    {t("threads.completedBattles")}
                   </span>
                   <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: "rgba(240,192,64,0.12)", color: "#f0c040" }}>
                     {completedThreads.length}
@@ -264,11 +264,11 @@ export default function ThreadsPage() {
                                 {cat.icon}{cat.label}
                               </span>
                               <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "rgba(240,192,64,0.12)", color: "#f0c040" }}>
-                                <Trophy className="w-3 h-3" /> Sfida completata
+                                <Trophy className="w-3 h-3" /> {t("threads.completedBadge")}
                               </span>
                             </div>
                             <p className="text-sm font-semibold leading-snug mb-1" style={{ color: "#c8c8dd" }}>{thread.question}</p>
-                            <p className="text-xs" style={{ color: "#9090b8" }}>{thread.totalSessions} partecipanti</p>
+                            <p className="text-xs" style={{ color: "#9090b8" }}>{thread.totalSessions} {t("threads.participants")}</p>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <button
@@ -278,12 +278,12 @@ export default function ThreadsPage() {
                               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(240,192,64,0.22)"; }}
                               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(240,192,64,0.12)"; }}
                             >
-                              Vedi Sfida
+                              {t("threads.viewChallenge")}
                             </button>
                             <button
                               onClick={(e) => handleShare(thread.battleCardId!, e)}
                               className="p-1.5 rounded-lg transition-all"
-                              title="Copia link"
+                              title={t("threads.copyLink")}
                               style={{ background: "rgba(255,255,255,0.04)", color: "#9090b8", border: "1px solid rgba(255,255,255,0.08)" }}
                               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#eeeeff"; }}
                               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#9090b8"; }}

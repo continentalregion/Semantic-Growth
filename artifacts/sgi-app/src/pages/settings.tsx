@@ -31,7 +31,7 @@ export default function Settings() {
   const portal = useCreateBillingPortal();
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirm !== "ELIMINA") return;
+    if (deleteConfirm !== t("settings.deleteConfirmWord")) return;
     setIsDeleting(true);
     try {
       const res = await fetch("/api/users/me", { method: "DELETE", credentials: "include" });
@@ -39,7 +39,7 @@ export default function Settings() {
       await user?.delete();
       await signOut();
     } catch {
-      toast.error("Errore durante l'eliminazione. Riprova o contatta support@sgindex.work");
+      toast.error(t("settings.deleteError"));
       setIsDeleting(false);
     }
   };
@@ -337,12 +337,12 @@ export default function Settings() {
       <Card className="bg-card/30 backdrop-blur" style={{ borderColor: "rgba(247,37,133,0.25)" }}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base text-red-400">
-            <Trash2 className="w-5 h-5" /> Zona pericolosa
+            <Trash2 className="w-5 h-5" /> {t("settings.dangerZone")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Eliminare l'account cancellerà permanentemente tutti i tuoi dati SGI — punteggio, conversazioni, storico, badge. L'operazione è <strong className="text-foreground">irreversibile</strong>.
+            {t("settings.deleteAccountDesc")}
           </p>
           <Button
             variant="outline"
@@ -352,7 +352,7 @@ export default function Settings() {
             data-testid="button-delete-account"
           >
             <Trash2 className="w-4 h-4" />
-            Elimina account
+            {t("settings.deleteAccountBtn")}
           </Button>
         </CardContent>
       </Card>
@@ -363,35 +363,35 @@ export default function Settings() {
           <Card className="w-full max-w-md bg-card" style={{ border: "1px solid rgba(247,37,133,0.3)" }}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-red-400">
-                <Trash2 className="w-5 h-5" /> Elimina account
+                <Trash2 className="w-5 h-5" /> {t("settings.deleteModalTitle")}
               </CardTitle>
               <CardDescription>
-                Questa operazione è irreversibile. Tutti i tuoi dati saranno cancellati definitivamente.
+                {t("settings.deleteModalDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-xl p-4" style={{ background: "rgba(247,37,133,0.06)", border: "1px solid rgba(247,37,133,0.2)" }}>
                 <p className="text-sm text-muted-foreground">
-                  Per confermare, scrivi <strong className="text-foreground font-mono">ELIMINA</strong> nel campo qui sotto:
+                  {t("settings.deleteConfirmPre")} <strong className="text-foreground font-mono">{t("settings.deleteConfirmWord")}</strong> {t("settings.deleteConfirmPost")}
                 </p>
                 <input
                   type="text"
                   value={deleteConfirm}
                   onChange={(e) => setDeleteConfirm(e.target.value)}
-                  placeholder="ELIMINA"
+                  placeholder={t("settings.deleteConfirmWord")}
                   className="mt-3 w-full bg-transparent border border-border rounded-md px-3 py-2 text-sm font-mono outline-none focus:border-red-500/50 transition-colors"
                   data-testid="input-delete-confirm"
                 />
               </div>
               <Button
                 className="w-full gap-2 font-semibold"
-                style={{ background: deleteConfirm === "ELIMINA" ? "#f72585" : "rgba(247,37,133,0.2)", color: "#fff" }}
-                disabled={isDeleting || deleteConfirm !== "ELIMINA"}
+                style={{ background: deleteConfirm === t("settings.deleteConfirmWord") ? "#f72585" : "rgba(247,37,133,0.2)", color: "#fff" }}
+                disabled={isDeleting || deleteConfirm !== t("settings.deleteConfirmWord")}
                 onClick={handleDeleteAccount}
                 data-testid="button-confirm-delete"
               >
                 {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                {isDeleting ? "Eliminazione in corso..." : "Elimina definitivamente"}
+                {isDeleting ? t("settings.deletingAccount") : t("settings.deleteConfirmBtn")}
               </Button>
               <Button
                 variant="outline"
@@ -399,7 +399,7 @@ export default function Settings() {
                 disabled={isDeleting}
                 onClick={() => setShowDeleteModal(false)}
               >
-                Annulla
+                {t("settings.cancelBtn")}
               </Button>
             </CardContent>
           </Card>

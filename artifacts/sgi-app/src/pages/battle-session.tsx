@@ -286,10 +286,10 @@ export default function BattleSessionPage() {
       const canvas = format === "story"
         ? generatePvpStoryCard(cardData)
         : generatePvpSquareCard(cardData);
-      const outcomeWord = res.outcome === "win" ? "vittoria" : res.outcome === "tie" ? "pareggio" : "sconfitta";
+      const outcomeWord = res.outcome === "win" ? t("battle.outcomeWin") : res.outcome === "tie" ? t("battle.outcomeTie") : t("battle.outcomeLoss");
       await shareOrDownloadPvpCard(canvas, format, `SGI Battle — ${outcomeWord}!`);
     } catch {
-      toast.error("Errore nella generazione della card.");
+      toast.error(t("battle.cardError"));
     } finally {
       setSharing(null);
     }
@@ -394,9 +394,9 @@ export default function BattleSessionPage() {
   // ── Waiting for an opponent ──────────────────────────────────────────────────
   if (phase === "waitingOpponent") {
     const AI_LEVELS: { level: AiLevel; label: string; desc: string; color: string }[] = [
-      { level: "sfidante", label: "🟢 Sfidante", desc: "Argomento semplice, un punto principale", color: TEAL },
-      { level: "pensatore", label: "🟡 Pensatore", desc: "Struttura discreta, due punti distinti", color: GOLD },
-      { level: "maestro",   label: "🔴 Maestro",   desc: "Denso, multi-punto, altamente persuasivo", color: PINK },
+      { level: "sfidante", label: t("battle.aiLevelSfidante"), desc: t("battle.aiLevelSfidanteDesc"), color: TEAL },
+      { level: "pensatore", label: t("battle.aiLevelPensatore"), desc: t("battle.aiLevelPensatoreDesc"), color: GOLD },
+      { level: "maestro",   label: t("battle.aiLevelMaestro"),   desc: t("battle.aiLevelMaestroDesc"),   color: PINK },
     ];
     return (
       <div className="flex-1 overflow-y-auto" style={{ background: BG }}>
@@ -420,7 +420,7 @@ export default function BattleSessionPage() {
                 <div className="flex items-center gap-2">
                   <Bot className="w-5 h-5 flex-shrink-0" style={{ color: GOLD }} />
                   <h2 className="text-base font-bold font-display" style={{ color: "#eeeeff" }}>
-                    Nessun avversario umano trovato
+                    {t("battle.aiOfferTitle")}
                   </h2>
                 </div>
                 {autoCountdown !== null && autoCountdown > 0 && (
@@ -428,12 +428,12 @@ export default function BattleSessionPage() {
                     className="text-xs font-mono font-bold px-2.5 py-1 rounded-full flex-shrink-0"
                     style={{ background: "rgba(255,209,102,0.15)", color: GOLD }}
                   >
-                    AI tra {autoCountdown}s
+                    {t("battle.aiCountdown", { n: autoCountdown })}
                   </span>
                 )}
               </div>
               <p className="text-sm mb-5" style={{ color: MUTED }}>
-                Sfida l'Avversario AI — scegli il livello di difficoltà:
+                {t("battle.aiOfferSubtitle")}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 mb-4">
                 {AI_LEVELS.map(({ level, label, desc, color }) => (
@@ -459,7 +459,7 @@ export default function BattleSessionPage() {
                 className="text-xs w-full text-center py-1.5"
                 style={{ color: MUTED }}
               >
-                Annulla — continua ad aspettare un umano
+                {t("battle.aiCancelWait")}
               </button>
             </div>
           )}
@@ -559,14 +559,14 @@ export default function BattleSessionPage() {
     const label = isWin ? t("battle.win") : isTie ? t("battle.tie") : t("battle.loss");
     const isAi = v.vsAi || res.opponentUsername === AI_USERNAME;
     const aiLevelLabel: Record<string, string> = {
-      sfidante: "Sfidante", pensatore: "Pensatore", maestro: "Maestro",
+      sfidante: t("battle.levelSfidante"), pensatore: t("battle.levelPensatore"), maestro: t("battle.levelMaestro"),
     };
     const levelDisplay = v.aiLevel ? aiLevelLabel[v.aiLevel] ?? v.aiLevel : null;
     const sub = isWin
-      ? (isAi && levelDisplay ? `Hai battuto l'AI — livello ${levelDisplay}` : t("battle.winSub"))
+      ? (isAi && levelDisplay ? t("battle.winSubAi", { level: levelDisplay }) : t("battle.winSub"))
       : isTie
       ? t("battle.tieSub")
-      : (isAi && levelDisplay ? `Sconfitta vs AI — livello ${levelDisplay}` : t("battle.lossSub"));
+      : (isAi && levelDisplay ? t("battle.lossSubAi", { level: levelDisplay }) : t("battle.lossSub"));
     const opponentColor = isAi ? GOLD : PINK;
     return (
       <div className="flex-1 overflow-y-auto" style={{ background: BG }}>
@@ -631,7 +631,7 @@ export default function BattleSessionPage() {
               ) : (
                 <Share2 className="w-4 h-4" style={{ color: PURPLE }} />
               )}
-              {sharing ? "Generando card…" : "Condividi card"}
+              {sharing ? t("battle.generatingCard") : t("battle.shareCard")}
             </button>
             {showShareMenu && !sharing && (
               <div
