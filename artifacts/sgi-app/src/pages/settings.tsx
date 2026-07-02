@@ -12,14 +12,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Crown, User, Shield, CheckCircle2, Star, CreditCard, Loader2, Trash2 } from "lucide-react";
+import { Crown, User, Shield, CheckCircle2, Star, CreditCard, Loader2, Trash2, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
 export default function Settings() {
   const { t, i18n } = useTranslation();
   const { user } = useUser();
-  const { signOut } = useClerk();
+  const { signOut, openUserProfile } = useClerk();
   const queryClient = useQueryClient();
   const { data: profile, isLoading } = useGetMyProfile();
   const [showUpgradeModal, setShowUpgradeModal] = useState<"premium" | "pro" | null>(null);
@@ -208,6 +208,19 @@ export default function Settings() {
             <span className="text-2xl font-bold font-mono text-primary" data-testid="text-settings-sgi">
               {profile?.sgiScore?.toFixed(1) ?? "—"}
             </span>
+          </div>
+          <Separator />
+          <div className="pt-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              data-testid="button-manage-account"
+              onClick={() => openUserProfile()}
+            >
+              <UserCog className="w-4 h-4" />
+              {t("settings.manageAccount")}
+            </Button>
           </div>
         </CardContent>
       </Card>
