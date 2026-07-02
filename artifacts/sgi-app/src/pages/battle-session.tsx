@@ -94,7 +94,7 @@ function Conversation({ messages, t }: { messages: Msg[]; t: (k: string) => stri
     return <p className="text-xs" style={{ color: MUTED }}>—</p>;
   }
   return (
-    <div className="flex flex-col gap-3">
+    <div data-clarity-mask="true" className="flex flex-col gap-3">
       {messages.map((m, i) => {
         const mine = m.role === "user";
         return (
@@ -724,7 +724,7 @@ export default function BattleSessionPage() {
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-5">
+      <div ref={scrollRef} data-clarity-mask="true" className="flex-1 overflow-y-auto px-6 py-5">
         <div className="max-w-[820px] mx-auto">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full min-h-[40vh] gap-3 text-center">
@@ -750,6 +750,7 @@ export default function BattleSessionPage() {
         <div className="max-w-[820px] mx-auto">
           <div className="flex items-end gap-2">
             <textarea
+              data-clarity-mask="true"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleSend(); } }}

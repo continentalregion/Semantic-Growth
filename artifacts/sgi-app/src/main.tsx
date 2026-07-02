@@ -3,6 +3,9 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./i18n";
 import "./index.css";
+import { loadClarityIfConsented } from "./lib/clarity";
+
+loadClarityIfConsented();
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
 if (sentryDsn) {

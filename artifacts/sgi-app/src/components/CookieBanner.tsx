@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { activateClarity } from "@/lib/clarity";
 
 export function CookieBanner() {
   const { t } = useTranslation();
@@ -18,6 +19,7 @@ export function CookieBanner() {
 
   const accept = (type: "all" | "essential") => {
     localStorage.setItem("sgi-cookie-consent", type);
+    if (type === "all") activateClarity();
     setVisible(false);
   };
 

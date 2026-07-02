@@ -238,7 +238,7 @@ export default function GuestBattlePage() {
 
               {/* Messages */}
               {messages.length > 0 && (
-                <div className="flex flex-col gap-3 max-h-80 overflow-y-auto pr-1">
+                <div data-clarity-mask="true" className="flex flex-col gap-3 max-h-80 overflow-y-auto pr-1">
                   {messages.map((m, i) => (
                     <div key={i} className={`flex flex-col gap-1 ${m.role === "user" ? "items-end" : "items-start"}`}>
                       <span className="text-[10px] uppercase tracking-widest" style={{ color: MUTED }}>
@@ -264,6 +264,7 @@ export default function GuestBattlePage() {
               {phase === "active" && (
                 <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
                   <textarea
+                    data-clarity-mask="true"
                     ref={textareaRef}
                     value={input}
                     onChange={e => setInput(e.target.value)}

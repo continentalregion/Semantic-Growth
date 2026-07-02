@@ -577,7 +577,7 @@ export default function Chat() {
               );
             })()}
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            <div data-clarity-mask="true" className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
               {convoLoading ? (
                 <div className="space-y-4">
                   <Skeleton className="h-16 w-3/4" />
@@ -710,6 +710,7 @@ export default function Chat() {
             <div className="px-6 py-4 border-t border-border">
               <div className="flex gap-3 items-end">
                 <Textarea
+                  data-clarity-mask="true"
                   data-testid="input-chat-message"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
