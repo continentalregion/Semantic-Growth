@@ -1,0 +1,54 @@
+BUILD MODE.
+
+Il backend del rate limiting per-utente è già implementato e testato 
+(monthlyBattlesUsed, firstChatUsedAt, firstBattleUsedAt su users; 
+guest_usage per gli ospiti; endpoint usage che espone anche warning 
+=true al 75% della soglia). Ora aggiorna il frontend della home page 
+(home.tsx) e i componenti collegati per riflettere questo stato reale.
+
+OBIETTIVO: comunicare chiaramente cosa è gratis e cosa no, SENZA 
+spaventare il visitatore nei primi secondi — il messaggio deve restare 
+"prova subito, gratis", non "occhio ai limiti".
+
+MODIFICHE RICHIESTE:
+
+1. Hero/above the fold: NON menzionare limiti qui. Resta focalizzato 
+   sul value prop (chat semantica + battaglie + analisi pattern 
+   linguistico). L'utente guest deve poter iniziare con zero frizione.
+
+2. Sezione "Come funziona" o pricing (verificare se esiste già): 
+   aggiungere blocco chiaro con i numeri reali ora attivi lato backend:
+   - Free: 20 chat/mese + 8 battaglie/mese, con la prima esperienza 
+     (primo messaggio, prima battaglia) sempre senza limite di frequenza
+   - Premium: 600 chat/mese + 80 battaglie/mese
+   - Pro: 2000 chat/mese + 250 battaglie/mese
+   Framing positivo ("inizia gratis", "sblocca l'uso illimitato"), mai 
+   linguaggio ansiogeno ("limitato", "bloccato")
+
+3. Componente usage/warning per utenti loggati free: il backend espone 
+   già un flag warning=true al 75% della soglia (7/8 battaglie, 15/20 
+   chat) — collega questo flag a un banner soft e non invasivo, tipo 
+   "hai usato X/8 battaglie questo mese" con CTA upgrade in tono 
+   positivo. Deve apparire SOLO quando warning=true, non prima, e MAI 
+   nell'hero.
+
+4. Onboarding modal (OnboardingModal, già localizzato IT/EN/ES): 
+   aggiungere microcopy nel flusso guest che spiega che il primo 
+   utilizzo è senza limiti, per settare aspettative corrette da subito
+
+5. Messaggio di blocco (429, code BATTLE_LIMIT_REACHED e equivalente 
+   chat): verificare che il frontend gestisca già questo errore con 
+   un messaggio chiaro e un CTA upgrade — se non esiste, aggiungerlo
+
+6. i18n: tutte le nuove stringhe in IT/EN/ES con lo stesso pattern 
+   t(key, {defaultValue}) già in uso, coerente con le chiavi esistenti 
+   (battles.categories.*, home.sub, ecc.)
+
+VINCOLI:
+- Una direzione, un'iterazione: proponi UNA versione di layout/copy, 
+  non varianti multiple
+- Non toccare la logica di battle mode, matchmaking, AI fallback, o 
+  il rate limiting backend già implementati
+- Non modificare Logo.tsx (già semplificato e confermato funzionante)
+
+Mostrami prima il copy proposto (IT) per validazione, poi implementa.
