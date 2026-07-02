@@ -124,6 +124,8 @@ const IT = {
     noConversationsYet: "Nessuna conversazione ancora. Inizia una nuova esplorazione.",
     noConvoSelected: "Nessuna conversazione selezionata",
     noConvoSubtitle: "Avvia una nuova esplorazione o selezionane una esistente.",
+    modelForNewConvos: "Modello per nuove esplorazioni",
+    modelOutOfPlan: "Questa conversazione usa {{model}}. Il tuo piano ({{plan}}) userà {{planModel}} per i nuovi messaggi.",
   },
   leaderboard: {
     title: "Il tuo Rank",
@@ -602,6 +604,8 @@ const EN = {
     noConversationsYet: "No conversations yet. Start a new exploration.",
     noConvoSelected: "No conversation selected",
     noConvoSubtitle: "Start a new exploration or select an existing one.",
+    modelForNewConvos: "Model for new explorations",
+    modelOutOfPlan: "This conversation uses {{model}}. Your plan ({{plan}}) will use {{planModel}} for new messages.",
   },
   leaderboard: {
     title: "Your Rank",
@@ -1079,6 +1083,8 @@ const ES = {
     noConversationsYet: "Sin conversaciones aún. Inicia una nueva exploración.",
     noConvoSelected: "Ninguna conversación seleccionada",
     noConvoSubtitle: "Inicia una nueva exploración o selecciona una existente.",
+    modelForNewConvos: "Modelo para nuevas exploraciones",
+    modelOutOfPlan: "Esta conversación usa {{model}}. Tu plan ({{plan}}) usará {{planModel}} para los nuevos mensajes.",
   },
   leaderboard: {
     title: "Tu Ranking",

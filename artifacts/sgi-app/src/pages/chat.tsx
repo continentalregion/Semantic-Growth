@@ -36,6 +36,15 @@ function modelAllowed(modelMinPlan: string, userPlan: string): boolean {
 
 const API_BASE = "/api";
 
+// Mirror of server-side ALLOWED_MODELS (pricing.ts) — client-side out-of-plan detection only
+const ALLOWED_MODELS_CLIENT: Record<string, string[]> = {
+  free:    ["claude-haiku-4-5"],
+  premium: ["claude-haiku-4-5", "claude-sonnet-4-6", "gpt-4o-mini"],
+  pro:     ["claude-haiku-4-5", "claude-sonnet-4-6", "claude-opus-4-8", "gpt-4o-mini", "gpt-4o"],
+};
+// DEFAULT_MODEL in pricing.ts is "claude-haiku-4-5" for all plans — fallback when model is out-of-plan
+const PLAN_DEFAULT_MODEL_ID = "claude-haiku-4-5";
+
 export default function Chat() {
   const { t } = useTranslation();
   const { getToken } = useAuth();
@@ -295,6 +304,64 @@ export default function Chat() {
       <div className="flex flex-1 min-h-0 gap-4">
       {/* Sidebar */}
       <div className={`${chatSidebarOpen ? "flex" : "hidden"} md:flex w-64 flex-col gap-2 flex-shrink-0`}>
+        {/* Model selector for next conversation */}
+        {modelDropdownOpen && (
+          <div className="fixed inset-0 z-40" onClick={() => setModelDropdownOpen(false)} />
+        )}
+        <div className="relative z-50">
+          <p className="text-[10px] uppercase tracking-widest font-semibold mb-1 px-0.5" style={{ color: "#9090b8" }}>
+            {t("chat.modelForNewConvos")}
+          </p>
+          <button
+            onClick={() => setModelDropdownOpen(o => !o)}
+            className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-white/5"
+            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "#a89fff" }}
+          >
+            <span>{MODELS.find(m => m.id === selectedModel)?.label ?? "Haiku"}</span>
+            <ChevronDown className="w-3 h-3 opacity-60" />
+          </button>
+          {modelDropdownOpen && (
+            <div
+              className="absolute left-0 right-0 top-full mt-1 rounded-xl overflow-hidden z-50 shadow-xl"
+              style={{ background: "#12142a", border: "1px solid rgba(255,255,255,0.1)" }}
+            >
+              {MODELS.map(m => {
+                const userPlan = usageData?.plan ?? "free";
+                const allowed = modelAllowed(m.minPlan, userPlan);
+                const planLabel = m.minPlan === "pro" ? "Pro" : m.minPlan === "premium" ? "Premium" : null;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      if (!allowed) {
+                        toast.info(t("chat.modelLockedToast", { model: m.label, plan: planLabel }));
+                        setModelDropdownOpen(false);
+                        return;
+                      }
+                      setSelectedModel(m.id);
+                      setModelDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between px-4 py-2.5 text-left text-sm transition-colors hover:bg-white/5"
+                    style={{ color: !allowed ? "rgba(144,144,184,0.4)" : selectedModel === m.id ? "#a89fff" : "#9090b8" }}
+                  >
+                    <div className="flex items-center gap-2">
+                      {!allowed && <Lock className="w-3 h-3 flex-shrink-0" style={{ color: "rgba(144,144,184,0.4)" }} />}
+                      <div>
+                        <div className="font-medium text-xs" style={{ color: "inherit" }}>{m.label}</div>
+                        <div className="text-xs opacity-60">{m.provider}</div>
+                      </div>
+                    </div>
+                    {!allowed && planLabel ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(240,192,64,0.1)", color: "rgba(240,192,64,0.6)", border: "1px solid rgba(240,192,64,0.2)" }}>{planLabel}</span>
+                    ) : m.badge ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(124,107,255,0.2)", color: "#a89fff" }}>{m.badge}</span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
         <Button
           onClick={() => handleNewConversation()}
           className="w-full gap-2"
@@ -445,58 +512,31 @@ export default function Chat() {
                 <span className="font-medium text-sm">{activeConvo?.title ?? "Exploration"}</span>
               </div>
               <div className="flex items-center gap-3">
-                {/* Model selector */}
-                <div className="relative">
-                  <button
-                    onClick={() => setModelDropdownOpen(o => !o)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-[colors,transform] duration-100 active:scale-[0.94] hover:opacity-90"
-                    style={{ background: "rgba(124,107,255,0.12)", border: "1px solid rgba(124,107,255,0.3)", color: "#a89fff" }}
-                  >
-                    {(MODELS.find(m => m.id === ((activeConvo as any)?.model ?? selectedModel)) ?? MODELS[0]).label}
-                    <ChevronDown className="w-3 h-3" />
-                  </button>
-                  {modelDropdownOpen && (
+                {/* Model badge — static, non-clickable */}
+                {(() => {
+                  const convoModelId = (activeConvo as any)?.model as string | undefined;
+                  const modelEntry = MODELS.find(m => m.id === convoModelId) ?? MODELS[0];
+                  const userPlan = usageData?.plan ?? "free";
+                  const outOfPlan = convoModelId
+                    ? !(ALLOWED_MODELS_CLIENT[userPlan] ?? ["claude-haiku-4-5"]).includes(convoModelId)
+                    : false;
+                  const planDefault = MODELS.find(m => m.id === PLAN_DEFAULT_MODEL_ID) ?? MODELS[0];
+                  return (
                     <div
-                      className="absolute right-0 top-full mt-1 w-60 rounded-xl overflow-hidden z-50 shadow-xl"
-                      style={{ background: "#12142a", border: "1px solid rgba(255,255,255,0.1)" }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium select-none"
+                      style={{
+                        background: outOfPlan ? "rgba(255,209,102,0.08)" : "rgba(124,107,255,0.12)",
+                        border: `1px solid ${outOfPlan ? "rgba(255,209,102,0.3)" : "rgba(124,107,255,0.3)"}`,
+                        color: outOfPlan ? "#f0c040" : "#a89fff",
+                        cursor: "default",
+                      }}
+                      title={outOfPlan ? t("chat.modelOutOfPlan", { model: modelEntry.label, plan: userPlan, planModel: planDefault.label }) : modelEntry.label}
                     >
-                      {MODELS.map(m => {
-                        const userPlan = usageData?.plan ?? "free";
-                        const allowed = modelAllowed(m.minPlan, userPlan);
-                        const planLabel = m.minPlan === "pro" ? "Pro" : m.minPlan === "premium" ? "Premium" : null;
-                        return (
-                          <button
-                            key={m.id}
-                            onClick={() => {
-                              if (!allowed) {
-                                toast.info(t("chat.modelLockedToast", { model: m.label, plan: planLabel }));
-                                setModelDropdownOpen(false);
-                                return;
-                              }
-                              setSelectedModel(m.id);
-                              setModelDropdownOpen(false);
-                            }}
-                            className="w-full flex items-center justify-between px-4 py-2.5 text-left text-sm transition-colors hover:bg-white/5"
-                            style={{ color: !allowed ? "rgba(144,144,184,0.4)" : selectedModel === m.id ? "#a89fff" : "#9090b8" }}
-                          >
-                            <div className="flex items-center gap-2">
-                              {!allowed && <Lock className="w-3 h-3 flex-shrink-0" style={{ color: "rgba(144,144,184,0.4)" }} />}
-                              <div>
-                                <div className="font-medium text-xs" style={{ color: "inherit" }}>{m.label}</div>
-                                <div className="text-xs opacity-60">{m.provider}</div>
-                              </div>
-                            </div>
-                            {!allowed && planLabel ? (
-                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(240,192,64,0.1)", color: "rgba(240,192,64,0.6)", border: "1px solid rgba(240,192,64,0.2)" }}>{planLabel}</span>
-                            ) : m.badge ? (
-                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(124,107,255,0.2)", color: "#a89fff" }}>{m.badge}</span>
-                            ) : null}
-                          </button>
-                        );
-                      })}
+                      {outOfPlan && <span className="text-[11px] leading-none">⚠️</span>}
+                      {modelEntry.label}
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
                 {lastSgiDelta !== null && (
                   <div
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold"
@@ -513,6 +553,29 @@ export default function Chat() {
               </div>
             </div>
 
+            {/* Out-of-plan model banner */}
+            {(() => {
+              const convoModelId = (activeConvo as any)?.model as string | undefined;
+              const userPlan = usageData?.plan ?? "free";
+              if (!convoModelId || !activeConvo) return null;
+              const allowed = (ALLOWED_MODELS_CLIENT[userPlan] ?? ["claude-haiku-4-5"]).includes(convoModelId);
+              if (allowed) return null;
+              const convoModelLabel = MODELS.find(m => m.id === convoModelId)?.label ?? convoModelId;
+              const planDefaultLabel = MODELS.find(m => m.id === PLAN_DEFAULT_MODEL_ID)?.label ?? "Claude Haiku 4";
+              return (
+                <div className="px-6 pt-3 flex-shrink-0">
+                  <div
+                    className="flex items-start gap-2 rounded-xl px-4 py-3 text-xs"
+                    style={{ background: "rgba(255,209,102,0.06)", border: "1px solid rgba(255,209,102,0.2)" }}
+                  >
+                    <span className="text-sm leading-none mt-0.5 flex-shrink-0">⚠️</span>
+                    <p style={{ color: "#f0c040", lineHeight: 1.6 }}>
+                      {t("chat.modelOutOfPlan", { model: convoModelLabel, plan: userPlan, planModel: planDefaultLabel })}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
               {convoLoading ? (
