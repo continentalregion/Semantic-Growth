@@ -136,7 +136,7 @@ function Bubble({ m, colors, t }: { m: Msg; colors: ReturnType<typeof useColors>
         }}
       >
         <Text style={{ fontSize: 9, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4, color: mine ? colors.primary : colors.pink, fontFamily: "Inter_600SemiBold" }}>
-          {mine ? t("battles.myUsername") : "Sparring AI"}
+          {mine ? t("battles.myUsername") : t("battles.sparringAi")}
         </Text>
         <Text style={{ fontSize: 14, lineHeight: 21, color: colors.foreground, fontFamily: "Inter_400Regular" }}>{m.content}</Text>
       </View>
@@ -449,10 +449,10 @@ function BattlePvpModal({
       const color = isWin ? colors.teal : isTie ? colors.gold : colors.pink;
       const label = isWin ? t("battles.stWin") : isTie ? t("battles.stTie") : t("battles.stLoss");
       const sub = isWin
-        ? "La tua conversazione è risultata più densa e convincente."
+        ? t("battles.resultWinSub")
         : isTie
-          ? "Testa a testa: le due conversazioni si equivalgono."
-          : "Stavolta l'avversario è stato più convincente — ma guadagni comunque XP.";
+          ? t("battles.resultTieSub")
+          : t("battles.resultLossSub");
       return (
         <ScrollView contentContainerStyle={{ padding: colors.spacing.lg, gap: 14, paddingBottom: insets.bottom + 24 }}>
           <View style={[styles.banner, { backgroundColor: color + "14", borderColor: color + "40" }]}>
@@ -483,14 +483,14 @@ function BattlePvpModal({
             <View style={[styles.verdictBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
                 <Ionicons name="ribbon-outline" size={16} color={colors.gold} />
-                <Text style={[styles.verdictTitle, { color: colors.foreground }]}>Verdetto</Text>
+                <Text style={[styles.verdictTitle, { color: colors.foreground }]}>{t("battles.verdictTitle")}</Text>
               </View>
               <Text style={[styles.verdictText, { color: colors.mutedForeground }]}>{res.reasoning}</Text>
             </View>
           )}
 
-          <Collapsible title="La tua conversazione" accent={colors.primary} messages={v.myMessages ?? []} colors={colors} t={t} />
-          <Collapsible title={`Avversario · ${res.opponentUsername}`} accent={colors.pink} messages={res.opponentMessages ?? []} colors={colors} t={t} />
+          <Collapsible title={t("battles.myConversation")} accent={colors.primary} messages={v.myMessages ?? []} colors={colors} t={t} />
+          <Collapsible title={`${t("battles.opponentLabel")} · ${res.opponentUsername}`} accent={colors.pink} messages={res.opponentMessages ?? []} colors={colors} t={t} />
 
           <Pressable style={[styles.primaryAction, { backgroundColor: colors.primary }]} onPress={onClose}>
             <Text style={styles.primaryActionText}>{t("battles.sessionClose")}</Text>
@@ -528,7 +528,7 @@ function BattlePvpModal({
             <View style={styles.firstMove}>
               <Ionicons name="bulb-outline" size={32} color={colors.primary} />
               <Text style={[styles.firstMoveText, { color: colors.mutedForeground }]}>
-                Scrivi il primo messaggio per aprire il confronto con lo sparring partner.
+                {t("battles.arenaFirstMsg")}
               </Text>
             </View>
           ) : (
@@ -538,7 +538,7 @@ function BattlePvpModal({
             <View style={{ alignItems: "flex-start", marginTop: 4 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.pink + "1a", borderWidth: 1, borderColor: colors.pink + "33" }}>
                 <ActivityIndicator size="small" color={colors.pink} />
-                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>Sparring AI…</Text>
+                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>{t("battles.sparringAiTyping")}</Text>
               </View>
             </View>
           )}
@@ -611,12 +611,14 @@ export default function BattlesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [matchmaking, setMatchmaking] = useState(false);
   const [tab, setTab] = useState<"mine" | "public">("mine");
+  const [listError, setListError] = useState(false);
 
   const [modalMatchId, setModalMatchId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
   const loadData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
+    setListError(false);
     try {
       const token = await getToken();
       const h = { Authorization: `Bearer ${token ?? ""}` };
@@ -626,7 +628,9 @@ export default function BattlesScreen() {
       ]);
       if (mineRes.ok) setMyMatches(await mineRes.json() as MyMatch[]);
       if (pubRes.ok) setPublicMatches(await pubRes.json() as PublicMatch[]);
-    } catch { /* ignore */ }
+    } catch {
+      setListError(true);
+    }
     setLoading(false);
     setRefreshing(false);
   }, [getToken]);
@@ -722,6 +726,26 @@ export default function BattlesScreen() {
       </View>
     </LinearGradient>
   );
+
+  if (listError && !loading) {
+    return (
+      <AnimatedScreen style={{ backgroundColor: colors.background }}>
+        {header}
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 }}>
+          <Ionicons name="wifi-outline" size={44} color={colors.mutedForeground} />
+          <Text style={{ color: colors.mutedForeground, fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center" }}>
+            {t("common.errorDesc")}
+          </Text>
+          <Pressable
+            style={{ backgroundColor: colors.primary, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 }}
+            onPress={() => loadData()}
+          >
+            <Text style={{ color: palette.white, fontSize: 14, fontFamily: "Inter_700Bold" }}>{t("common.retryBtn")}</Text>
+          </Pressable>
+        </View>
+      </AnimatedScreen>
+    );
+  }
 
   if (loading) {
     return (

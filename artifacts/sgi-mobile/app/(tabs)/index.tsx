@@ -35,6 +35,7 @@ import {
   useDeleteOpenaiConversation,
   getListOpenaiConversationsQueryKey,
   getGetOpenaiConversationQueryKey,
+  useGetMyProfile,
 } from "@workspace/api-client-react";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
@@ -44,12 +45,24 @@ import { PressableScale } from "@/components/ui/PressableScale";
 
 const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
 
-const MODELS = [
-  { id: "claude-haiku-4-5", label: "Haiku", badgeKey: "chat.modelFast" },
-  { id: "claude-sonnet-4-6", label: "Sonnet", badgeKey: "chat.modelBalanced" },
-  { id: "gpt-4o-mini", label: "GPT-4o Mini", badgeKey: "chat.modelFast" },
+const MODELS_ALL = [
+  { id: "claude-haiku-4-5",  label: "Haiku",      badgeKey: "chat.modelFast"     },
+  { id: "claude-sonnet-4-6", label: "Sonnet",      badgeKey: "chat.modelBalanced" },
+  { id: "claude-opus-4-8",   label: "Opus",        badgeKey: "chat.modelCapable"  },
+  { id: "gpt-4o-mini",       label: "GPT-4o Mini", badgeKey: "chat.modelFast"     },
 ] as const;
-type ModelId = (typeof MODELS)[number]["id"];
+type ModelId = (typeof MODELS_ALL)[number]["id"];
+
+const ALLOWED_MODELS: Record<string, ModelId[]> = {
+  free:    ["claude-haiku-4-5"],
+  premium: ["claude-haiku-4-5", "claude-sonnet-4-6", "gpt-4o-mini"],
+  pro:     ["claude-haiku-4-5", "claude-sonnet-4-6", "claude-opus-4-8", "gpt-4o-mini"],
+};
+const PLAN_DEFAULT_MODEL: Record<string, ModelId> = {
+  free:    "claude-haiku-4-5",
+  premium: "claude-sonnet-4-6",
+  pro:     "claude-opus-4-8",
+};
 
 type LocalMessage = { id: string; role: "user" | "assistant"; content: string; streaming?: boolean };
 
@@ -109,6 +122,7 @@ export default function ChatScreen() {
   const inputRef = useRef<TextInput>(null);
   const s = makeStyles(colors, insets);
 
+  const { data: profile } = useGetMyProfile();
   const { data: conversations, isLoading: convosLoading } = useListOpenaiConversations();
   const { data: activeConvo } = useGetOpenaiConversation(activeConvoId ?? 0, {
     query: {
@@ -133,6 +147,13 @@ export default function ChatScreen() {
     }));
     setMessages(mapped);
   }, [activeConvo?.id, activeConvo?.messages.length]);
+
+  useEffect(() => {
+    if (!profile?.plan) return;
+    if (activeConvoId !== null) return;
+    const d = (PLAN_DEFAULT_MODEL[profile.plan] ?? "claude-haiku-4-5") as ModelId;
+    setSelectedModel(d);
+  }, [profile?.plan, activeConvoId]);
 
   const createConversation = useCallback(async (firstMsg: string): Promise<number | null> => {
     const token = await getToken();
@@ -295,7 +316,7 @@ export default function ChatScreen() {
     Haptics.selectionAsync();
   }, []);
 
-  const currentModel = MODELS.find(m => m.id === selectedModel) ?? MODELS[0];
+  const currentModel = MODELS_ALL.find(m => m.id === selectedModel) ?? MODELS_ALL[0];
 
   return (
     <View style={s.root}>
@@ -311,11 +332,11 @@ export default function ChatScreen() {
         </PressableScale>
         <Text style={s.headerTitle}>{t("nav.chat")}</Text>
         <PressableScale
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setModelModal(true); }}
-          style={s.modelBadge}
+          onPress={() => { if (!activeConvoId) { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setModelModal(true); } }}
+          style={[s.modelBadge, activeConvoId ? { opacity: 0.75 } : undefined]}
           haptic={false}
         >
-          <Ionicons name="flash" size={12} color={colors.teal} />
+          <Ionicons name={activeConvoId ? "lock-closed" : "flash"} size={12} color={colors.teal} />
           <Text style={s.modelBadgeText}>{currentModel.label}</Text>
         </PressableScale>
       </View>
@@ -332,6 +353,21 @@ export default function ChatScreen() {
           <Text style={s.usageText}>{t("chat.msgLeft", { n: usageRemaining })}</Text>
         </View>
       )}
+
+      {(() => {
+        const plan = profile?.plan ?? "free";
+        const allowed = ALLOWED_MODELS[plan] ?? (["claude-haiku-4-5"] as ModelId[]);
+        if (allowed.includes(selectedModel)) return null;
+        const planModelLabel = (MODELS_ALL.find(m => m.id === PLAN_DEFAULT_MODEL[plan]) ?? MODELS_ALL[0]).label;
+        return (
+          <View style={s.outOfPlanBanner}>
+            <Ionicons name="warning" size={13} color={colors.gold} />
+            <Text style={s.outOfPlanText} numberOfLines={2}>
+              {t("chat.modelOutOfPlan", { model: currentModel.label, plan, planModel: planModelLabel })}
+            </Text>
+          </View>
+        );
+      })()}
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -420,7 +456,7 @@ export default function ChatScreen() {
         <Pressable style={s.overlay} onPress={() => setModelModal(false)}>
           <View style={[s.modelSheet, { paddingBottom: insets.bottom + 16 }]}>
             <Text style={s.modelSheetTitle}>{t("chat.modelTitle")}</Text>
-            {MODELS.map(m => (
+            {MODELS_ALL.filter(m => (ALLOWED_MODELS[profile?.plan ?? "free"] ?? (["claude-haiku-4-5"] as ModelId[])).includes(m.id)).map(m => (
               <PressableScale
                 key={m.id}
                 style={[s.modelRow, m.id === selectedModel && s.modelRowActive]}
@@ -974,5 +1010,25 @@ function makeStyles(colors: ReturnType<typeof import("@/hooks/useColors").useCol
     modelRowActive: { backgroundColor: colors.primary + "20", borderWidth: 1, borderColor: colors.primary + "40" },
     modelRowLabel: { color: colors.foreground, fontFamily: "Inter_500Medium", fontSize: 15 },
     modelRowBadge: { color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2 },
+    outOfPlanBanner: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 6,
+      backgroundColor: colors.gold + "14",
+      borderWidth: 1,
+      borderColor: colors.gold + "33",
+      marginHorizontal: 16,
+      marginTop: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 10,
+    },
+    outOfPlanText: {
+      flex: 1,
+      color: colors.gold,
+      fontSize: 11,
+      fontFamily: "Inter_400Regular",
+      lineHeight: 16,
+    },
   });
 }
