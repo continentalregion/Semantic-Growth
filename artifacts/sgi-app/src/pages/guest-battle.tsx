@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "wouter";
 import { Swords, Send, Loader2, AlertCircle, ChevronRight, ArrowLeft, Clock, Trophy } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 const PURPLE = "#7c6bff";
 const PINK   = "#f72585";
@@ -125,7 +126,7 @@ export default function GuestBattlePage() {
       setTimerRunning(true);
       setInput("");
       if (data.turnsLeft <= 0) textareaRef.current?.blur();
-    } catch { /* ignore */ }
+    } catch { toast.error(t("guestBattle.networkError")); }
     setSending(false);
   }, [sending, input, turnsLeft, matchId]);
 
@@ -139,7 +140,7 @@ export default function GuestBattlePage() {
       if (data.guestId) localStorage.setItem("sgi-guest-claim", data.guestId);
       setResult(data);
       setPhase("completed");
-    } catch { setPhase("active"); }
+    } catch { setPhase("active"); toast.error(t("guestBattle.networkError")); }
   }, [matchId]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -356,7 +357,7 @@ export default function GuestBattlePage() {
               <div className="rounded-2xl p-6 text-center" style={{ background: "linear-gradient(135deg, rgba(124,107,255,0.15), rgba(247,37,133,0.1))", border: "1px solid rgba(124,107,255,0.3)" }}>
                 <p className="text-base font-bold mb-1">{t("guestBattle.saveTitle")}</p>
                 <p className="text-xs mb-4" style={{ color: MUTED }}>{t("guestBattle.saveSub")}</p>
-                <Link href={`/sign-up?claimGuest=${guestId}`}>
+                <Link href="/sign-up">
                   <button className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2" style={{ background: "linear-gradient(135deg, rgba(124,107,255,0.4), rgba(247,37,133,0.3))", border: "1px solid rgba(124,107,255,0.5)", color: "#eeeeff" }}>
                     {t("guestBattle.saveCTA")} <ChevronRight className="w-4 h-4" />
                   </button>

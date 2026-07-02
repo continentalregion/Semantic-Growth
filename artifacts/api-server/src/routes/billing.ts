@@ -178,6 +178,10 @@ router.post("/billing/checkout", async (req, res) => {
 
     const stripe = await getUncachableStripeClient();
     const base = safeReturnUrl(req, req.body?.returnUrl);
+    const rawLang = req.body?.lang as string | undefined;
+    const checkoutLocale = (["it", "en", "es"] as string[]).includes(rawLang ?? "")
+      ? (rawLang as "it" | "en" | "es")
+      : "auto";
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
@@ -186,6 +190,7 @@ router.post("/billing/checkout", async (req, res) => {
       success_url: withParam(base, "checkout", "success"),
       cancel_url: withParam(base, "checkout", "cancel"),
       allow_promotion_codes: true,
+      locale: checkoutLocale,
     });
 
     res.json({ url: session.url });

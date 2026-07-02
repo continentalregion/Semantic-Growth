@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
 export default function Settings() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useUser();
   const { signOut } = useClerk();
   const queryClient = useQueryClient();
@@ -76,7 +76,7 @@ export default function Settings() {
 
   const startCheckout = async (planId: "premium" | "pro") => {
     try {
-      const res = await checkout.mutateAsync({ data: { plan: planId, returnUrl } });
+      const res = await checkout.mutateAsync({ data: { plan: planId, returnUrl, lang: i18n.language } as any });
       if (res?.url) {
         window.location.href = res.url;
       } else {

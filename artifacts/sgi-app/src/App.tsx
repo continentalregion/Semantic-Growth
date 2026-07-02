@@ -7,7 +7,7 @@ import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wo
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "sonner";
+import { Toaster as Sonner, toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useSyncUser, useGetMyProfile } from "@workspace/api-client-react";
 import Layout from "@/components/layout";
@@ -272,6 +272,7 @@ function UserSync() {
   const syncUser = useSyncUser();
   const attemptRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !user) return;
@@ -324,6 +325,7 @@ function UserSync() {
       });
     }).then(r => {
       if (r?.ok || [400, 403, 409].includes(r?.status ?? 0)) localStorage.removeItem("sgi-guest-claim");
+      if (r?.ok) toast.success(t("guestBattle.claimSaved"));
     }).catch(err => {
       console.warn("[guest-claim] failed:", err);
     });

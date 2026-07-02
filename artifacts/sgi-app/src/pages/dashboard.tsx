@@ -1,5 +1,7 @@
 import { useGetMyProfile, useGetSgiHistory } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 import { ArrowUpRight, ArrowDownRight, Activity, TrendingUp, TrendingDown, Minus, Share2 } from "lucide-react";
@@ -23,6 +25,7 @@ const MACRO_DIMS: MacroDim[] = [
 
 export default function Dashboard() {
   const { t } = useTranslation();
+  const [, setLocation] = useLocation();
   const { data: profile, isLoading: profileLoading } = useGetMyProfile();
   const { data: history, isLoading: historyLoading } = useGetSgiHistory({ days: 30 });
 
@@ -226,6 +229,11 @@ export default function Dashboard() {
                   ? t("dashboard.dataPoints", { n: chartData.length, start: startScore?.toFixed(1) ?? '--' })
                   : t("dashboard.noHistory")}
               </p>
+              {chartData.length === 0 && (
+                <Button size="sm" className="mt-3" onClick={() => setLocation("/chat?start=1")}>
+                  {t("dashboard.startFirstConvo")}
+                </Button>
+              )}
             </div>
             {weeklyDelta !== 0 && (
               <div className={`flex items-center gap-1 text-sm font-mono px-2 py-1 rounded ${isPositiveWeekly ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
