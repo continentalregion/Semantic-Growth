@@ -58,6 +58,18 @@ Domain `sgindex.work` is a **marketing** element: it belongs only on social/mark
 - **Act decisively.** When direction is clear (e.g. a provided brief), execute the work completely in one pass — don't make the user re-ask or "force" the same request multiple times. Persist agreed direction (like the landing principles above) so it stays consistent across sessions.
 - Keep IT/EN/ES copy parallel whenever landing/marketing copy changes.
 
+## Vincoli permanenti
+
+### Clerk (Replit-managed)
+- L'istanza Clerk è **Replit-managed**: nessun accesso diretto a dashboard.clerk.com.
+- Le email transazionali (verifica email, reset password) **non sono personalizzabili** e restano in inglese — limite accettato, nessuna migrazione a Clerk esterno.
+- Configurazione possibile solo via: Auth pane Replit, props `appearance`/`localization` su `ClerkProvider` nel codice, Publishing → Domains per il dominio mittente email.
+- **Non proporre mai migrazione a Clerk esterno.**
+
+### DNS sgindex.work
+- I nameserver sono **Name.com** (`ns1cny.name.com` ecc.) — registrar esterno, non Replit.
+- Record DNS (CNAME per Clerk, ecc.) vanno aggiunti dall'utente nel pannello Name.com, non da qui.
+
 ## Gotchas
 
 - API server `dist/` is committed to git — rebuild and commit it before every deploy.
