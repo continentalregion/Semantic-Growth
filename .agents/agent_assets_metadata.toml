@@ -23,3 +23,27 @@ id = "NlnhLZY-Ku8E_jEZI2fnM"
 uri = "file://social-cards/sgi-card-1080x1920.png"
 type = "image"
 title = "SGI — Card storia 1080×1920"
+
+[[outputs]]
+id = "1KbzfAWiikem2BRWqC47Q"
+uri = "file://downloads/sgi-logo-icon-512.svg"
+type = "image"
+title = "Icona 512×512 (sfondo gradiente)"
+
+[[outputs]]
+id = "Lc4H-bZ_JeJr0vEd5Ml47"
+uri = "file://downloads/sgi-logo-mark-transparent.svg"
+type = "image"
+title = "Glifo solo (sfondo trasparente)"
+
+[[outputs]]
+id = "EEass9S94BdriFV4_DxbD"
+uri = "file://downloads/sgi-logo-wordmark.svg"
+type = "image"
+title = "Wordmark orizzontale (icona + testo)"
+
+[[outputs]]
+id = "mbfuldIYi5jDswc9X2s1M"
+uri = "file://artifacts/sgi-app/public/favicon.svg"
+type = "image"
+title = "Favicon originale 180×180"
