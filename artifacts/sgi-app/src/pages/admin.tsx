@@ -13,7 +13,10 @@ interface AdminStats {
   errors: { last24h: number; rate24hPct: number };
   cost: { last24hCents: number; last24hEur: number };
   models: Array<{ model: string; conversations: number }>;
-  revenue: { premiumMonthly: number; proMonthly: number; totalMonthly: number };
+  revenue: {
+    stripe: { activeCount: number; totalMonthlyEur: number; error: string | null };
+    db: { premiumCount: number; proCount: number; estimatedMonthlyEur: number };
+  };
   generatedAt: string;
 }
 
@@ -125,13 +128,60 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Revenue */}
+      {/* Revenue — Stripe (source of truth) */}
       <div>
-        <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: "#7070a0" }}>Revenue stimato</h3>
+        <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: "#7070a0" }}>
+          Abbonati Stripe attivi
+          <span className="ml-2 normal-case" style={{ color: "#4a4a6a" }}>· fonte di verità</span>
+        </h3>
+        {stats?.revenue.stripe.error ? (
+          <Card className="bg-card/50 backdrop-blur" style={{ border: "1px solid rgba(247,37,133,0.4)" }}>
+            <CardContent className="pt-5 pb-4">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 shrink-0" style={{ color: "#f72585" }} />
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: "#f72585" }}>Stripe non raggiungibile</p>
+                  <p className="text-xs mt-0.5 font-mono" style={{ color: "#9090b8" }}>{stats.revenue.stripe.error}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <StatCard
+              icon={Users}
+              label="Abbonati attivi"
+              value={stats?.revenue.stripe.activeCount ?? "—"}
+              sub="subscription active / trialing"
+              color="#06d6a0"
+            />
+            <StatCard
+              icon={TrendingUp}
+              label="MRR reale"
+              value={`€${stats?.revenue.stripe.totalMonthlyEur.toFixed(2) ?? "—"}`}
+              sub="da Stripe — fonte di verità"
+              color="#f72585"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Revenue — DB plan counts (reference / debug) */}
+      <div>
+        <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: "#7070a0" }}>
+          Utenti DB per piano
+          <span className="ml-2 normal-case" style={{ color: "#4a4a6a" }}>· riferimento debug</span>
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard icon={DollarSign} label="Da Premium" value={`€${stats?.revenue.premiumMonthly.toFixed(2) ?? "—"}`} sub="al mese" color="#a855f7" />
-          <StatCard icon={DollarSign} label="Da Pro" value={`€${stats?.revenue.proMonthly.toFixed(2) ?? "—"}`} sub="al mese" color="#06d6a0" />
-          <StatCard icon={TrendingUp} label="Totale MRR" value={`€${stats?.revenue.totalMonthly.toFixed(2) ?? "—"}`} sub="mensile ricorrente" color="#f72585" />
+          <StatCard icon={Zap} label="Premium (DB)" value={stats?.revenue.db.premiumCount ?? "—"} sub="conteggio nel DB" color="#a855f7" />
+          <StatCard icon={Zap} label="Pro (DB)" value={stats?.revenue.db.proCount ?? "—"} sub="conteggio nel DB" color="#06d6a0" />
+          <StatCard
+            icon={DollarSign}
+            label="Stimato (DB)"
+            value={`€${stats?.revenue.db.estimatedMonthlyEur.toFixed(2) ?? "—"}`}
+            sub="se tutti i piani DB fossero reali"
+            color="#7070a0"
+          />
         </div>
       </div>
 

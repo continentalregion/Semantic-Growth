@@ -24,6 +24,37 @@ router.get("/admin/stats", async (req, res) => {
   const h24 = new Date(now - 24 * 60 * 60 * 1000);
   const d7  = new Date(now - 7  * 24 * 60 * 60 * 1000);
 
+  // Real MRR from Stripe (source of truth) — wrapped so a Stripe outage never
+  // breaks the monitor; error is surfaced explicitly in the response.
+  let stripeRevenue: { activeCount: number; totalMonthlyEur: number; error: string | null } = {
+    activeCount: 0,
+    totalMonthlyEur: 0,
+    error: null,
+  };
+  try {
+    const stripeResult = await db.execute(sql`
+      SELECT
+        COUNT(DISTINCT s.id)::int AS active_count,
+        COALESCE(SUM(pr.unit_amount), 0)::float / 100 AS total_monthly_eur
+      FROM stripe.subscriptions s
+      JOIN stripe.subscription_items si ON si.subscription = s.id
+      JOIN stripe.prices pr ON pr.id = si.price
+      WHERE s.status IN ('active', 'trialing')
+    `);
+    const row = stripeResult.rows[0] as { active_count: number; total_monthly_eur: number } | undefined;
+    stripeRevenue = {
+      activeCount: Number(row?.active_count ?? 0),
+      totalMonthlyEur: Number(row?.total_monthly_eur ?? 0),
+      error: null,
+    };
+  } catch (err) {
+    stripeRevenue = {
+      activeCount: 0,
+      totalMonthlyEur: 0,
+      error: err instanceof Error ? err.message : "Stripe query failed",
+    };
+  }
+
   const [planCounts, msgs24h, msgs7d, errors24h, cost24h, modelBreakdown, totalUsers] =
     await Promise.all([
       // Users by plan
@@ -76,9 +107,12 @@ router.get("/admin/stats", async (req, res) => {
   }
 
   const revenue = {
-    premiumMonthly: (byPlan["premium"] ?? 0) * 9.99,
-    proMonthly: (byPlan["pro"] ?? 0) * 19.99,
-    totalMonthly: (byPlan["premium"] ?? 0) * 9.99 + (byPlan["pro"] ?? 0) * 19.99,
+    stripe: stripeRevenue,
+    db: {
+      premiumCount: byPlan["premium"] ?? 0,
+      proCount: byPlan["pro"] ?? 0,
+      estimatedMonthlyEur: (byPlan["premium"] ?? 0) * 9.99 + (byPlan["pro"] ?? 0) * 19.99,
+    },
   };
 
   res.json({
