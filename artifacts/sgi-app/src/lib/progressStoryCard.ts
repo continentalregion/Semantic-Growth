@@ -2,6 +2,8 @@
 // Stories, 1080×1920). Only ever called for POSITIVE trends — negative trends
 // are never given an active share CTA (they only surface in the dashboard).
 
+import { drawSgiLogoTile } from "./canvasUtils";
+
 export interface ProgressStoryInput {
   username: string;
   conversationTitle: string;
@@ -10,7 +12,7 @@ export interface ProgressStoryInput {
   highlightDeltaPct: number;
 }
 
-const SITE_URL = "semantic-growth.app";
+const SITE_URL = "sgindex.work";
 
 const COLORS = {
   text: "#eeeeff",
@@ -163,16 +165,19 @@ export function generateProgressStoryCard(data: ProgressStoryInput): HTMLCanvasE
   ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.moveTo(80, footerY); ctx.lineTo(W - 80, footerY); ctx.stroke();
 
+  const logoSize = 56;
+  drawSgiLogoTile(ctx, W / 2, footerY + 56, logoSize);
+
   const urlGrad = ctx.createLinearGradient(W / 2 - 200, 0, W / 2 + 200, 0);
   urlGrad.addColorStop(0, COLORS.teal);
   urlGrad.addColorStop(1, COLORS.purple);
   ctx.font = "bold 46px 'Arial', sans-serif";
   ctx.fillStyle = urlGrad;
-  ctx.fillText(SITE_URL, W / 2, footerY + 64);
+  ctx.fillText(SITE_URL, W / 2, footerY + 132);
 
   ctx.font = "500 28px 'Arial', sans-serif";
   ctx.fillStyle = "rgba(144,144,184,0.4)";
-  ctx.fillText("Misura la crescita del tuo pensiero", W / 2, footerY + 104);
+  ctx.fillText("Misura la crescita del tuo pensiero", W / 2, footerY + 172);
 
   return canvas;
 }

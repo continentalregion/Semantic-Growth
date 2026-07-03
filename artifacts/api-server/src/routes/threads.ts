@@ -9,6 +9,32 @@ import { evaluateBattle } from "../lib/battleScoring";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { computeLevel } from "../lib/sgiScoring";
 
+// Renders the SGI brand glyph (rising trendline + nodes inside a gradient
+// tile) as inline SVG markup, matching Logo.tsx / drawSgiLogoTile exactly.
+function sgiLogoSvg(cx: number, cy: number, tileSize: number, gradId: string): string {
+  const r = tileSize * 0.26;
+  const tx = cx - tileSize / 2;
+  const ty = cy - tileSize / 2;
+  const scale = tileSize / 32;
+  const pts: [number, number][] = [
+    [8.8, 20],
+    [13.6, 15.2],
+    [16.8, 18],
+    [23.2, 11.2],
+  ].map(([px, py]) => [tx + px * scale, ty + py * scale]);
+  const nodeR = [1.36, 1.36, 1.36, 1.92].map((nr) => nr * scale);
+  return `
+  <defs>
+    <linearGradient id="${gradId}" x1="${tx}" y1="${ty}" x2="${tx + tileSize}" y2="${ty + tileSize}" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7c6bff"/>
+      <stop offset="100%" stop-color="#06d6a0"/>
+    </linearGradient>
+  </defs>
+  <rect x="${tx}" y="${ty}" width="${tileSize}" height="${tileSize}" rx="${r}" fill="url(#${gradId})"/>
+  <polyline points="${pts.map((p) => p.join(",")).join(" ")}" fill="none" stroke="#ffffff" stroke-width="${2.1 * scale}" stroke-linecap="round" stroke-linejoin="round"/>
+  ${pts.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="${nodeR[i]}" fill="#ffffff"/>`).join("")}`;
+}
+
 const router = Router();
 
 // ─── System Prompts ─────────────────────────────────────────────────────────
@@ -580,7 +606,9 @@ router.get("/battle-cards/:id/og-image", async (req, res) => {
   <text x="1080" y="${winner === "p2" ? "378" : "353"}" text-anchor="middle" font-family="system-ui, sans-serif" font-size="22" font-weight="700" fill="#06d6a0">${s2?.scoreDepth ?? 0}</text>
 
   <!-- Footer -->
-  <text x="600" y="590" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="rgba(144,144,184,0.4)">semantic-growth-index.replit.app · Thread Aperti</text>
+  ${sgiLogoSvg(548, 560, 32, "logoGradBattle")}
+  <text x="572" y="566" text-anchor="start" font-family="system-ui, sans-serif" font-size="18" font-weight="700" fill="#06d6a0">sgindex.work</text>
+  <text x="600" y="595" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="rgba(144,144,184,0.4)">Thread Aperti</text>
 </svg>`;
 
     // Try PNG conversion with @resvg/resvg-js, fallback to SVG
@@ -729,7 +757,9 @@ router.get("/progress-cards/:id/og-image", async (req, res) => {
 
   <text x="600" y="470" text-anchor="middle" font-family="DejaVu Sans" font-size="14" fill="rgba(144,144,184,0.7)">In crescita nella conversazione corrente</text>
 
-  <text x="600" y="590" text-anchor="middle" font-family="DejaVu Sans" font-size="11" fill="rgba(144,144,184,0.4)">semantic-growth-index.replit.app · Progress Card</text>
+  ${sgiLogoSvg(548, 560, 40, "logoGradProgress")}
+  <text x="578" y="568" text-anchor="start" font-family="DejaVu Sans" font-size="20" font-weight="700" fill="#06d6a0">sgindex.work</text>
+  <text x="600" y="600" text-anchor="middle" font-family="DejaVu Sans" font-size="11" fill="rgba(144,144,184,0.4)">Progress Card</text>
 </svg>`;
 
     try {
