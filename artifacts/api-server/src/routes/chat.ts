@@ -2,11 +2,12 @@ import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { db } from "@workspace/db";
-import { users, conversations, messages, sgiSnapshots, gamification, semanticDomains, blockedAttempts, threads } from "@workspace/db";
+import { users, conversations, messages, sgiSnapshots, gamification, semanticDomains, blockedAttempts, threads, progressCards } from "@workspace/db";
 import { eq, desc, and, sql, gte, ilike } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { scoreMessage, computeNewSgiScore, computeMacroDimensions } from "../lib/sgiScoring";
+import { computeProgressCard } from "../lib/progressCard";
 import { updateLeaderboardRank, checkAndAwardBadges } from "./users";
 import { updateMissionProgress } from "./gamification";
 import {
@@ -482,7 +483,9 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     await db.update(users).set({ sgiScore: newSgi, updatedAt: new Date() }).where(eq(users.id, user.id));
     await db.insert(sgiSnapshots).values({
       userId: user.id,
+      conversationId: convoId,
       score: newSgi,
+      rawScore: scoreResult.rawScore,
       conceptualComplexity: scoreResult.dimensions.conceptualComplexity,
       semanticVariety: scoreResult.dimensions.semanticVariety,
       interdisciplinaryScore: scoreResult.dimensions.interdisciplinaryScore,
@@ -492,6 +495,62 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       continuity: scoreResult.dimensions.continuity,
       revisionSignal: scoreResult.dimensions.revisionSignal,
     });
+
+    // Every 5 scored messages WITHIN this conversation, compute an early/late
+    // progress-card trend. Pure SQL aggregation over already-computed snapshots —
+    // no additional LLM calls.
+    let progressCard: {
+      id: string;
+      deltaPct: number;
+      isPositive: boolean;
+      highlightMetric: string;
+      highlightDeltaPct: number;
+    } | undefined;
+
+    const [updatedConvoCount] = await db.update(conversations)
+      .set({ scoredMessageCount: sql`${conversations.scoredMessageCount} + 1` })
+      .where(eq(conversations.id, convoId))
+      .returning({ scoredMessageCount: conversations.scoredMessageCount });
+
+    if (updatedConvoCount && updatedConvoCount.scoredMessageCount % 5 === 0) {
+      const windowRows = await db.select({
+        id: sgiSnapshots.id,
+        rawScore: sgiSnapshots.rawScore,
+        reasoningDepth: sgiSnapshots.reasoningDepth,
+        interdisciplinaryScore: sgiSnapshots.interdisciplinaryScore,
+        conceptualComplexity: sgiSnapshots.conceptualComplexity,
+      })
+        .from(sgiSnapshots)
+        .where(eq(sgiSnapshots.conversationId, convoId))
+        .orderBy(desc(sgiSnapshots.id))
+        .limit(5);
+
+      if (windowRows.length === 5) {
+        const chronological = windowRows.slice().reverse();
+        const computed = computeProgressCard(chronological);
+        const [inserted] = await db.insert(progressCards).values({
+          userId: user.id,
+          conversationId: convoId,
+          windowStartSnapshotId: computed.windowStartSnapshotId,
+          windowEndSnapshotId: computed.windowEndSnapshotId,
+          earlyAvg: computed.earlyAvg,
+          lateAvg: computed.lateAvg,
+          deltaPct: computed.deltaPct,
+          highlightMetric: computed.highlightMetric,
+          highlightDeltaPct: computed.highlightDeltaPct,
+        }).returning({ id: progressCards.id });
+
+        if (inserted) {
+          progressCard = {
+            id: inserted.id,
+            deltaPct: Math.round(computed.deltaPct * 10) / 10,
+            isPositive: computed.isPositive,
+            highlightMetric: computed.highlightMetric,
+            highlightDeltaPct: Math.round(computed.highlightDeltaPct * 10) / 10,
+          };
+        }
+      }
+    }
 
     const totalConvos = await db.select({ count: sql<number>`count(*)` }).from(conversations).where(eq(conversations.userId, user.id));
     const convoCount = Number(totalConvos[0]?.count ?? 0);
@@ -591,6 +650,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       ...(streamError ? { streamError: true } : {}),
       ...(usedFallback ? { usedFallback: true } : {}),
       ...(newTitle ? { title: newTitle } : {}),
+      ...(progressCard ? { progressCard } : {}),
     })}\n\n`);
     res.end();
 

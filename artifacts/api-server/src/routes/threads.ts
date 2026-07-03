@@ -1,7 +1,7 @@
 import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { users, threads, threadSessions, battleCards, aiBattles, gamification, badges } from "@workspace/db";
+import { users, threads, threadSessions, battleCards, aiBattles, gamification, badges, progressCards, sgiSnapshots, conversations } from "@workspace/db";
 import type { ThreadConnection, SessionMessage, BattleAnswerScore } from "@workspace/db";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
@@ -599,6 +599,157 @@ router.get("/battle-cards/:id/og-image", async (req, res) => {
     }
   } catch (err) {
     console.error("[threads] og-image error", err);
+    res.status(500).send("Error generating image");
+  }
+});
+
+// ─── GET /progress-cards — recent progress cards for the current user ────────
+// Includes BOTH positive and negative trends — negative trends are only ever
+// surfaced here (personal dashboard), never as an in-chat share prompt.
+router.get("/progress-cards", async (req, res) => {
+  try {
+    const clerkId = getAuth(req).userId;
+    if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const rows = await db.select({
+      id: progressCards.id,
+      createdAt: progressCards.createdAt,
+      conversationId: progressCards.conversationId,
+      deltaPct: progressCards.deltaPct,
+      highlightMetric: progressCards.highlightMetric,
+      highlightDeltaPct: progressCards.highlightDeltaPct,
+      conversationTitle: conversations.title,
+    })
+      .from(progressCards)
+      .leftJoin(conversations, eq(conversations.id, progressCards.conversationId))
+      .where(eq(progressCards.userId, user.id))
+      .orderBy(desc(progressCards.createdAt))
+      .limit(10);
+
+    res.json(rows.map(r => ({
+      id: r.id,
+      createdAt: r.createdAt,
+      conversationTitle: r.conversationTitle ?? "Exploration",
+      deltaPct: Math.round(r.deltaPct * 10) / 10,
+      isPositive: r.deltaPct > 0,
+      highlightMetric: r.highlightMetric,
+      highlightMetricLabel: HIGHLIGHT_METRIC_LABELS[r.highlightMetric] ?? r.highlightMetric,
+      highlightDeltaPct: Math.round(r.highlightDeltaPct * 10) / 10,
+    })));
+  } catch (err) {
+    console.error("[threads] progress cards list error", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── GET /progress-cards/:id — progress card data ─────────────────────────────
+const HIGHLIGHT_METRIC_LABELS: Record<string, string> = {
+  reasoningDepth: "Profondità di ragionamento",
+  interdisciplinaryScore: "Interdisciplinarità",
+  conceptualComplexity: "Complessità concettuale",
+};
+
+router.get("/progress-cards/:id", async (req, res) => {
+  try {
+    const [card] = await db.select().from(progressCards).where(eq(progressCards.id, req.params.id)).limit(1);
+    if (!card) { res.status(404).json({ error: "Progress card not found" }); return; }
+
+    const [user] = await db.select({ email: users.email }).from(users).where(eq(users.id, card.userId)).limit(1);
+    const [convo] = await db.select({ title: conversations.title }).from(conversations).where(eq(conversations.id, card.conversationId)).limit(1);
+    const username = user?.email ? user.email.split("@")[0] : "Explorer";
+
+    res.json({
+      id: card.id,
+      createdAt: card.createdAt,
+      username,
+      conversationTitle: convo?.title ?? "Exploration",
+      earlyAvg: card.earlyAvg,
+      lateAvg: card.lateAvg,
+      deltaPct: Math.round(card.deltaPct * 10) / 10,
+      isPositive: card.deltaPct > 0,
+      highlightMetric: card.highlightMetric,
+      highlightMetricLabel: HIGHLIGHT_METRIC_LABELS[card.highlightMetric] ?? card.highlightMetric,
+      highlightDeltaPct: Math.round(card.highlightDeltaPct * 10) / 10,
+    });
+  } catch (err) {
+    console.error("[threads] progress card error", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── GET /progress-cards/:id/og-image — SVG/PNG for social sharing ────────────
+router.get("/progress-cards/:id/og-image", async (req, res) => {
+  try {
+    const [card] = await db.select().from(progressCards).where(eq(progressCards.id, req.params.id)).limit(1);
+    if (!card) { res.status(404).send("Not found"); return; }
+    // Progress cards are only ever OG-shared when the trend is positive (share
+    // CTA is gated client-side too, but guard here in case of direct hits).
+    if (card.deltaPct <= 0) { res.status(404).send("Not found"); return; }
+
+    const [user] = await db.select({ email: users.email }).from(users).where(eq(users.id, card.userId)).limit(1);
+    const username = user?.email ? user.email.split("@")[0] : "Explorer";
+    const deltaPct = Math.round(card.deltaPct * 10) / 10;
+    const highlightLabel = HIGHLIGHT_METRIC_LABELS[card.highlightMetric] ?? card.highlightMetric;
+    const highlightDeltaPct = Math.round(card.highlightDeltaPct * 10) / 10;
+
+    const truncate = (s: string, n: number) => s.length > n ? s.slice(0, n - 1) + "…" : s;
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0a0b18"/>
+      <stop offset="100%" stop-color="#0e0d26"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#06d6a0" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#06d6a0" stop-opacity="0.04"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="none" stroke="rgba(6,214,160,0.25)" stroke-width="2"/>
+
+  <g opacity="0.04">
+    ${Array.from({length: 20}, (_, i) => `<line x1="${i*64}" y1="0" x2="${i*64}" y2="630" stroke="#06d6a0" stroke-width="1"/>`).join("")}
+    ${Array.from({length: 10}, (_, i) => `<line x1="0" y1="${i*70}" x2="1200" y2="${i*70}" stroke="#06d6a0" stroke-width="1"/>`).join("")}
+  </g>
+
+  <text x="600" y="70" text-anchor="middle" font-family="DejaVu Sans" font-size="13" font-weight="700" letter-spacing="4" fill="#06d6a0" opacity="0.85">SGI · PROGRESS CARD</text>
+
+  <text x="600" y="130" text-anchor="middle" font-family="DejaVu Sans" font-size="24" font-weight="700" fill="#eeeeff">@${truncate(username, 24)}</text>
+
+  <rect x="260" y="190" width="680" height="260" rx="20" fill="url(#glow)" stroke="rgba(6,214,160,0.4)" stroke-width="2"/>
+
+  <text x="600" y="230" text-anchor="middle" font-family="DejaVu Sans" font-size="14" fill="rgba(168,255,220,0.7)" letter-spacing="1">TREND ULTIMI 5 MESSAGGI</text>
+  <text x="600" y="330" text-anchor="middle" font-family="DejaVu Sans" font-size="88" font-weight="800" fill="#06d6a0">+${deltaPct}%</text>
+  <text x="600" y="380" text-anchor="middle" font-family="DejaVu Sans" font-size="16" fill="rgba(238,238,255,0.8)">${truncate(highlightLabel, 40)} +${highlightDeltaPct}%</text>
+
+  <text x="600" y="470" text-anchor="middle" font-family="DejaVu Sans" font-size="14" fill="rgba(144,144,184,0.7)">In crescita nella conversazione corrente</text>
+
+  <text x="600" y="590" text-anchor="middle" font-family="DejaVu Sans" font-size="11" fill="rgba(144,144,184,0.4)">semantic-growth-index.replit.app · Progress Card</text>
+</svg>`;
+
+    try {
+      const { Resvg } = await import("@resvg/resvg-js");
+      const resvg = new Resvg(svg, {
+        fitTo: { mode: "width", value: 1200 },
+        font: { loadSystemFonts: true, defaultFontFamily: "DejaVu Sans" },
+      });
+      const pngData = resvg.render();
+      const pngBuffer = pngData.asPng();
+      res.setHeader("Content-Type", "image/png");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.send(pngBuffer);
+    } catch {
+      res.setHeader("Content-Type", "image/svg+xml");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.send(svg);
+    }
+  } catch (err) {
+    console.error("[threads] progress card og-image error", err);
     res.status(500).send("Error generating image");
   }
 });

@@ -2,10 +2,14 @@ import { pgTable, serial, integer, real, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { users } from "./users";
+import { conversations } from "./conversations";
 
 export const sgiSnapshots = pgTable("sgi_snapshots", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  // Nullable, additive — populated going forward only, no historical backfill.
+  // Scopes a snapshot to its conversation for the intra-conversation progress-card windowing.
+  conversationId: integer("conversation_id").references(() => conversations.id, { onDelete: "cascade" }),
   score: real("score").notNull(),
   conceptualComplexity: real("conceptual_complexity").notNull().default(0),
   semanticVariety: real("semantic_variety").notNull().default(0),
@@ -15,6 +19,10 @@ export const sgiSnapshots = pgTable("sgi_snapshots", {
   stability: real("stability").notNull().default(0),
   continuity: real("continuity").notNull().default(0),
   revisionSignal: real("revision_signal").notNull().default(0),
+  // Weighted raw score (computeRawScore output, pre-EMA) for THIS message only.
+  // Nullable, additive — lets the progress-card feature aggregate via plain SQL,
+  // no LLM re-scoring and no re-derivation from the EMA-smoothed `score` above.
+  rawScore: real("raw_score"),
   timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
 });
 

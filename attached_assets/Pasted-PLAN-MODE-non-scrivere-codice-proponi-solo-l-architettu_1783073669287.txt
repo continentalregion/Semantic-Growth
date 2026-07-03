@@ -1,0 +1,44 @@
+PLAN MODE — non scrivere codice, proponi solo l'architettura.
+
+CORREZIONE rispetto al piano precedente: cambia la logica di trigger 
+e confronto per la card di progresso semantico.
+
+Nuova logica:
+- Il confronto NON è più tra blocchi lifetime dell'utente (5 messaggi 
+  recenti vs 5 precedenti su conversazioni diverse), ma INTERNO alla 
+  stessa conversazione
+- Trigger: ogni 5 messaggi consecutivi DENTRO la stessa conversazione 
+  (messaggio #5, poi #10, #15, #20... di quella conversazione specifica, 
+  non contatore lifetime utente)
+- Confronto: andamento del punteggio SGI dentro quella finestra di 5 
+  messaggi della conversazione corrente (es. media dei primi vs ultimi 
+  messaggi del blocco, o trend del raw_score sui 5 messaggi) — proponimi 
+  tu la formula più sensata dato che ora il confronto è intra-conversazione 
+  e non richiede più di aspettare un secondo blocco storico
+- Questo semplifica il problema del "primo trigger possibile" del piano 
+  precedente (non serve più aspettare il messaggio #10 per avere due 
+  blocchi da confrontare — il trigger può scattare già al #5 dentro 
+  ogni conversazione)
+
+UX della card:
+- Deve apparire come elemento leggero (toast/banner in-chat), NON un 
+  modal bloccante che interrompe il flusso di conversazione
+- Dismissibile con un click, senza frizione
+- Ricompare ad ogni multiplo di 5 messaggi nella stessa conversazione 
+  (5, 10, 15, 20...), non solo una volta
+
+Resta invariato dal piano precedente:
+- CTA di condivisione attiva solo se il trend è positivo; se negativo, 
+  il dato resta visibile solo nella dashboard personale, mai proposto 
+  per lo sharing
+- Le 3 metriche candidate da evidenziare in card (reasoningDepth, 
+  interdisciplinaryScore, conceptualComplexity) — mai revisionSignal, 
+  per le stesse ragioni di distorsione già discusse
+- Calcolo lato server, pura aggregazione SQL sui dati già salvati in 
+  sgi_snapshots, nessuna chiamata LLM aggiuntiva
+- Aggiunta della colonna raw_score nullable a sgi_snapshots, nessun 
+  backfill storico
+
+Verifica se la nuova logica intra-conversazione semplifica o complica 
+lo schema dati già proposto (progress_cards, total_scored_messages) 
+e proponimi la struttura aggiornata prima di procedere.

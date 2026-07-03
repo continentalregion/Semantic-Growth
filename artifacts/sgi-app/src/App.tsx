@@ -30,6 +30,7 @@ import ThreadsPage from "@/pages/threads";
 import ThreadDetailPage from "@/pages/thread-detail";
 import BattleSessionPage from "@/pages/battle-session";
 import BattleCardPage from "@/pages/battle-card";
+import ProgressCardPage from "@/pages/progress-card";
 import BattlesPage from "@/pages/battles";
 import GuestBattlePage from "@/pages/guest-battle";
 import AdminPage from "@/pages/admin";
@@ -410,6 +411,7 @@ function ClerkProviderWithRoutes() {
           <Route path="/threads" component={() => <ProtectedRoute component={ThreadsPage} />} />
           <Route path="/threads/:id" component={() => <ProtectedRoute component={ThreadDetailPage} />} />
           <Route path="/battle-cards/:id" component={() => <ProtectedRoute component={BattleCardPage} />} />
+          <Route path="/progress-card/:id" component={() => <ProtectedRoute component={ProgressCardPage} />} />
           <Route path="/admin" component={() => <ProtectedRoute component={AdminPage} />} />
           <Route path="/guest-battle" component={GuestBattlePage} />
           <Route path="/privacy-policy" component={PrivacyPolicy} />

@@ -59,6 +59,13 @@ export default function Chat() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [lastSgiDelta, setLastSgiDelta] = useState<number | null>(null);
   const [lastDomains, setLastDomains] = useState<string[]>([]);
+  const [progressCard, setProgressCard] = useState<{
+    id: string;
+    deltaPct: number;
+    isPositive: boolean;
+    highlightMetric: string;
+    highlightDeltaPct: number;
+  } | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [streamErrored, setStreamErrored] = useState(false);
   const [chatSidebarOpen, setChatSidebarOpen] = useState(false);
@@ -179,6 +186,7 @@ export default function Chat() {
     setIsStreaming(true);
     setStreamErrored(false);
     setLastSgiDelta(null);
+    setProgressCard(null);
 
     try {
       const token = await getToken();
@@ -249,6 +257,13 @@ export default function Chat() {
               setLastDomains(parsed.domains ?? []);
               if (parsed.sgiDelta > 0) {
                 toast.success(`SGI +${parsed.sgiDelta.toFixed(2)} pts`);
+              }
+              if (parsed.progressCard) {
+                if (parsed.progressCard.isPositive) {
+                  setProgressCard(parsed.progressCard);
+                } else {
+                  qc.invalidateQueries({ queryKey: ["progress-cards"] });
+                }
               }
               if (parsed.usage) {
                 qc.setQueryData(["openai-usage"], parsed.usage);
@@ -456,7 +471,7 @@ export default function Chat() {
               <div
                 key={c.id}
                 data-testid={`button-conversation-${c.id}`}
-                onClick={() => { setActiveConvoId(c.id); setLastSgiDelta(null); }}
+                onClick={() => { setActiveConvoId(c.id); setLastSgiDelta(null); setProgressCard(null); }}
                 className={`group flex items-center justify-between px-3 py-2 rounded-md cursor-pointer text-sm transition-[colors,transform] duration-100 active:scale-[0.98] ${
                   activeConvoId === c.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                 }`}
@@ -672,6 +687,43 @@ export default function Chat() {
                         <span className="typing-dot" />
                         <span className="typing-dot" />
                         <span className="typing-dot" />
+                      </div>
+                    </div>
+                  )}
+                  {/* Progress card banner — only shown for POSITIVE trends (every 5th
+                      scored message). Negative trends are never surfaced here; they
+                      remain dashboard-only, matching the battle-card share pattern. */}
+                  {progressCard && progressCard.isPositive && (
+                    <div
+                      className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl mx-1"
+                      style={{ background: "rgba(6,214,160,0.08)", border: "1px solid rgba(6,214,160,0.3)" }}
+                    >
+                      <div className="flex items-center gap-2 text-sm min-w-0" style={{ color: "#4eeec0" }}>
+                        <TrendingUp className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">
+                          {t("progressCard.positiveBanner", { delta: progressCard.deltaPct })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => setLocation(`/progress-card/${progressCard.id}`)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94]"
+                          style={{
+                            background: "rgba(6,214,160,0.2)",
+                            border: "1px solid rgba(6,214,160,0.4)",
+                            color: "#4eeec0",
+                          }}
+                        >
+                          {t("progressCard.shareCta")}
+                        </button>
+                        <button
+                          onClick={() => setProgressCard(null)}
+                          aria-label={t("progressCard.dismiss")}
+                          className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
+                          style={{ color: "#4eeec0" }}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   )}

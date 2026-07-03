@@ -11,3 +11,4 @@ export * from "./semanticDomains";
 export * from "./blockedAttempts";
 export * from "./threads";
 export * from "./pvpBattles";
+export * from "./progressCards";

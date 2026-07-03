@@ -9,6 +9,9 @@ export const conversations = pgTable("conversations", {
   title: text("title").notNull(),
   model: text("model").notNull().default("gpt-4o-mini"),
   sgiDelta: real("sgi_delta").default(0),
+  // Count of user messages that produced an sgi_snapshots row for THIS conversation.
+  // Drives the "every 5 messages" progress-card trigger, scoped per conversation.
+  scoredMessageCount: integer("scored_message_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

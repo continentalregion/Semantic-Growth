@@ -1,0 +1,48 @@
+PLAN MODE — non scrivere codice, proponi solo l'architettura.
+
+Contesto: SGI ha 11 metriche semantiche deterministiche già calcolate 
+per messaggio (pesi: revisionSignal 20%, interdisciplinaryScore 17%, 
+reasoningDepth 15%, semanticVariety 13%, conceptualComplexity 12%, 
+abstractionLevel 8%, informationDensity 7%, lexicalRichness 3%, 
+originality 3%, stability 1%, continuity 1%).
+
+Voglio una nuova feature: ogni 5 chat completate da un utente, calcolare 
+la media dello score SGI aggregato su quelle 5 chat e generare una card 
+condivisibile che dichiari il miglioramento/decremento rispetto alla 
+media delle 5 chat precedenti (stesso stile/formato delle battle card 
+esistenti, stesso pattern di sharing sui social).
+
+IMPORTANTE — separazione tra calcolo e presentazione:
+- Il calcolo dello score aggregato deve restare fedele ai pesi reali 
+  e deterministici esistenti (nessuna modifica alla formula di scoring 
+  — l'integrità del punteggio server-side non si tocca, è un asset di 
+  fiducia del prodotto)
+- La CARD invece può scegliere quali metriche EVIDENZIARE in modo 
+  selettivo per massimizzare comprensibilità e voglia di condividere: 
+  proponimi quali 2-3 metriche tra le 11 sono più "raccontabili" a un 
+  pubblico non tecnico (candidate: reasoningDepth, interdisciplinaryScore, 
+  conceptualComplexity — verificale tu) e come tradurle in linguaggio 
+  da social (es. "profondità di ragionamento +18%") invece di mostrare 
+  nomi tecnici o tutti gli 11 punteggi insieme, che confonderebbero 
+  invece di generare engagement
+
+DA DEFINIRE NEL PIANO:
+1. Cosa conta come "1 chat" ai fini del contatore ogni-5 (1 messaggio 
+   o 1 sessione conversazionale?) — analizza lo schema esistente per 
+   capire quale granularità è già tracciata
+2. Come gestire revisionSignal=0 sul primo messaggio di ogni 
+   conversazione nel calcolo della media, per non distorcere il dato 
+   aggregato
+3. Solo miglioramenti generano prompt di condivisione attiva (CTA 
+   "condividi il tuo progresso"), un eventuale decremento va mostrato 
+   solo nella dashboard personale, mai proposto per la condivisione — 
+   coerente con l'obiettivo di generare contenuto positivo virale senza 
+   however nascondere il dato reale all'utente stesso
+4. Calcolo lato server: verifica se può essere un'aggregazione leggera 
+   sui punteggi già salvati (nessuna chiamata LLM aggiuntiva) o se 
+   serve altro
+5. Dove agganciare il trigger (dopo il salvataggio del 5°, 10°, 15° 
+   messaggio ecc. — batch, non real-time)
+
+Analizza lo schema esistente delle metriche salvate per messaggio e 
+proponimi struttura dati, punto di calcolo, e mockup testuale della card.

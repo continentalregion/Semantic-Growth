@@ -7,6 +7,20 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { ArrowUpRight, ArrowDownRight, Activity, TrendingUp, TrendingDown, Minus, Share2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { useAuth } from "@clerk/react";
+import { useQuery } from "@tanstack/react-query";
+
+const API_BASE = "/api";
+
+interface ProgressCardListItem {
+  id: string;
+  createdAt: string;
+  conversationTitle: string;
+  deltaPct: number;
+  isPositive: boolean;
+  highlightMetricLabel: string;
+  highlightDeltaPct: number;
+}
 
 interface MacroDim {
   key: "profondita" | "connettivita" | "precisione" | "revisione";
@@ -26,8 +40,20 @@ const MACRO_DIMS: MacroDim[] = [
 export default function Dashboard() {
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
+  const { getToken } = useAuth();
   const { data: profile, isLoading: profileLoading } = useGetMyProfile();
   const { data: history, isLoading: historyLoading } = useGetSgiHistory({ days: 30 });
+  const { data: progressCards } = useQuery<ProgressCardListItem[]>({
+    queryKey: ["progress-cards"],
+    queryFn: async () => {
+      const token = await getToken();
+      const r = await fetch(`${API_BASE}/progress-cards`, {
+        headers: { Authorization: `Bearer ${token ?? ""}` },
+      });
+      if (!r.ok) return [];
+      return r.json();
+    },
+  });
 
   if (profileLoading || historyLoading) {
     return <div className="space-y-6">
@@ -271,6 +297,53 @@ export default function Dashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* ── Progress Cards ────────────────────────────────────────── */}
+      {progressCards && progressCards.length > 0 && (
+        <Card className="border-border bg-card/50 backdrop-blur">
+          <CardHeader>
+            <CardTitle>{t("progressCard.title")}</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">{t("dashboard.progressCardsSub", "Every 5 messages, an early → late trend for each conversation.")}</p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {progressCards.map((card) => (
+                <div
+                  key={card.id}
+                  className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl"
+                  style={{
+                    background: card.isPositive ? "rgba(6,214,160,0.06)" : "rgba(247,37,133,0.05)",
+                    border: `1px solid ${card.isPositive ? "rgba(6,214,160,0.2)" : "rgba(247,37,133,0.15)"}`,
+                  }}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {card.isPositive
+                      ? <TrendingUp className="w-4 h-4 flex-shrink-0" style={{ color: "#4eeec0" }} />
+                      : <TrendingDown className="w-4 h-4 flex-shrink-0" style={{ color: "#f72585" }} />}
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate" style={{ color: "#eeeeff" }}>
+                        {card.deltaPct > 0 ? "+" : ""}{card.deltaPct}% — {card.conversationTitle}
+                      </p>
+                      <p className="text-xs truncate" style={{ color: "#9090b8" }}>
+                        {card.highlightMetricLabel} {card.highlightDeltaPct > 0 ? "+" : ""}{card.highlightDeltaPct}%
+                      </p>
+                    </div>
+                  </div>
+                  {card.isPositive && (
+                    <button
+                      onClick={() => setLocation(`/progress-card/${card.id}`)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0 transition-opacity hover:opacity-80"
+                      style={{ background: "rgba(6,214,160,0.15)", border: "1px solid rgba(6,214,160,0.35)", color: "#4eeec0" }}
+                    >
+                      {t("progressCard.shareCta")}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
