@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, Brain, Share2, BookOpen, Cpu, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
+import { Link } from "wouter";
 
 const CATEGORY_ICONS: Record<string, typeof Brain> = {
   reasoning: Brain,
@@ -45,9 +46,9 @@ export default function Recommendations() {
             <Lock className="w-12 h-12 text-primary/50" />
             <h3 className="text-xl font-semibold">{t("recommendations.premiumFeature")}</h3>
             <p className="text-muted-foreground max-w-md">{t("recommendations.premiumDesc")}</p>
-            <a href="/settings" className="mt-2 px-4 py-2 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">
+            <Link href="/settings" className="mt-2 px-4 py-2 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">
               {t("recommendations.upgradePremium")}
-            </a>
+            </Link>
           </CardContent>
         </Card>
       ) : !recs || recs.length === 0 ? (

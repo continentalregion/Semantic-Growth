@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useAuth } from "@clerk/react";
 import { useQuery } from "@tanstack/react-query";
+import { getTokenWithRetry, notifySessionExpired } from "@/lib/authToken";
 
 const API_BASE = "/api";
 
@@ -46,9 +47,13 @@ export default function Dashboard() {
   const { data: progressCards } = useQuery<ProgressCardListItem[]>({
     queryKey: ["progress-cards"],
     queryFn: async () => {
-      const token = await getToken();
+      const token = await getTokenWithRetry(getToken);
+      if (!token) {
+        notifySessionExpired(t);
+        return [];
+      }
       const r = await fetch(`${API_BASE}/progress-cards`, {
-        headers: { Authorization: `Bearer ${token ?? ""}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!r.ok) return [];
       return r.json();

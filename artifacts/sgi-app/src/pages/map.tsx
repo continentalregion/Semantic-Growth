@@ -5,6 +5,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import { Lock } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "wouter";
 
 function buildNetworkLayout(nodes: { id: string; explorationScore: number; messageCount: number }[], edges: { source: string; target: string; strength: number }[]): { nodePositions: Record<string, { x: number; y: number }>; edges: typeof edges } {
   const W = 600, H = 450, CX = W / 2, CY = H / 2;
@@ -50,9 +51,9 @@ export default function MapPage() {
             <Lock className="w-12 h-12 text-primary/50" />
             <h3 className="text-xl font-semibold">{t("map.premiumFeature")}</h3>
             <p className="text-muted-foreground max-w-md">{t("map.premiumDesc")}</p>
-            <a href="/settings" className="mt-2 px-4 py-2 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">
+            <Link href="/settings" className="mt-2 px-4 py-2 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">
               {t("map.upgradePremium")}
-            </a>
+            </Link>
           </CardContent>
         </Card>
       </div>

@@ -4,6 +4,8 @@ import { Trophy, Users, Activity, TrendingUp, Lock, Star, Zap, RefreshCw, Home }
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
 
 function RankOrb({ rank, total, t }: { rank: number | null | undefined; total: number; t: (k: string, opts?: object) => string }) {
   const percentile = rank && total > 0 ? ((total - rank) / total) * 100 : null;
@@ -117,9 +119,22 @@ export default function Leaderboard() {
   const qc = useQueryClient();
   const { data: profile, isLoading: profileLoading, isError: profileError } = useGetMyProfile();
   const { data: summary, isLoading: summaryLoading, isError: summaryError } = useGetLeaderboardSummary();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const isLoading = profileLoading || summaryLoading;
   const isError = profileError || summaryError;
+
+  const handleRetry = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await qc.invalidateQueries();
+    } catch {
+      toast.error(t("common.errorTitle"));
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const userSgi    = profile?.sgiScore ?? 0;
   const userRank   = profile?.globalRank ?? null;
@@ -137,12 +152,14 @@ export default function Leaderboard() {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={() => { qc.invalidateQueries(); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
+            onClick={handleRetry}
+            disabled={isRefreshing}
+            data-testid="button-leaderboard-retry"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-80 disabled:opacity-60"
             style={{ background: "rgba(124,107,255,0.15)", color: "#a89fff", border: "1px solid rgba(124,107,255,0.25)" }}
           >
-            <RefreshCw className="w-4 h-4" />
-            {t("common.retryBtn")}
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            {isRefreshing ? t("common.loading") : t("common.retryBtn")}
           </button>
           <button
             onClick={() => setLocation("/dashboard")}

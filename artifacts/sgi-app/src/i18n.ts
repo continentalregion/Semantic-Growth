@@ -112,6 +112,7 @@ const IT = {
   },
   chat: {
     newExploration: "Nuova Esplorazione",
+    creatingConvo: "Creazione in corso...", retry: "Riprova",
     usageCounter: "{{used}}/{{limit}} msg questo mese",
     fewLeft: "Solo {{n}} messaggi rimasti", limitReached: "Limite raggiunto",
     upgradePro: "Passa a Pro per 2.000 msg/mese e Opus",
@@ -496,6 +497,8 @@ const IT = {
     free: "Free", premium: "Premium", pro: "Pro", sgi: "SGI", loading: "Caricamento...",
     errorTitle: "Errore di caricamento", errorDesc: "Riprova o torna alla home.",
     retryBtn: "Riprova", homeBtn: "Torna alla Home",
+    sessionExpiredTitle: "Sessione scaduta", sessionExpiredDesc: "Ricarica la pagina per continuare.",
+    reloadBtn: "Ricarica",
   },
   auth: {
     headline1: "Un compagno di pensiero,",
@@ -630,6 +633,7 @@ const EN = {
   },
   chat: {
     newExploration: "New Exploration",
+    creatingConvo: "Creating...", retry: "Retry",
     usageCounter: "{{used}}/{{limit}} msg this month",
     fewLeft: "Only {{n}} messages left", limitReached: "Limit reached",
     upgradePro: "Upgrade to Pro for 2,000 msg/month and Opus",
@@ -1013,6 +1017,8 @@ const EN = {
     free: "Free", premium: "Premium", pro: "Pro", sgi: "SGI", loading: "Loading...",
     errorTitle: "Loading Error", errorDesc: "Try again or go back home.",
     retryBtn: "Retry", homeBtn: "Go Home",
+    sessionExpiredTitle: "Session expired", sessionExpiredDesc: "Reload the page to continue.",
+    reloadBtn: "Reload",
   },
   auth: {
     headline1: "A thinking partner,",
@@ -1147,6 +1153,7 @@ const ES = {
   },
   chat: {
     newExploration: "Nueva Exploración",
+    creatingConvo: "Creando...", retry: "Reintentar",
     usageCounter: "{{used}}/{{limit}} msg este mes",
     fewLeft: "Solo {{n}} mensajes restantes", limitReached: "Límite alcanzado",
     upgradePro: "Cambia a Pro por 2.000 msg/mes y Opus",
@@ -1530,6 +1537,8 @@ const ES = {
     free: "Gratuito", premium: "Premium", pro: "Pro", sgi: "SGI", loading: "Cargando...",
     errorTitle: "Error de carga", errorDesc: "Reintenta o vuelve al inicio.",
     retryBtn: "Reintentar", homeBtn: "Ir al Inicio",
+    sessionExpiredTitle: "Sesión caducada", sessionExpiredDesc: "Recarga la página para continuar.",
+    reloadBtn: "Recargar",
   },
   auth: {
     headline1: "Un compañero de pensamiento,",

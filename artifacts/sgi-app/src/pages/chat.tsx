@@ -15,10 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { MessageSquarePlus, Trash2, Send, Bot, User, TrendingUp, TrendingDown, Minus, Zap, ChevronDown, Lock, Menu, X } from "lucide-react";
+import { MessageSquarePlus, Trash2, Send, Bot, User, TrendingUp, TrendingDown, Minus, Zap, ChevronDown, Lock, Menu, X, Loader2 } from "lucide-react";
 import MarkdownMessage from "@/components/MarkdownMessage";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
+import { getTokenWithRetry, notifySessionExpired } from "@/lib/authToken";
 
 const MODELS = [
   { id: "claude-haiku-4-5",  label: "Claude Haiku 4",  provider: "Anthropic", badge: "Fast",         minPlan: "free"    },
@@ -67,6 +68,7 @@ export default function Chat() {
     highlightDeltaPct: number;
   } | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [streamErrored, setStreamErrored] = useState(false);
   const [chatSidebarOpen, setChatSidebarOpen] = useState(false);
   const lastInputRef = useRef<string>("");
@@ -79,9 +81,13 @@ export default function Chat() {
   }>({
     queryKey: ["openai-usage"],
     queryFn: async () => {
-      const token = await getToken();
+      const token = await getTokenWithRetry(getToken);
+      if (!token) {
+        notifySessionExpired(t);
+        throw new Error("No auth token available");
+      }
       const r = await fetch(`${API_BASE}/openai/usage`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!r.ok) throw new Error("Failed to fetch usage");
       return r.json();
@@ -115,19 +121,19 @@ export default function Chat() {
     if (isCreating) return;
     const chosenModel = typeof model === "string" ? model : selectedModel;
     setIsCreating(true);
+    setCreateError(null);
     try {
-      let token: string | null = null;
-      try {
-        token = await Promise.race([
-          getToken(),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
-        ]);
-      } catch { token = null; }
+      const token = await getTokenWithRetry(getToken, { retries: 1, timeoutMs: 3000 });
+      if (!token) {
+        notifySessionExpired(t);
+        setCreateError(t("chat.failedCreate"));
+        return;
+      }
       const r = await fetch(`${API_BASE}/openai/conversations`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ title: "Exploration", model: chosenModel }),
       });
@@ -139,6 +145,7 @@ export default function Chat() {
       setLastDomains([]);
     } catch (err) {
       console.error("[handleNewConversation] error:", err);
+      setCreateError(t("chat.failedCreate"));
       toast.error(t("chat.failedCreate"));
     } finally {
       setIsCreating(false);
@@ -189,12 +196,17 @@ export default function Chat() {
     setProgressCard(null);
 
     try {
-      const token = await getToken();
+      const token = await getTokenWithRetry(getToken, { retries: 1, timeoutMs: 3000 });
+      if (!token) {
+        notifySessionExpired(t);
+        setStreamErrored(true);
+        return;
+      }
       const response = await fetch(`${API_BASE}/openai/conversations/${activeConvoId}/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ content }),
       });
@@ -295,7 +307,7 @@ export default function Chat() {
       qc.invalidateQueries({ queryKey: getGetSgiHistoryQueryKey() });
       qc.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
     }
-  }, [activeConvoId, input, isStreaming, getToken, qc]);
+  }, [activeConvoId, input, isStreaming, getToken, qc, t]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -384,9 +396,28 @@ export default function Chat() {
           data-testid="button-new-conversation"
           disabled={isCreating || limitBlocked}
         >
-          <MessageSquarePlus className="w-4 h-4" />
-          {t("chat.newExploration")}
+          {isCreating ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <MessageSquarePlus className="w-4 h-4" />
+          )}
+          {isCreating ? t("chat.creatingConvo") : t("chat.newExploration")}
         </Button>
+        {createError && (
+          <div
+            data-testid="text-create-error"
+            className="flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs"
+            style={{ background: "rgba(247,37,133,0.08)", border: "1px solid rgba(247,37,133,0.2)", color: "#f72585" }}
+          >
+            <span className="flex-1">{createError}</span>
+            <button
+              onClick={() => handleNewConversation()}
+              className="font-semibold underline hover:opacity-80 flex-shrink-0"
+            >
+              {t("chat.retry")}
+            </button>
+          </div>
+        )}
 
         {/* Usage counter */}
         {usageData && (
@@ -506,9 +537,22 @@ export default function Chat() {
               <p className="text-lg font-medium">{t("chat.noConvoSelected")}</p>
               <p className="text-sm text-muted-foreground mt-1">{t("chat.noConvoSubtitle")}</p>
             </div>
-            <Button onClick={() => handleNewConversation()} data-testid="button-start-exploration">
-              {t("chat.newExploration")}
+            <Button onClick={() => handleNewConversation()} data-testid="button-start-exploration" disabled={isCreating}>
+              {isCreating && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              {isCreating ? t("chat.creatingConvo") : t("chat.newExploration")}
             </Button>
+            {createError && (
+              <div
+                data-testid="text-create-error-empty"
+                className="flex items-center gap-2 text-xs"
+                style={{ color: "#f72585" }}
+              >
+                <span>{createError}</span>
+                <button onClick={() => handleNewConversation()} className="font-semibold underline hover:opacity-80">
+                  {t("chat.retry")}
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <>
