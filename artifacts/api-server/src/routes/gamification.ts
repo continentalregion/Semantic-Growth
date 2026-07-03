@@ -101,9 +101,12 @@ export async function updateMissionProgress(userId: number, event: {
       newProgress = Math.min(m.progress + increment, m.target);
     }
     if (event.sgiDelta && event.sgiDelta > 0 && (m.title === "SGI Climber" || m.title === "Growth Champion")) {
-      newProgress = Math.min(m.progress + Math.round(event.sgiDelta * 10) / 10, m.target);
+      newProgress = Math.min(m.progress + Math.max(1, Math.round(event.sgiDelta)), m.target);
     }
     if (event.streakDays && m.title === "Daily Streak") newProgress = Math.min(event.streakDays, m.target);
+
+    // `missions.progress` is an integer column — always store whole numbers.
+    newProgress = Math.round(newProgress);
 
     if (newProgress !== m.progress) {
       const completed = newProgress >= m.target ? 1 : 0;

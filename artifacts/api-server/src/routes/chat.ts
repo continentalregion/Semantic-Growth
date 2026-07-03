@@ -587,24 +587,39 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
 
     const currentStreak = updatedGam?.streak ?? 1;
 
-    await checkAndAwardBadges(user.id, {
-      interdisciplinaryScore: scoreResult.dimensions.interdisciplinaryScore,
-      abstractionLevel: scoreResult.dimensions.abstractionLevel,
-    }, convoCount, scoreResult.domains);
+    // Gamification side-effects (badges, missions, leaderboard) are best-effort:
+    // a bug in any of them must NEVER prevent the primary chat response — which
+    // carries the scored reply and the progress card — from reaching the client.
+    try {
+      await checkAndAwardBadges(user.id, {
+        interdisciplinaryScore: scoreResult.dimensions.interdisciplinaryScore,
+        abstractionLevel: scoreResult.dimensions.abstractionLevel,
+      }, convoCount, scoreResult.domains);
+    } catch (err) {
+      console.error("[gamification] checkAndAwardBadges failed:", err);
+    }
 
-    await updateMissionProgress(user.id, {
-      conversationCompleted: true,
-      reasoningDepth: scoreResult.dimensions.reasoningDepth,
-      domainsExplored: scoreResult.domains,
-      sgiDelta,
-      streakDays: currentStreak,
-    }, async (bonusXp) => {
-      await db.update(gamification)
-        .set({ xp: sql`${gamification.xp} + ${bonusXp}` })
-        .where(eq(gamification.userId, user.id));
-    });
+    try {
+      await updateMissionProgress(user.id, {
+        conversationCompleted: true,
+        reasoningDepth: scoreResult.dimensions.reasoningDepth,
+        domainsExplored: scoreResult.domains,
+        sgiDelta,
+        streakDays: currentStreak,
+      }, async (bonusXp) => {
+        await db.update(gamification)
+          .set({ xp: sql`${gamification.xp} + ${bonusXp}` })
+          .where(eq(gamification.userId, user.id));
+      });
+    } catch (err) {
+      console.error("[gamification] updateMissionProgress failed:", err);
+    }
 
-    await updateLeaderboardRank(user.id);
+    try {
+      await updateLeaderboardRank(user.id);
+    } catch (err) {
+      console.error("[gamification] updateLeaderboardRank failed:", err);
+    }
 
     if (insertedUserMsg) {
       await db.update(messages)
