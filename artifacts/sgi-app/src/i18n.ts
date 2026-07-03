@@ -133,6 +133,8 @@ const IT = {
     noConvoSubtitle: "Avvia una nuova esplorazione o selezionane una esistente.",
     modelForNewConvos: "Modello per nuove esplorazioni",
     modelOutOfPlan: "Questa conversazione usa {{model}}. Il tuo piano ({{plan}}) userà {{planModel}} per i nuovi messaggi.",
+    queuedSending: "La nuova conversazione si sta preparando — il tuo messaggio verrà inviato automaticamente.",
+    queuedFailedRestored: "Impossibile creare la conversazione. Il tuo messaggio è stato ripristinato, puoi riprovare.",
   },
   leaderboard: {
     title: "Il tuo Rank",
@@ -654,6 +656,8 @@ const EN = {
     noConvoSubtitle: "Start a new exploration or select an existing one.",
     modelForNewConvos: "Model for new explorations",
     modelOutOfPlan: "This conversation uses {{model}}. Your plan ({{plan}}) will use {{planModel}} for new messages.",
+    queuedSending: "The new conversation is being set up — your message will be sent automatically.",
+    queuedFailedRestored: "Couldn't create the conversation. Your message was restored so you can try again.",
   },
   leaderboard: {
     title: "Your Rank",
@@ -1174,6 +1178,8 @@ const ES = {
     noConvoSubtitle: "Inicia una nueva exploración o selecciona una existente.",
     modelForNewConvos: "Modelo para nuevas exploraciones",
     modelOutOfPlan: "Esta conversación usa {{model}}. Tu plan ({{plan}}) usará {{planModel}} para los nuevos mensajes.",
+    queuedSending: "La nueva conversación se está preparando — tu mensaje se enviará automáticamente.",
+    queuedFailedRestored: "No se pudo crear la conversación. Tu mensaje se restauró para que puedas reintentarlo.",
   },
   leaderboard: {
     title: "Tu Ranking",

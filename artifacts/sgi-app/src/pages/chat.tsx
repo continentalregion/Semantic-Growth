@@ -71,6 +71,8 @@ export default function Chat() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [streamErrored, setStreamErrored] = useState(false);
   const [chatSidebarOpen, setChatSidebarOpen] = useState(false);
+  const [queuedMessage, setQueuedMessage] = useState<string | null>(null);
+  const pendingSendRef = useRef<string | null>(null);
   const lastInputRef = useRef<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const modelInitializedRef = useRef(false);
@@ -117,78 +119,8 @@ export default function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeConvo?.messages, streamingContent]);
 
-  const handleNewConversation = useCallback(async (model?: ModelId) => {
-    if (isCreating) return;
-    const chosenModel = typeof model === "string" ? model : selectedModel;
-    setIsCreating(true);
-    setCreateError(null);
-    try {
-      const token = await getTokenWithRetry(getToken, { retries: 1, timeoutMs: 3000 });
-      if (!token) {
-        notifySessionExpired(t);
-        setCreateError(t("chat.failedCreate"));
-        return;
-      }
-      const r = await fetch(`${API_BASE}/openai/conversations`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title: "Exploration", model: chosenModel }),
-      });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const convo = await r.json();
-      qc.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
-      setActiveConvoId(convo.id);
-      setLastSgiDelta(null);
-      setLastDomains([]);
-    } catch (err) {
-      console.error("[handleNewConversation] error:", err);
-      setCreateError(t("chat.failedCreate"));
-      toast.error(t("chat.failedCreate"));
-    } finally {
-      setIsCreating(false);
-    }
-  }, [isCreating, selectedModel, getToken, qc, t]);
-
-  useEffect(() => {
-    if (autoStartDoneRef.current) return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("start") !== "1") return;
-    if (conversations === undefined) return;
-    autoStartDoneRef.current = true;
-    window.history.replaceState({}, "", window.location.pathname);
-    void handleNewConversation();
-  }, [conversations, handleNewConversation]);
-
-  const handleDeleteConversation = useCallback((id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    deleteConvo.mutate({ id }, {
-      onSuccess: () => {
-        qc.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
-        if (activeConvoId === id) {
-          setActiveConvoId(null);
-          setLastSgiDelta(null);
-          setLastDomains([]);
-        }
-      },
-      onError: () => toast.error(t("chat.failedDelete")),
-    });
-  }, [deleteConvo, qc, activeConvoId]);
-
-  const handleRetry = useCallback(() => {
-    if (!lastInputRef.current) return;
-    setStreamErrored(false);
-    setInput(lastInputRef.current);
-    lastInputRef.current = "";
-  }, []);
-
-  const handleSend = useCallback(async () => {
-    if (!activeConvoId || !input.trim() || isStreaming) return;
-    const content = input.trim();
+  const sendMessageCore = useCallback(async (convoId: number, content: string) => {
     lastInputRef.current = content;
-    setInput("");
     setStreamingContent("");
     setIsStreaming(true);
     setStreamErrored(false);
@@ -202,7 +134,7 @@ export default function Chat() {
         setStreamErrored(true);
         return;
       }
-      const response = await fetch(`${API_BASE}/openai/conversations/${activeConvoId}/messages`, {
+      const response = await fetch(`${API_BASE}/openai/conversations/${convoId}/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -280,14 +212,14 @@ export default function Chat() {
               if (parsed.usage) {
                 qc.setQueryData(["openai-usage"], parsed.usage);
               }
-              if (parsed.title && activeConvoId) {
+              if (parsed.title) {
                 qc.setQueryData(getListOpenaiConversationsQueryKey(), (old: unknown) => {
                   if (!Array.isArray(old)) return old;
                   return old.map((c: { id: number; title: string }) =>
-                    c.id === activeConvoId ? { ...c, title: parsed.title } : c
+                    c.id === convoId ? { ...c, title: parsed.title } : c
                   );
                 });
-                qc.setQueryData(getGetOpenaiConversationQueryKey(activeConvoId), (old: unknown) => {
+                qc.setQueryData(getGetOpenaiConversationQueryKey(convoId), (old: unknown) => {
                   if (!old || typeof old !== "object") return old;
                   return { ...(old as object), title: parsed.title };
                 });
@@ -302,12 +234,117 @@ export default function Chat() {
     } finally {
       setIsStreaming(false);
       setStreamingContent("");
-      qc.invalidateQueries({ queryKey: getGetOpenaiConversationQueryKey(activeConvoId) });
+      qc.invalidateQueries({ queryKey: getGetOpenaiConversationQueryKey(convoId) });
       qc.invalidateQueries({ queryKey: getGetMyProfileQueryKey() });
       qc.invalidateQueries({ queryKey: getGetSgiHistoryQueryKey() });
       qc.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
     }
-  }, [activeConvoId, input, isStreaming, getToken, qc, t]);
+  }, [getToken, qc, t]);
+
+  const handleNewConversation = useCallback(async (model?: ModelId) => {
+    if (isCreating) return;
+    const chosenModel = typeof model === "string" ? model : selectedModel;
+    setIsCreating(true);
+    setCreateError(null);
+    try {
+      const token = await getTokenWithRetry(getToken, { retries: 1, timeoutMs: 3000 });
+      if (!token) {
+        notifySessionExpired(t);
+        setCreateError(t("chat.failedCreate"));
+        return;
+      }
+      const r = await fetch(`${API_BASE}/openai/conversations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title: "Exploration", model: chosenModel }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const convo = await r.json();
+      qc.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
+      setActiveConvoId(convo.id);
+      setLastSgiDelta(null);
+      setLastDomains([]);
+      // A message may have been queued while this conversation was being
+      // created (e.g. user typed+sent right after clicking "New conversation",
+      // before this fetch resolved). Flush it now instead of losing it.
+      const queued = pendingSendRef.current;
+      if (queued) {
+        pendingSendRef.current = null;
+        setQueuedMessage(null);
+        void sendMessageCore(convo.id, queued);
+      }
+    } catch (err) {
+      console.error("[handleNewConversation] error:", err);
+      setCreateError(t("chat.failedCreate"));
+      toast.error(t("chat.failedCreate"));
+      // Don't silently swallow a message the user already sent — restore it
+      // to the composer so they can see it and retry once creation succeeds.
+      const queued = pendingSendRef.current;
+      if (queued) {
+        pendingSendRef.current = null;
+        setQueuedMessage(null);
+        setInput(queued);
+        toast.error(t("chat.queuedFailedRestored"));
+      }
+    } finally {
+      setIsCreating(false);
+    }
+  }, [isCreating, selectedModel, getToken, qc, t, sendMessageCore]);
+
+  useEffect(() => {
+    if (autoStartDoneRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("start") !== "1") return;
+    if (conversations === undefined) return;
+    autoStartDoneRef.current = true;
+    window.history.replaceState({}, "", window.location.pathname);
+    void handleNewConversation();
+  }, [conversations, handleNewConversation]);
+
+  const handleDeleteConversation = useCallback((id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    deleteConvo.mutate({ id }, {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
+        if (activeConvoId === id) {
+          setActiveConvoId(null);
+          setLastSgiDelta(null);
+          setLastDomains([]);
+        }
+      },
+      onError: () => toast.error(t("chat.failedDelete")),
+    });
+  }, [deleteConvo, qc, activeConvoId]);
+
+  const handleRetry = useCallback(() => {
+    if (!lastInputRef.current) return;
+    setStreamErrored(false);
+    setInput(lastInputRef.current);
+    lastInputRef.current = "";
+  }, []);
+
+  const handleSend = useCallback(() => {
+    if (!input.trim() || isStreaming) return;
+    const content = input.trim();
+    setInput("");
+
+    // If a new conversation is still being created (or none exists yet),
+    // don't silently drop the message or attach it to a stale/old
+    // conversation — queue it and auto-flush once the conversation is ready.
+    if (isCreating || !activeConvoId) {
+      pendingSendRef.current = content;
+      setQueuedMessage(content);
+      if (!isCreating && !activeConvoId) {
+        void handleNewConversation();
+      }
+      return;
+    }
+
+    void sendMessageCore(activeConvoId, content);
+  }, [input, isStreaming, isCreating, activeConvoId, sendMessageCore, handleNewConversation]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -804,6 +841,16 @@ export default function Chat() {
 
             {/* Input */}
             <div className="px-6 py-4 border-t border-border">
+              {queuedMessage && (
+                <div
+                  data-testid="text-queued-message"
+                  className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg text-xs"
+                  style={{ background: "rgba(124,107,255,0.08)", border: "1px solid rgba(124,107,255,0.25)", color: "#a89fff" }}
+                >
+                  <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" />
+                  <span>{t("chat.queuedSending")}</span>
+                </div>
+              )}
               <div className="flex gap-3 items-end">
                 <Textarea
                   data-clarity-mask="true"
@@ -813,16 +860,16 @@ export default function Chat() {
                   onKeyDown={handleKeyDown}
                   placeholder={t("chat.placeholder")}
                   className="resize-none min-h-[56px] max-h-[200px] bg-background border-border focus-visible:ring-primary/50"
-                  disabled={isStreaming || limitBlocked}
+                  disabled={isStreaming || limitBlocked || !!queuedMessage}
                   rows={2}
                 />
                 <Button
                   data-testid="button-send-message"
                   onClick={handleSend}
-                  disabled={!input.trim() || isStreaming || limitBlocked}
+                  disabled={!input.trim() || isStreaming || limitBlocked || !!queuedMessage}
                   className="h-14 px-4 flex-shrink-0"
                 >
-                  <Send className="w-5 h-5" />
+                  {queuedMessage ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-2">Cmd+Enter to send • Each exchange updates your SGI score</p>
