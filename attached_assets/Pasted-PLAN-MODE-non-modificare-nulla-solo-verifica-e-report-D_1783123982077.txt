@@ -1,0 +1,44 @@
+PLAN MODE — non modificare nulla, solo verifica e report.
+
+Devo capire con certezza se il collegamento tra Stripe e il campo 
+"plan" degli utenti funziona correttamente in produzione, per tutti 
+gli scenari di ciclo di vita di un abbonamento.
+
+Verifica nel codice e, se possibile, nei log/dashboard reali:
+
+1. Webhook endpoint: conferma l'URL esatto configurato su Stripe 
+   Dashboard in ambiente LIVE (non solo Test) e verifica che punti 
+   al dominio di produzione corretto (sgindex.work), non a un URL 
+   Replit temporaneo o di preview.
+
+2. Eventi gestiti: quali eventi Stripe ascolta il webhook 
+   (es. invoice.payment_succeeded, invoice.payment_failed, 
+   customer.subscription.updated, customer.subscription.deleted)? 
+   Per ciascuno, cosa fa il codice quando l'evento arriva?
+
+3. Aggiornamento del campo "plan": conferma che quando arriva un 
+   pagamento riuscito (rinnovo mensile), il codice aggiorna 
+   correttamente users.plan e resetta monthlyMessagesUsed/
+   monthlyBattlesUsed tramite monthlyResetDate — o se invece il reset 
+   dipende solo dal passaggio del tempo lato server, indipendente 
+   dalla conferma di pagamento reale.
+
+4. Scenario di pagamento fallito: se un rinnovo fallisce (carta 
+   scaduta, fondi insufficienti), cosa succede al campo "plan" 
+   dell'utente? Viene downgradato a "free", resta Premium per un 
+   periodo di grazia, o non cambia affatto (rischio: accesso Premium 
+   continuato senza pagamento)?
+
+5. Scenario di cancellazione: se un utente cancella l'abbonamento da 
+   Stripe (customer.subscription.deleted), il campo "plan" si 
+   aggiorna a "free" correttamente, o resta Premium fino al prossimo 
+   controllo manuale?
+
+6. Verifica se esistono log recenti di eventi webhook ricevuti in 
+   produzione (anche solo negli ultimi 30 giorni) per confermare che 
+   il meccanismo ha effettivamente processato eventi reali, non solo 
+   che il codice esista senza mai essere stato testato con traffico vero.
+
+Dammi un report chiaro punto per punto: cosa funziona, cosa è a 
+rischio, e cosa richiede un fix prima di potermi fidare che i 
+pagamenti reali si riflettano correttamente sull'accesso alle feature.
