@@ -4,12 +4,16 @@
 // as a neutral pivot, and compute a trend. Only positive trends get an active
 // share CTA; negative trends are surfaced only in the personal dashboard.
 
-// All 8 dimensions currently persisted on sgi_snapshots (abstractionLevel,
+// 7 of the 8 dimensions currently persisted on sgi_snapshots (abstractionLevel,
 // lexicalRichness, informationDensity are NOT stored yet — see
 // docs/progress-card-11-metrics-calibration.md). The highlight must be picked
-// from the full set of available dimensions, not an arbitrary subset, or it
+// from a broad set of available dimensions, not an arbitrary subset, or it
 // can show a declining metric while the (11-dimension-weighted) aggregate
 // deltaPct is positive — driven by a dimension outside the candidate list.
+//
+// revisionSignal is deliberately EXCLUDED (plan-mode decision): it is forced
+// to 0 on the first message of every conversation, so its delta% can be
+// artificially huge/meaningless and would mislead readers of a public card.
 export const HIGHLIGHT_CANDIDATE_METRICS = [
   "reasoningDepth",
   "interdisciplinaryScore",
@@ -18,7 +22,6 @@ export const HIGHLIGHT_CANDIDATE_METRICS = [
   "originality",
   "stability",
   "continuity",
-  "revisionSignal",
 ] as const;
 
 export type HighlightCandidateMetric = (typeof HIGHLIGHT_CANDIDATE_METRICS)[number];
