@@ -14,6 +14,8 @@ export interface ProgressStoryInput {
 
 const SITE_URL = "sgindex.work";
 
+const formatSigned = (n: number): string => (n > 0 ? "+" : "") + n.toFixed(1);
+
 const COLORS = {
   text: "#eeeeff",
   purple: "#7c6bff",
@@ -147,11 +149,11 @@ export function generateProgressStoryCard(data: ProgressStoryInput): HTMLCanvasE
   trendGrad.addColorStop(1, COLORS.tealLight);
   ctx.font = "900 200px 'Space Grotesk', 'Arial', sans-serif";
   ctx.fillStyle = trendGrad;
-  ctx.fillText(`+${data.deltaPct.toFixed(1)}%`, W / 2, panelY + 320);
+  ctx.fillText(`${formatSigned(data.deltaPct)}%`, W / 2, panelY + 320);
 
   ctx.font = "600 34px 'Arial', sans-serif";
   ctx.fillStyle = "rgba(238,238,255,0.85)";
-  const highlightText = `${data.highlightMetricLabel}  +${data.highlightDeltaPct.toFixed(1)}%`;
+  const highlightText = `${data.highlightMetricLabel}  ${formatSigned(data.highlightDeltaPct)}%`;
   const hLines = wrapText(ctx, highlightText, W - 260);
   hLines.forEach((line, i) => ctx.fillText(line, W / 2, panelY + 400 + i * 46));
 

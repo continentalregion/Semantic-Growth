@@ -4,10 +4,21 @@
 // as a neutral pivot, and compute a trend. Only positive trends get an active
 // share CTA; negative trends are surfaced only in the personal dashboard.
 
+// All 8 dimensions currently persisted on sgi_snapshots (abstractionLevel,
+// lexicalRichness, informationDensity are NOT stored yet — see
+// docs/progress-card-11-metrics-calibration.md). The highlight must be picked
+// from the full set of available dimensions, not an arbitrary subset, or it
+// can show a declining metric while the (11-dimension-weighted) aggregate
+// deltaPct is positive — driven by a dimension outside the candidate list.
 export const HIGHLIGHT_CANDIDATE_METRICS = [
   "reasoningDepth",
   "interdisciplinaryScore",
   "conceptualComplexity",
+  "semanticVariety",
+  "originality",
+  "stability",
+  "continuity",
+  "revisionSignal",
 ] as const;
 
 export type HighlightCandidateMetric = (typeof HIGHLIGHT_CANDIDATE_METRICS)[number];
@@ -18,6 +29,11 @@ export interface ProgressCardSnapshotInput {
   reasoningDepth: number;
   interdisciplinaryScore: number;
   conceptualComplexity: number;
+  semanticVariety: number;
+  originality: number;
+  stability: number;
+  continuity: number;
+  revisionSignal: number;
 }
 
 export interface ComputedProgressCard {

@@ -519,6 +519,11 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
         reasoningDepth: sgiSnapshots.reasoningDepth,
         interdisciplinaryScore: sgiSnapshots.interdisciplinaryScore,
         conceptualComplexity: sgiSnapshots.conceptualComplexity,
+        semanticVariety: sgiSnapshots.semanticVariety,
+        originality: sgiSnapshots.originality,
+        stability: sgiSnapshots.stability,
+        continuity: sgiSnapshots.continuity,
+        revisionSignal: sgiSnapshots.revisionSignal,
       })
         .from(sgiSnapshots)
         .where(eq(sgiSnapshots.conversationId, convoId))

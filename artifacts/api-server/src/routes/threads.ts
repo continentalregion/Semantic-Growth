@@ -678,7 +678,14 @@ const HIGHLIGHT_METRIC_LABELS: Record<string, string> = {
   reasoningDepth: "Profondità di ragionamento",
   interdisciplinaryScore: "Interdisciplinarità",
   conceptualComplexity: "Complessità concettuale",
+  semanticVariety: "Varietà semantica",
+  originality: "Originalità",
+  stability: "Stabilità",
+  continuity: "Continuità",
+  revisionSignal: "Capacità di revisione",
 };
+
+const formatSigned = (n: number): string => (n > 0 ? "+" : "") + n;
 
 router.get("/progress-cards/:id", async (req, res) => {
   try {
@@ -752,8 +759,8 @@ router.get("/progress-cards/:id/og-image", async (req, res) => {
   <rect x="260" y="190" width="680" height="260" rx="20" fill="url(#glow)" stroke="rgba(6,214,160,0.4)" stroke-width="2"/>
 
   <text x="600" y="230" text-anchor="middle" font-family="DejaVu Sans" font-size="14" fill="rgba(168,255,220,0.7)" letter-spacing="1">TREND ULTIMI 5 MESSAGGI</text>
-  <text x="600" y="330" text-anchor="middle" font-family="DejaVu Sans" font-size="88" font-weight="800" fill="#06d6a0">+${deltaPct}%</text>
-  <text x="600" y="380" text-anchor="middle" font-family="DejaVu Sans" font-size="16" fill="rgba(238,238,255,0.8)">${truncate(highlightLabel, 40)} +${highlightDeltaPct}%</text>
+  <text x="600" y="330" text-anchor="middle" font-family="DejaVu Sans" font-size="88" font-weight="800" fill="#06d6a0">${formatSigned(deltaPct)}%</text>
+  <text x="600" y="380" text-anchor="middle" font-family="DejaVu Sans" font-size="16" fill="rgba(238,238,255,0.8)">${truncate(highlightLabel, 40)} ${formatSigned(highlightDeltaPct)}%</text>
 
   <text x="600" y="470" text-anchor="middle" font-family="DejaVu Sans" font-size="14" fill="rgba(144,144,184,0.7)">In crescita nella conversazione corrente</text>
 
