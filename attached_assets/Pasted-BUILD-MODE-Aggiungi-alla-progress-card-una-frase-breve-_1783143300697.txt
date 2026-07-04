@@ -1,0 +1,51 @@
+BUILD MODE.
+
+Aggiungi alla progress card una frase breve generata da un LLM, in 
+aggiunta al numero percentuale già esistente (non in sostituzione).
+
+Logica:
+1. Dopo aver calcolato il delta% e la metrica evidenziata (early vs 
+   late, stessa logica attuale), genera una frase di 1-2 righe che 
+   descriva qualitativamente l'andamento, usando Haiku con un prompt 
+   breve e mirato
+2. Input al prompt LLM: passa solo i valori numerici già calcolati 
+   (raw_score early/late, le metriche con relativi delta%) — NON i 
+   testi originali dei messaggi, per mantenere il costo minimo e 
+   evitare di riprocessare contenuto lungo
+3. LOCALIZZAZIONE OBBLIGATORIA: la frase deve essere generata nella 
+   stessa lingua dell'interfaccia/conversazione dell'utente (IT/EN/ES), 
+   non sempre in italiano. Passa la lingua corrente dell'utente 
+   (stesso meccanismo già usato per i18n nell'app) come parametro nel 
+   prompt system della chiamata LLM, istruendo esplicitamente il 
+   modello a rispondere in quella lingua specifica. Verifica che il 
+   layout della card (SVG e canvas) supporti correttamente testo in 
+   tutte e 3 le lingue senza troncamenti o overflow, dato che la 
+   lunghezza delle frasi puÃ² variare tra IT/EN/ES
+4. Vincolo di linguaggio (in tutte le lingue): la frase deve parlare 
+   sempre di "linguaggio/language/lenguaje", "argomentazione/argument/
+   argumentación" o "modo di ragionare in questa conversazione" — mai 
+   di "cervello/brain/cerebro", "mente/mind/mente" o termini che 
+   suggeriscano una misurazione neuroscientifica diretta. SGI misura 
+   pattern testuali, non processi neurali
+5. Onestà sul trend negativo: se il delta% è negativo, la frase resta 
+   onesta ma costruttiva in tutte le lingue — mai auto-celebrativa 
+   quando il trend è davvero sceso
+6. Fallback obbligatorio: se la chiamata LLM fallisce, va in timeout, 
+   o restituisce contenuto vuoto (in qualsiasi lingua), la card deve 
+   generarsi comunque con i soli dati numerici esistenti
+7. Layout: numero percentuale resta l'elemento visivo principale 
+   (invariato), la frase va sotto come testo di supporto più piccolo — 
+   sia nel layout SVG (og-image per condivisione) sia nel canvas in 
+   progressStoryCard.ts
+
+Prima di considerare il lavoro completo, dammi:
+- Una stima del costo incrementale mensile (quante progress card 
+  vengono generate oggi in media al mese, moltiplicato per il costo 
+  di una chiamata Haiku breve)
+- Un esempio di 2-3 frasi generate su dati reali/simulati, UNA per 
+  ciascuna lingua (IT/EN/ES), per validare sia il tono che la corretta 
+  localizzazione prima che vada in produzione
+
+Non modificare la logica di calcolo del delta% esistente né 
+l'esclusione di revisionSignal — solo l'aggiunta della frase 
+localizzata.

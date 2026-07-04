@@ -10,6 +10,11 @@ export interface ProgressStoryInput {
   deltaPct: number;
   highlightMetricLabel: string;
   highlightDeltaPct: number;
+  // Optional LLM-generated qualitative phrase, already localized to the
+  // user's UI language server-side. Percentage stays the primary visual
+  // element; this renders as smaller supporting text below it. When absent
+  // (LLM failed/timed out/empty), the card renders fine without it.
+  insightText?: string | null;
 }
 
 const SITE_URL = "sgindex.work";
@@ -129,7 +134,15 @@ export function generateProgressStoryCard(data: ProgressStoryInput): HTMLCanvasE
 
   // ── Big trend panel ─────────────────────────────────────────────────────────
   const panelY = 418 + titleLines.length * 42 + 60;
-  const panelH = 620;
+  // Measure the (optional) insight text up front so the panel box grows to
+  // fully enclose it — never truncated/overflowing regardless of language.
+  let insightLines: string[] = [];
+  if (data.insightText) {
+    ctx.font = "italic 500 28px 'Arial', sans-serif";
+    insightLines = wrapText(ctx, data.insightText, W - 220).slice(0, 3);
+  }
+  const insightExtraH = insightLines.length > 0 ? insightLines.length * 36 + 56 : 0;
+  const panelH = 620 + insightExtraH;
   roundRect(ctx, 90, panelY, W - 180, panelH, 32);
   const panelGrad = ctx.createLinearGradient(0, panelY, 0, panelY + panelH);
   panelGrad.addColorStop(0, "rgba(6,214,160,0.14)");
@@ -157,9 +170,21 @@ export function generateProgressStoryCard(data: ProgressStoryInput): HTMLCanvasE
   const hLines = wrapText(ctx, highlightText, W - 260);
   hLines.forEach((line, i) => ctx.fillText(line, W / 2, panelY + 400 + i * 46));
 
+  let cursorY = panelY + 400 + hLines.length * 46;
+
+  // Smaller supporting text below the percentage/highlight — never the
+  // primary visual element. Already measured above so the panel box fits it.
+  if (insightLines.length > 0) {
+    ctx.font = "italic 500 28px 'Arial', sans-serif";
+    ctx.fillStyle = "rgba(200,200,224,0.8)";
+    cursorY += 56;
+    insightLines.forEach((line, i) => ctx.fillText(line, W / 2, cursorY + i * 36));
+    cursorY += insightLines.length * 36;
+  }
+
   ctx.font = "500 26px 'Arial', sans-serif";
   ctx.fillStyle = "rgba(144,144,184,0.6)";
-  ctx.fillText("Early \u2192 Late (stessa conversazione)", W / 2, panelY + 400 + hLines.length * 46 + 60);
+  ctx.fillText("Early \u2192 Late (stessa conversazione)", W / 2, cursorY + 60);
 
   // ── Footer ──────────────────────────────────────────────────────────────────
   const footerY = panelY + panelH + 90;

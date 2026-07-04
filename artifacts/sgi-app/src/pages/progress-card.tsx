@@ -21,6 +21,7 @@ interface ProgressCardData {
   highlightMetric: string;
   highlightMetricLabel: string;
   highlightDeltaPct: number;
+  insightText: string | null;
 }
 
 export default function ProgressCardPage() {
@@ -74,6 +75,7 @@ export default function ProgressCardPage() {
         deltaPct: card.deltaPct,
         highlightMetricLabel: card.highlightMetricLabel,
         highlightDeltaPct: card.highlightDeltaPct,
+        insightText: card.insightText,
       });
       const result = await shareOrDownloadCanvas(canvas, `sgi-progress-${card.username}.png`, {
         title: "SGI Progress Card",
@@ -143,6 +145,11 @@ export default function ProgressCardPage() {
           <p className="text-sm" style={{ color: "#eeeeff" }}>
             {card.highlightMetricLabel} {card.highlightDeltaPct > 0 ? "+" : ""}{card.highlightDeltaPct}%
           </p>
+          {card.insightText && (
+            <p className="text-xs italic mt-3 leading-relaxed" style={{ color: "rgba(200,200,224,0.8)" }}>
+              {card.insightText}
+            </p>
+          )}
         </div>
 
         {card.isPositive ? (

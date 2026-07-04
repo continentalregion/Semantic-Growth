@@ -18,6 +18,11 @@ export const progressCards = pgTable("progress_cards", {
   deltaPct: real("delta_pct").notNull(),
   highlightMetric: text("highlight_metric").notNull(),
   highlightDeltaPct: real("highlight_delta_pct").notNull(),
+  // Short (1-2 line) LLM-generated qualitative phrase, localized to the user's
+  // UI language at generation time. Nullable by design: if the Haiku call
+  // fails/times out/returns empty, the card still renders with numeric data
+  // only (see generateProgressInsight in api-server/src/lib/progressCardInsight.ts).
+  insightText: text("insight_text"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

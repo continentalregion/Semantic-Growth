@@ -8,6 +8,7 @@ import { openai } from "@workspace/integrations-openai-ai-server";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { scoreMessage, computeNewSgiScore, computeMacroDimensions } from "../lib/sgiScoring";
 import { computeProgressCard } from "../lib/progressCard";
+import { generateProgressInsight } from "../lib/progressCardInsight";
 import { updateLeaderboardRank, checkAndAwardBadges } from "./users";
 import { updateMissionProgress } from "./gamification";
 import {
@@ -214,6 +215,11 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
 
     const userContent: string = req.body?.content ?? "";
     if (!userContent.trim()) { res.status(400).json({ error: "Message content is required" }); return; }
+
+    // User's current UI language, sent by the client (same i18n mechanism as
+    // battles/translate) — used ONLY to localize the progress-card insight
+    // phrase below; defaults to "it" like the rest of the app.
+    const requestedLang: string = req.body?.lang ?? "it";
 
     // ── HARD STOP: controllo mensile PRIMA che la chiamata AI parta ─────────
     // Questo blocco avviene lato server — non è aggirabile dal client.
@@ -505,6 +511,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       isPositive: boolean;
       highlightMetric: string;
       highlightDeltaPct: number;
+      insightText: string | null;
     } | undefined;
 
     const [updatedConvoCount] = await db.update(conversations)
@@ -533,6 +540,20 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       if (windowRows.length === 5) {
         const chronological = windowRows.slice().reverse();
         const computed = computeProgressCard(chronological);
+
+        // Numeric-only inputs — never the original message text — passed to
+        // Haiku to generate a short localized qualitative phrase. Any failure
+        // (error/timeout/empty) resolves to null and the card is still
+        // inserted/rendered with numeric data only.
+        const insightText = await generateProgressInsight({
+          earlyAvg: computed.earlyAvg,
+          lateAvg: computed.lateAvg,
+          deltaPct: computed.deltaPct,
+          highlightMetric: computed.highlightMetric,
+          highlightDeltaPct: computed.highlightDeltaPct,
+          isPositive: computed.isPositive,
+        }, requestedLang);
+
         const [inserted] = await db.insert(progressCards).values({
           userId: user.id,
           conversationId: convoId,
@@ -543,6 +564,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
           deltaPct: computed.deltaPct,
           highlightMetric: computed.highlightMetric,
           highlightDeltaPct: computed.highlightDeltaPct,
+          insightText,
         }).returning({ id: progressCards.id });
 
         if (inserted) {
@@ -552,6 +574,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
             isPositive: computed.isPositive,
             highlightMetric: computed.highlightMetric,
             highlightDeltaPct: Math.round(computed.highlightDeltaPct * 10) / 10,
+            insightText,
           };
         }
       }

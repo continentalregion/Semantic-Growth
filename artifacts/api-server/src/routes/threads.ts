@@ -649,6 +649,7 @@ router.get("/progress-cards", async (req, res) => {
       deltaPct: progressCards.deltaPct,
       highlightMetric: progressCards.highlightMetric,
       highlightDeltaPct: progressCards.highlightDeltaPct,
+      insightText: progressCards.insightText,
       conversationTitle: conversations.title,
     })
       .from(progressCards)
@@ -666,6 +667,7 @@ router.get("/progress-cards", async (req, res) => {
       highlightMetric: r.highlightMetric,
       highlightMetricLabel: HIGHLIGHT_METRIC_LABELS[r.highlightMetric] ?? r.highlightMetric,
       highlightDeltaPct: Math.round(r.highlightDeltaPct * 10) / 10,
+      insightText: r.insightText ?? null,
     })));
   } catch (err) {
     console.error("[threads] progress cards list error", err);
@@ -708,6 +710,7 @@ router.get("/progress-cards/:id", async (req, res) => {
       highlightMetric: card.highlightMetric,
       highlightMetricLabel: HIGHLIGHT_METRIC_LABELS[card.highlightMetric] ?? card.highlightMetric,
       highlightDeltaPct: Math.round(card.highlightDeltaPct * 10) / 10,
+      insightText: card.insightText ?? null,
     });
   } catch (err) {
     console.error("[threads] progress card error", err);
@@ -729,10 +732,44 @@ router.get("/progress-cards/:id/og-image", async (req, res) => {
     const deltaPct = Math.round(card.deltaPct * 10) / 10;
     const highlightLabel = HIGHLIGHT_METRIC_LABELS[card.highlightMetric] ?? card.highlightMetric;
     const highlightDeltaPct = Math.round(card.highlightDeltaPct * 10) / 10;
+    const insightText = card.insightText ?? null;
 
     const truncate = (s: string, n: number) => s.length > n ? s.slice(0, n - 1) + "…" : s;
 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+    // No canvas available server-side to measure text width, so we wrap by an
+    // approximate char-per-line budget for this font-size/panel-width combo,
+    // capped at 2 lines with a trailing ellipsis as a hard overflow guard —
+    // this keeps the layout safe across IT/EN/ES phrase-length variance.
+    const wrapPlain = (s: string, charsPerLine: number, maxLines: number): string[] => {
+      const words = s.split(" ");
+      const lines: string[] = [];
+      let current = "";
+      for (const word of words) {
+        const test = current ? `${current} ${word}` : word;
+        if (test.length > charsPerLine && current) {
+          lines.push(current);
+          current = word;
+        } else {
+          current = test;
+        }
+        if (lines.length === maxLines) break;
+      }
+      if (current && lines.length < maxLines) lines.push(current);
+      if (lines.length === maxLines) {
+        const last = lines[maxLines - 1]!;
+        const consumed = lines.slice(0, maxLines - 1).join(" ").length + (maxLines > 1 ? 1 : 0);
+        const stillRemaining = s.length > consumed + last.length;
+        if (stillRemaining && last.length > 3) lines[maxLines - 1] = last.slice(0, -1).trimEnd() + "…";
+      }
+      return lines;
+    };
+    const insightLines = insightText ? wrapPlain(insightText, 68, 2) : [];
+    // Panel + everything below it grows to fit the (optional) insight text so
+    // it never overlaps or gets clipped, regardless of language/line count.
+    const panelExtraH = insightLines.length > 0 ? insightLines.length * 24 + 16 : 0;
+    const panelH = 260 + panelExtraH;
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="${630 + panelExtraH}" viewBox="0 0 1200 ${630 + panelExtraH}">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#0a0b18"/>
@@ -744,29 +781,30 @@ router.get("/progress-cards/:id/og-image", async (req, res) => {
     </linearGradient>
   </defs>
 
-  <rect width="1200" height="630" fill="url(#bg)"/>
-  <rect width="1200" height="630" fill="none" stroke="rgba(6,214,160,0.25)" stroke-width="2"/>
+  <rect width="1200" height="${630 + panelExtraH}" fill="url(#bg)"/>
+  <rect width="1200" height="${630 + panelExtraH}" fill="none" stroke="rgba(6,214,160,0.25)" stroke-width="2"/>
 
   <g opacity="0.04">
-    ${Array.from({length: 20}, (_, i) => `<line x1="${i*64}" y1="0" x2="${i*64}" y2="630" stroke="#06d6a0" stroke-width="1"/>`).join("")}
-    ${Array.from({length: 10}, (_, i) => `<line x1="0" y1="${i*70}" x2="1200" y2="${i*70}" stroke="#06d6a0" stroke-width="1"/>`).join("")}
+    ${Array.from({length: 20}, (_, i) => `<line x1="${i*64}" y1="0" x2="${i*64}" y2="${630 + panelExtraH}" stroke="#06d6a0" stroke-width="1"/>`).join("")}
+    ${Array.from({length: 10 + Math.ceil(panelExtraH / 70)}, (_, i) => `<line x1="0" y1="${i*70}" x2="1200" y2="${i*70}" stroke="#06d6a0" stroke-width="1"/>`).join("")}
   </g>
 
   <text x="600" y="70" text-anchor="middle" font-family="DejaVu Sans" font-size="13" font-weight="700" letter-spacing="4" fill="#06d6a0" opacity="0.85">SGI · PROGRESS CARD</text>
 
   <text x="600" y="130" text-anchor="middle" font-family="DejaVu Sans" font-size="24" font-weight="700" fill="#eeeeff">@${truncate(username, 24)}</text>
 
-  <rect x="260" y="190" width="680" height="260" rx="20" fill="url(#glow)" stroke="rgba(6,214,160,0.4)" stroke-width="2"/>
+  <rect x="260" y="190" width="680" height="${panelH}" rx="20" fill="url(#glow)" stroke="rgba(6,214,160,0.4)" stroke-width="2"/>
 
   <text x="600" y="230" text-anchor="middle" font-family="DejaVu Sans" font-size="14" fill="rgba(168,255,220,0.7)" letter-spacing="1">TREND ULTIMI 5 MESSAGGI</text>
   <text x="600" y="330" text-anchor="middle" font-family="DejaVu Sans" font-size="88" font-weight="800" fill="#06d6a0">${formatSigned(deltaPct)}%</text>
   <text x="600" y="380" text-anchor="middle" font-family="DejaVu Sans" font-size="16" fill="rgba(238,238,255,0.8)">${truncate(highlightLabel, 40)} ${formatSigned(highlightDeltaPct)}%</text>
+  ${insightLines.map((line, i) => `<text x="600" y="${414 + i * 24}" text-anchor="middle" font-family="DejaVu Sans" font-size="15" font-style="italic" fill="rgba(200,200,224,0.75)">${line}</text>`).join("\n  ")}
 
-  <text x="600" y="470" text-anchor="middle" font-family="DejaVu Sans" font-size="14" fill="rgba(144,144,184,0.7)">In crescita nella conversazione corrente</text>
+  <text x="600" y="${470 + panelExtraH}" text-anchor="middle" font-family="DejaVu Sans" font-size="14" fill="rgba(144,144,184,0.7)">In crescita nella conversazione corrente</text>
 
-  ${sgiLogoSvg(548, 560, 40, "logoGradProgress")}
-  <text x="578" y="568" text-anchor="start" font-family="DejaVu Sans" font-size="20" font-weight="700" fill="#06d6a0">sgindex.work</text>
-  <text x="600" y="600" text-anchor="middle" font-family="DejaVu Sans" font-size="11" fill="rgba(144,144,184,0.4)">Progress Card</text>
+  ${sgiLogoSvg(548, 560 + panelExtraH, 40, "logoGradProgress")}
+  <text x="578" y="${568 + panelExtraH}" text-anchor="start" font-family="DejaVu Sans" font-size="20" font-weight="700" fill="#06d6a0">sgindex.work</text>
+  <text x="600" y="${600 + panelExtraH}" text-anchor="middle" font-family="DejaVu Sans" font-size="11" fill="rgba(144,144,184,0.4)">Progress Card</text>
 </svg>`;
 
     try {

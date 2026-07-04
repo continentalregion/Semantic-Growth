@@ -47,7 +47,7 @@ const ALLOWED_MODELS_CLIENT: Record<string, string[]> = {
 const PLAN_DEFAULT_MODEL_ID = "claude-haiku-4-5";
 
 export default function Chat() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { getToken } = useAuth();
   const qc = useQueryClient();
   const [, setLocation] = useLocation();
@@ -140,7 +140,7 @@ export default function Chat() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, lang: i18n.language }),
       });
 
       if (response.status === 429) {
