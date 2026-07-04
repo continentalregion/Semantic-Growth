@@ -254,10 +254,17 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     const [insertedUserMsg] = await db.insert(messages).values({ conversationId: convoId, role: "user", content: userContent }).returning({ id: messages.id });
 
     // Ridotto a 10 messaggi di storia (meno token, stessa qualità conversazionale)
-    const history = await db.select().from(messages)
+    // Bug fix: prima prendeva i PRIMI 10 messaggi in assoluto (ASC + limit, nessun
+    // desc/reverse) — la finestra restava congelata sui messaggi iniziali non appena
+    // la conversazione superava i 10 messaggi totali, e ogni turno successivo veniva
+    // generato senza vedere i messaggi utente/assistente più recenti. Ora si prendono
+    // gli ULTIMI 10 (DESC + limit) e si reinverte l'ordine per ripristinare l'ordine
+    // cronologico atteso da openaiMessages/historyForScoring.
+    const historyDesc = await db.select().from(messages)
       .where(eq(messages.conversationId, convoId))
-      .orderBy(messages.createdAt)
+      .orderBy(desc(messages.createdAt))
       .limit(10);
+    const history = historyDesc.reverse();
 
     // ── FASE 3: model enforcement per piano ──────────────────────────────────
     // Ogni piano ha una lista di modelli permessi (ALLOWED_MODELS in pricing.ts).
