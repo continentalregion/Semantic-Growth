@@ -628,12 +628,19 @@ router.post("/battles/matchmake", async (req, res) => {
     // a 2s timeout, and falls back to pickThemeFor(seenThemes) on any failure.
     const lang = typeof req.body?.lang === "string" ? req.body.lang.slice(0, 10) : "it";
     let picked: { theme: string; category: string };
+    // themeSource is surfaced to the frontend so it *can* optionally show a
+    // non-alarming "standard theme" badge/tooltip when the LLM pool wasn't
+    // used — same transparency pattern as the guest BUDGET_EXHAUSTED flow,
+    // but non-blocking: matchmaking must never fail just because the budget
+    // guardrail kicked in.
+    let themeSource: "generated" | "static" = "generated";
     if (await isBattleBudgetOk()) {
       picked = await generateBattleTheme(clerkId, lang);
       void chargeBattleBudget(COST_BATTLE_THEME_CENTS);
     } else {
       console.warn("[battles] budget exhausted — using static theme pool for matchmake");
       picked = pickThemeFor([]); // skip LLM call entirely; static pool is sufficient
+      themeSource = "static";
     }
 
     const [created] = await db.insert(battleMatches).values({
@@ -647,7 +654,7 @@ router.post("/battles/matchmake", async (req, res) => {
 
     await recordUserBattleUsage(user.id, battleUsage.isFirstBattle);
     const view = await buildMatchView(clerkId, created!.id);
-    res.json({ ...view, battleUsage: { used: battleUsage.used, limit: battleUsage.limit, warning: battleUsage.warning } });
+    res.json({ ...view, themeSource, battleUsage: { used: battleUsage.used, limit: battleUsage.limit, warning: battleUsage.warning } });
   } catch (err) {
     console.error("[battles] matchmake error", err);
     res.status(500).json({ error: "Matchmaking failed" });
@@ -936,12 +943,14 @@ router.post("/battles/matches/:id/ai-join", async (req, res) => {
     // Use server-side theme only — never trust req.body.theme.
     const matchTheme = (claim.rows[0] as { theme: string }).theme;
     let aiText: string;
+    let argumentSource: "generated" | "static" = "generated";
     if (await isBattleBudgetOk()) {
       aiText = await generateAiArgument(matchTheme, level);
       void chargeBattleBudget(COST_BATTLE_ARGUMENT_CENTS);
     } else {
       console.warn("[battles] budget exhausted — ai-join using static fallback argument");
       aiText = "Il sistema è temporaneamente sotto carico. La posizione avversaria sarà considerata neutra ai fini della valutazione.";
+      argumentSource = "static";
     }
 
     await db.insert(battleEntries).values({
@@ -958,7 +967,7 @@ router.post("/battles/matches/:id/ai-join", async (req, res) => {
 
     const view = await buildMatchView(clerkId, matchId);
     if (!view) { res.status(404).json({ error: "Match not found after AI join" }); return; }
-    res.json(view);
+    res.json({ ...view, argumentSource });
   } catch (err) {
     console.error("[battles] ai-join error", err);
     res.status(500).json({ error: "Internal error" });

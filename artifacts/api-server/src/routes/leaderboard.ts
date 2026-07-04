@@ -6,6 +6,15 @@ import { eq, asc, desc, sql, gt } from "drizzle-orm";
 
 const router = Router();
 
+// The top1%/top10% score thresholds change slowly (they only move when the
+// overall leaderboard distribution shifts) but were being recomputed with two
+// full OFFSET queries on every /leaderboard/summary hit. Cache them for a few
+// minutes to cut redundant load under high traffic — best-effort, in-memory,
+// no cross-instance invalidation needed since a few minutes of staleness here
+// is imperceptible to users.
+const THRESHOLD_CACHE_TTL_MS = 3 * 60 * 1000;
+let thresholdCache: { top1: number; top10: number; expiresAt: number } | null = null;
+
 router.get("/leaderboard", async (req, res) => {
   try {
     const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? "50"), 10)));
@@ -72,11 +81,22 @@ router.get("/leaderboard/summary", async (req, res) => {
     const averageSgi = Math.round(Number(stats?.averageSgi ?? 50) * 10) / 10;
     const topSgi = Math.round(Number(stats?.topSgi ?? 80) * 10) / 10;
 
-    const top1Count = Math.ceil(totalUsers * 0.01);
-    const top10Count = Math.ceil(totalUsers * 0.10);
+    let top1Threshold: number;
+    let top10Threshold: number;
+    if (thresholdCache && thresholdCache.expiresAt > Date.now()) {
+      top1Threshold = thresholdCache.top1;
+      top10Threshold = thresholdCache.top10;
+    } else {
+      const top1Count = Math.ceil(totalUsers * 0.01);
+      const top10Count = Math.ceil(totalUsers * 0.10);
 
-    const [top1Entry] = await db.select({ sgiScore: leaderboardEntries.sgiScore }).from(leaderboardEntries).orderBy(asc(leaderboardEntries.rank)).limit(1).offset(Math.max(0, top1Count - 1));
-    const [top10Entry] = await db.select({ sgiScore: leaderboardEntries.sgiScore }).from(leaderboardEntries).orderBy(asc(leaderboardEntries.rank)).limit(1).offset(Math.max(0, top10Count - 1));
+      const [top1Entry] = await db.select({ sgiScore: leaderboardEntries.sgiScore }).from(leaderboardEntries).orderBy(asc(leaderboardEntries.rank)).limit(1).offset(Math.max(0, top1Count - 1));
+      const [top10Entry] = await db.select({ sgiScore: leaderboardEntries.sgiScore }).from(leaderboardEntries).orderBy(asc(leaderboardEntries.rank)).limit(1).offset(Math.max(0, top10Count - 1));
+
+      top1Threshold = top1Entry?.sgiScore ?? 90;
+      top10Threshold = top10Entry?.sgiScore ?? 75;
+      thresholdCache = { top1: top1Threshold, top10: top10Threshold, expiresAt: Date.now() + THRESHOLD_CACHE_TTL_MS };
+    }
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const [activeStats] = await db.select({ count: sql<number>`count(*)` })
@@ -86,8 +106,8 @@ router.get("/leaderboard/summary", async (req, res) => {
       totalUsers,
       averageSgi,
       topSgi,
-      top1PercentThreshold: top1Entry?.sgiScore ?? 90,
-      top10PercentThreshold: top10Entry?.sgiScore ?? 75,
+      top1PercentThreshold: top1Threshold,
+      top10PercentThreshold: top10Threshold,
       usersActive7d: Number(activeStats?.count ?? 0),
     });
   } catch (err) {

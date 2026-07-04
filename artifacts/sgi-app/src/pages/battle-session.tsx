@@ -54,6 +54,8 @@ interface MatchView {
   opponentUsername: string | null;
   opponentCompleted: boolean;
   result: MatchResult | null;
+  themeSource?: "generated" | "static";
+  argumentSource?: "generated" | "static";
 }
 
 const PURPLE = "#7c6bff";
@@ -136,6 +138,7 @@ export default function BattleSessionPage() {
   const [showAiOffer, setShowAiOffer] = useState(false);
   const [acceptingAi, setAcceptingAi] = useState(false);
   const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
+  const [autoJoinFailed, setAutoJoinFailed] = useState(false);
   const [sharing, setSharing] = useState<"story" | "square" | null>(null);
   const [showShareMenu, setShowShareMenu] = useState(false);
 
@@ -238,9 +241,10 @@ export default function BattleSessionPage() {
     }
   }, [input, sending, secondsLeft, authedFetch, matchId, handleComplete, t]);
 
-  const handleAiJoin = useCallback(async (level: AiLevel) => {
+  const handleAiJoin = useCallback(async (level: AiLevel, isAuto = false) => {
     if (acceptingAi || !matchId || !view) return;
     setAcceptingAi(true);
+    if (isAuto) setAutoJoinFailed(false);
     try {
       const r = await authedFetch(`/battles/matches/${matchId}/ai-join`, {
         method: "POST",
@@ -255,9 +259,14 @@ export default function BattleSessionPage() {
       if (!r.ok) throw new Error("ai-join failed");
       const data: MatchView = await r.json();
       setShowAiOffer(false);
+      setAutoJoinFailed(false);
       setView(data);
     } catch {
       toast.error(t("battle.aiJoinError") ?? "Errore — riprova.");
+      // Auto-trigger failed (e.g. flaky network) and the countdown already hit
+      // zero, so it will not retry on its own — tell the user explicitly that
+      // they need to pick a level manually instead of leaving them guessing.
+      if (isAuto) setAutoJoinFailed(true);
     } finally {
       setAcceptingAi(false);
     }
@@ -314,7 +323,7 @@ export default function BattleSessionPage() {
   // Tick the countdown; auto-accept at 0.
   useEffect(() => {
     if (autoCountdown === null) return;
-    if (autoCountdown <= 0) { void handleAiJoin("pensatore"); return; }
+    if (autoCountdown <= 0) { void handleAiJoin("pensatore", true); return; }
     const id = setTimeout(() => setAutoCountdown(c => (c ?? 1) - 1), 1000);
     return () => clearTimeout(id);
   }, [autoCountdown, handleAiJoin]);
@@ -384,9 +393,21 @@ export default function BattleSessionPage() {
   }
 
   const v = view!;
+  const usingStandardContent = v.themeSource === "static" || v.argumentSource === "static";
   const themeBlock = (
     <div className="rounded-2xl p-6 mb-5" style={{ background: "rgba(124,107,255,0.07)", border: "1px solid rgba(124,107,255,0.2)" }}>
-      <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: PINK }}>{t(`battles.categories.${v.category}`, { defaultValue: v.category })}</span>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: PINK }}>{t(`battles.categories.${v.category}`, { defaultValue: v.category })}</span>
+        {usingStandardContent && (
+          <span
+            className="text-[9px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0"
+            style={{ background: "rgba(255,255,255,0.06)", color: MUTED }}
+            title={t("battle.standardThemeTooltip")}
+          >
+            {t("battle.standardThemeBadge")}
+          </span>
+        )}
+      </div>
       <h2 className="text-xl font-bold font-display leading-snug mt-1" style={{ color: "#eeeeff" }}>{v.theme}</h2>
     </div>
   );
@@ -439,7 +460,7 @@ export default function BattleSessionPage() {
                 {AI_LEVELS.map(({ level, label, desc, color }) => (
                   <button
                     key={level}
-                    onClick={() => { setAutoCountdown(null); void handleAiJoin(level); }}
+                    onClick={() => { setAutoCountdown(null); setAutoJoinFailed(false); void handleAiJoin(level); }}
                     disabled={acceptingAi}
                     className="flex-1 rounded-xl px-4 py-3 text-left transition-all"
                     style={{
@@ -454,6 +475,11 @@ export default function BattleSessionPage() {
                   </button>
                 ))}
               </div>
+              {autoJoinFailed && (
+                <p className="text-xs mb-3 text-center" style={{ color: GOLD }}>
+                  {t("battle.aiAutoJoinFailed")}
+                </p>
+              )}
               <button
                 onClick={() => { setShowAiOffer(false); setAutoCountdown(null); }}
                 className="text-xs w-full text-center py-1.5"
