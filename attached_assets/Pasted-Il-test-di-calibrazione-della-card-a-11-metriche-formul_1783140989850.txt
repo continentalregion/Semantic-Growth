@@ -1,0 +1,45 @@
+Il test di calibrazione della card a 11 metriche (formula pesata 
+identica a computeRawScore, ri-scoring su dati reali di 2 conversazioni 
+vere) è confermato valido nei risultati — non procedere con 
+l'implementazione in produzione ora, resta in coda per una fase 
+successiva.
+
+Prima di chiudere, scrivi un documento nel repo 
+(docs/progress-card-11-metrics-calibration.md) che riassuma in modo 
+completo, come promemoria per la ripresa futura del lavoro:
+
+1. Formula di normalizzazione usata (dimensione/10 pesata, stessa 
+   pesatura reale di computeRawScore: revisionSignal 20%, 
+   interdisciplinaryScore 17%, reasoningDepth 15%, semanticVariety 13%, 
+   conceptualComplexity 12%, abstractionLevel 8%, informationDensity 7%, 
+   lexicalRichness/originality 3%, stability/continuity 1%)
+
+2. Gap noto: sgi_snapshots salva oggi solo 8/11 dimensioni (mancano 
+   abstractionLevel, lexicalRichness, informationDensity). Due opzioni 
+   discusse per risolverlo quando si implementerà in produzione:
+   (a) ri-scoring dal contenuto reale dei messaggi al momento della 
+   generazione della card (più preciso, più costoso in token)
+   (b) salvare da subito tutte le 11 dimensioni in avanti, accettando 
+   che le conversazioni pre-esistenti mostrino solo 8/11
+   Decisione NON ancora presa — da fare quando si riprende il lavoro.
+
+3. Limite statistico noto: con conversazioni sotto i ~10 messaggi 
+   totali, ogni messaggio pesa 15-20% del blocco early/late, rendendo 
+   il delta% rumoroso e potenzialmente più marcato di quanto sia 
+   realmente significativo. La card a 11 metriche dovrebbe attivarsi 
+   solo dalla seconda finestra di 5 messaggi in avanti (dal messaggio 
+   #6 in poi), non dalla prima, per evitare la distorsione di 
+   revisionSignal/continuity=0 al primo messaggio di ogni conversazione.
+
+4. Risultati del test di calibrazione (2 conversazioni reali, es. 
+   "Gamification In Sito Web": aggregato early 34.6 → late 29.9, calo 
+   coerente col contenuto che passa da concettuale a operativo) come 
+   riferimento numerico futuro.
+
+5. Formato/layout della card (11 righe raggruppate per categoria, 
+   non lista piatta) e regola sulla CTA di condivisione (da definire: 
+   solo su miglioramento aggregato, o permessa anche con risultati misti) 
+   restano DA DECIDERE nella fase di implementazione.
+
+Nessun'altra modifica al codice o al database. Confermami quando il 
+documento è stato scritto e commitato.
