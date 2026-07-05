@@ -154,23 +154,30 @@ export function computeMacroDimensions(d: SgiDimensions): MacroDimensions {
   };
 }
 
+// Weights — revision still the strongest honest-growth signal (15%), but
+// stability + continuity ("coerenza": internal consistency + building on
+// prior context) were previously 1% each — effectively decorative, meaning a
+// user could be highly inconsistent/contradictory yet still see the score
+// rise. Raised to a combined 15% (8% + 7%) so incoherent reasoning visibly
+// drags the score down, funded by trimming interdisciplinaryScore,
+// semanticVariety and revisionSignal slightly. Sum must stay 1.0.
+export const SGI_SCORE_WEIGHTS: Record<keyof SgiDimensions, number> = {
+  reasoningDepth:         0.15,
+  conceptualComplexity:   0.12,
+  abstractionLevel:       0.08,
+  interdisciplinaryScore: 0.12,
+  semanticVariety:        0.10,
+  revisionSignal:         0.15,
+  informationDensity:     0.07,
+  lexicalRichness:        0.03,
+  originality:            0.03,
+  stability:              0.08,
+  continuity:             0.07,
+};
+
 export function computeRawScore(dims: SgiDimensions): number {
-  // Revised weights — revision gets 20% (honest growth signal), lexical low (gameable)
-  const weights = {
-    reasoningDepth:         0.15,
-    conceptualComplexity:   0.12,
-    abstractionLevel:       0.08,
-    interdisciplinaryScore: 0.17,
-    semanticVariety:        0.13,
-    revisionSignal:         0.20,
-    informationDensity:     0.07,
-    lexicalRichness:        0.03,
-    originality:            0.03,
-    stability:              0.01,
-    continuity:             0.01,
-  };
   let sum = 0;
-  for (const [key, weight] of Object.entries(weights)) {
+  for (const [key, weight] of Object.entries(SGI_SCORE_WEIGHTS)) {
     sum += (dims[key as keyof SgiDimensions] / 10) * weight;
   }
   return sum * 100;

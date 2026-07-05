@@ -4,6 +4,8 @@
 // as a neutral pivot, and compute a trend. Only positive trends get an active
 // share CTA; negative trends are surfaced only in the personal dashboard.
 
+import { SGI_SCORE_WEIGHTS } from "./sgiScoring";
+
 // 7 of the 8 dimensions currently persisted on sgi_snapshots (abstractionLevel,
 // lexicalRichness, informationDensity are NOT stored yet — see
 // docs/progress-card-11-metrics-calibration.md). The highlight must be picked
@@ -59,8 +61,18 @@ function pctChange(early: number, late: number): number {
  * `window` must be exactly 5 snapshots for the same conversation, ordered
  * chronologically ascending (oldest first). Index 2 (the middle one) is the
  * pivot and is excluded from both early and late averages.
+ *
+ * `isFirstWindow` should be true only for a conversation's very first
+ * progress-card window (snapshot #1 through #5). On the first-ever message
+ * `continuity` has nothing prior to build on, so the LLM naturally scores it
+ * low — producing an artificial "growth spike" by message 5 that doesn't
+ * reflect real improvement. `continuity` is excluded from the highlight pool
+ * for that one window only (later windows are unaffected).
  */
-export function computeProgressCard(window: ProgressCardSnapshotInput[]): ComputedProgressCard {
+export function computeProgressCard(
+  window: ProgressCardSnapshotInput[],
+  opts: { isFirstWindow?: boolean } = {},
+): ComputedProgressCard {
   if (window.length !== 5) {
     throw new Error(`computeProgressCard requires exactly 5 snapshots, got ${window.length}`);
   }
@@ -76,16 +88,46 @@ export function computeProgressCard(window: ProgressCardSnapshotInput[]): Comput
   const lateAvg = (lateRaw[0] + lateRaw[1]) / 2;
   const deltaPct = pctChange(earlyAvg, lateAvg);
 
-  let bestMetric: HighlightCandidateMetric = HIGHLIGHT_CANDIDATE_METRICS[0];
-  let bestDelta = -Infinity;
-  for (const metric of HIGHLIGHT_CANDIDATE_METRICS) {
+  const candidates = opts.isFirstWindow
+    ? HIGHLIGHT_CANDIDATE_METRICS.filter(m => m !== "continuity")
+    : HIGHLIGHT_CANDIDATE_METRICS;
+
+  // Pick the highlighted metric by its WEIGHTED contribution to the overall
+  // score (not raw %-change) and only among metrics moving in the SAME
+  // direction as the overall trend. Without this, a low-weight dimension
+  // (e.g. stability at 8%) could spike upward while the aggregate score is
+  // actually falling, producing a card that visibly contradicts itself
+  // (e.g. "+50% Stabilità" next to an overall drop).
+  let bestMetric: HighlightCandidateMetric = candidates[0]!;
+  let bestDelta = 0;
+  let bestWeighted = -Infinity;
+  let fallbackMetric: HighlightCandidateMetric = candidates[0]!;
+  let fallbackDelta = -Infinity;
+
+  for (const metric of candidates) {
     const early = (s0[metric] + s1[metric]) / 2;
     const late = (s3[metric] + s4[metric]) / 2;
     const delta = pctChange(early, late);
-    if (delta > bestDelta) {
-      bestDelta = delta;
+    const weighted = delta * SGI_SCORE_WEIGHTS[metric];
+
+    // Track the best same-direction candidate (the primary pick).
+    const sameDirection = deltaPct >= 0 ? delta >= 0 : delta <= 0;
+    if (sameDirection && weighted > bestWeighted) {
+      bestWeighted = weighted;
       bestMetric = metric;
+      bestDelta = delta;
     }
+    // Track the least-contradictory candidate as a fallback, in case every
+    // metric happens to move opposite the overall trend.
+    if (delta > fallbackDelta) {
+      fallbackDelta = delta;
+      fallbackMetric = metric;
+    }
+  }
+
+  if (bestWeighted === -Infinity) {
+    bestMetric = fallbackMetric;
+    bestDelta = fallbackDelta;
   }
 
   return {

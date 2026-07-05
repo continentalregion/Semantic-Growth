@@ -547,7 +547,9 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
 
       if (windowRows.length === 5) {
         const chronological = windowRows.slice().reverse();
-        const computed = computeProgressCard(chronological);
+        const computed = computeProgressCard(chronological, {
+          isFirstWindow: updatedConvoCount.scoredMessageCount === 5,
+        });
 
         // Numeric-only inputs — never the original message text — passed to
         // Haiku to generate a short localized qualitative phrase. Any failure
