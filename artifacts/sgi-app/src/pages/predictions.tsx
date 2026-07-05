@@ -5,6 +5,7 @@ import { TrendingUp, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useTranslation } from "react-i18next";
+import { Link } from "wouter";
 
 type ScenarioKey = "conservative" | "realistic" | "optimistic";
 
@@ -49,9 +50,11 @@ export default function Predictions() {
           <h2 className="text-2xl font-bold mb-2">{t("predictions.lockedTitle")}</h2>
           <p className="text-muted-foreground max-w-md">{t("predictions.lockedDesc")}</p>
         </div>
-        <Button size="lg" className="gap-2" data-testid="button-upgrade-premium">
-          <TrendingUp className="w-5 h-5" />
-          {t("predictions.upgradePremium")}
+        <Button size="lg" className="gap-2" data-testid="button-upgrade-premium" asChild>
+          <Link href="/settings">
+            <TrendingUp className="w-5 h-5" />
+            {t("predictions.upgradePremium")}
+          </Link>
         </Button>
         <p className="text-xs text-muted-foreground">{t("predictions.unlockDesc")}</p>
       </div>
