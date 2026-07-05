@@ -15,6 +15,7 @@ import {
 import { eq, and, desc, lt, inArray, sql } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
+import { anonHandle } from "../lib/anonHandle";
 import {
   evaluatePvpBattle,
   type PvpAnswerScore,
@@ -195,8 +196,8 @@ Rules:
 THEME: ${theme}`;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function usernameFor(user: { email: string | null }): string {
-  return user.email?.split("@")[0] ?? "anon";
+function usernameFor(user: { id: number }): string {
+  return anonHandle(user.id);
 }
 
 function concatUserText(messages: SessionMessage[]): string {

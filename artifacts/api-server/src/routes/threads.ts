@@ -8,6 +8,7 @@ import { openai } from "@workspace/integrations-openai-ai-server";
 import { evaluateBattle } from "../lib/battleScoring";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { computeLevel } from "../lib/sgiScoring";
+import { anonHandle } from "../lib/anonHandle";
 
 // Renders the SGI brand glyph (rising trendline + nodes inside a gradient
 // tile) as inline SVG markup, matching Logo.tsx / drawSgiLogoTile exactly.
@@ -140,7 +141,7 @@ router.post("/threads", async (req, res) => {
       description: description?.trim() ?? null,
       category: category ?? "philosophy",
       createdBy: clerkId,
-      createdByUsername: user.email?.split("@")[0] ?? "anon",
+      createdByUsername: anonHandle(user.id),
     }).returning();
 
     res.status(201).json(thread);
@@ -232,7 +233,7 @@ router.post("/threads/:id/sessions", async (req, res) => {
     const [session] = await db.insert(threadSessions).values({
       threadId: req.params.id,
       userId: clerkId,
-      username: user.email?.split("@")[0] ?? "anon",
+      username: anonHandle(user.id),
       startedAt: new Date(),
       status: "in_progress",
     }).returning();
@@ -694,9 +695,8 @@ router.get("/progress-cards/:id", async (req, res) => {
     const [card] = await db.select().from(progressCards).where(eq(progressCards.id, req.params.id)).limit(1);
     if (!card) { res.status(404).json({ error: "Progress card not found" }); return; }
 
-    const [user] = await db.select({ email: users.email }).from(users).where(eq(users.id, card.userId)).limit(1);
     const [convo] = await db.select({ title: conversations.title }).from(conversations).where(eq(conversations.id, card.conversationId)).limit(1);
-    const username = user?.email ? user.email.split("@")[0] : "Explorer";
+    const username = anonHandle(card.userId);
 
     res.json({
       id: card.id,
@@ -727,8 +727,7 @@ router.get("/progress-cards/:id/og-image", async (req, res) => {
     // CTA is gated client-side too, but guard here in case of direct hits).
     if (card.deltaPct <= 0) { res.status(404).send("Not found"); return; }
 
-    const [user] = await db.select({ email: users.email }).from(users).where(eq(users.id, card.userId)).limit(1);
-    const username = user?.email ? user.email.split("@")[0] : "Explorer";
+    const username = anonHandle(card.userId);
     const deltaPct = Math.round(card.deltaPct * 10) / 10;
     const highlightLabel = HIGHLIGHT_METRIC_LABELS[card.highlightMetric] ?? card.highlightMetric;
     const highlightDeltaPct = Math.round(card.highlightDeltaPct * 10) / 10;

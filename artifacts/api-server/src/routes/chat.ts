@@ -1,6 +1,7 @@
 import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
+import { anonHandle } from "../lib/anonHandle";
 import { db } from "@workspace/db";
 import { users, conversations, messages, sgiSnapshots, gamification, semanticDomains, blockedAttempts, threads, progressCards } from "@workspace/db";
 import { eq, desc, and, sql, gte, ilike } from "drizzle-orm";
@@ -708,7 +709,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     // Fire-and-forget: auto-generate thread from conversation (every 4 messages, min 6)
     const userMsgCount = history.filter(m => m.role === "user").length;
     if (userMsgCount >= 3 && userMsgCount % 4 === 3) {
-      maybeCreateThreadFromConversation(history, user.clerkId, user.email ?? "system").catch(e =>
+      maybeCreateThreadFromConversation(history, user.clerkId, user.id).catch(e =>
         console.error("[auto-thread] background error:", e)
       );
     }
@@ -752,7 +753,7 @@ If NOT worthy (vague, already answered, off-topic), respond with:
 async function maybeCreateThreadFromConversation(
   history: Array<{ role: string; content: string }>,
   clerkId: string,
-  email: string,
+  userId: number,
 ) {
   try {
     const resp = await openai.chat.completions.create({
@@ -783,7 +784,7 @@ async function maybeCreateThreadFromConversation(
       return;
     }
 
-    const username = email.split("@")[0] ?? "user";
+    const username = anonHandle(userId);
     await db.insert(threads).values({
       question,
       description: description || null,

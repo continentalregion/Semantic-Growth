@@ -307,6 +307,14 @@ router.post("/battles/guest/:matchId/turn", async (req, res) => {
       res.status(409).json({ error: "Max turns reached", code: "MAX_TURNS" }); return;
     }
 
+    // Same IP rate-limit check enforced on /start — a guest could otherwise
+    // burn through unlimited sparring-turn LLM calls on a single match without
+    // ever hitting the per-IP daily start limit.
+    const ip = getClientIp(req as Parameters<typeof getClientIp>[0]);
+    if (!(await checkRateLimit(ip))) {
+      res.status(429).json({ error: "Daily guest limit reached", code: "RATE_LIMIT" }); return;
+    }
+
     if (!(await checkGuestBudget())) {
       res.status(503).json({ error: "Budget exhausted", code: "BUDGET_EXHAUSTED" }); return;
     }
@@ -419,27 +427,40 @@ router.post("/battles/guest/:matchId/complete", async (req, res) => {
     // Score: guest (slot 1) vs AI (slot 2)
     const aiText = aiEntry.userText ?? "";
     let comparison: PvpComparison;
-    try {
-      const evaln = await evaluatePvpBattle(match.theme, userText, aiText);
-      const reasoning = evaln.outcome.winner === "tie"
-        ? "Le due conversazioni sono risultate equivalenti per densità e forza argomentativa."
-        : `La conversazione vincente è risultata più densa e convincente (scarto di ${Math.abs(evaln.outcome.margin).toFixed(1)} punti).`;
-      comparison = {
-        winner:        evaln.outcome.winner,
-        reasoning,
-        slot1RawScore: evaln.outcome.slot1RawScore,
-        slot2RawScore: evaln.outcome.slot2RawScore,
-      };
-      await chargeGuestBudget(COST_SCORING_CENTS);
-    } catch (err) {
-      console.error("[guest] scoring error — using length fallback", err);
+    const lengthFallback = (): PvpComparison => {
       const myLen = userText.length, aiLen = aiText.length;
-      comparison = {
+      return {
         winner:        myLen > aiLen ? "slot1" : myLen < aiLen ? "slot2" : "tie",
         reasoning:     "Valutazione automatica basata sulla densità argomentativa.",
         slot1RawScore: Math.min(100, Math.round(myLen / 4)),
         slot2RawScore: Math.min(100, Math.round(aiLen / 4)),
       };
+    };
+    // Check the budget BEFORE spending on the scoring call — previously this was
+    // only charged after a successful call, so an already-exhausted budget was
+    // never actually enforced here. A guest's battle must still resolve (never
+    // left half-finished), so on exhaustion we go straight to the same
+    // length-based fallback used on LLM failure, instead of blocking.
+    if (!(await checkGuestBudget())) {
+      console.warn("[guest] budget exhausted before scoring — using length fallback");
+      comparison = lengthFallback();
+    } else {
+      try {
+        const evaln = await evaluatePvpBattle(match.theme, userText, aiText);
+        const reasoning = evaln.outcome.winner === "tie"
+          ? "Le due conversazioni sono risultate equivalenti per densità e forza argomentativa."
+          : `La conversazione vincente è risultata più densa e convincente (scarto di ${Math.abs(evaln.outcome.margin).toFixed(1)} punti).`;
+        comparison = {
+          winner:        evaln.outcome.winner,
+          reasoning,
+          slot1RawScore: evaln.outcome.slot1RawScore,
+          slot2RawScore: evaln.outcome.slot2RawScore,
+        };
+        await chargeGuestBudget(COST_SCORING_CENTS);
+      } catch (err) {
+        console.error("[guest] scoring error — using length fallback", err);
+        comparison = lengthFallback();
+      }
     }
 
     const tie       = comparison.winner === "tie";
