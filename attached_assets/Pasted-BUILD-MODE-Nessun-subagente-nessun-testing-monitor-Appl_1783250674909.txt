@@ -1,0 +1,27 @@
+BUILD MODE. Nessun subagente, nessun testing monitor. Applica i fix in quest'ordine, confermando ognuno con un breve diff prima di passare al successivo.
+
+FIX 1 — CRITICO: /translate senza auth, rate limit, né cache server (routes/translate.ts)
+Chiunque può chiamare POST /api/translate senza autenticazione, senza limiti, generando chiamate GPT-4o-mini illimitate a pagamento (il frontend lo invoca automaticamente da i18n.ts ogni volta che un visitatore seleziona una lingua non in cache locale).
+- Aggiungi una tabella Postgres `translation_cache (lang TEXT, key TEXT, value TEXT, PRIMARY KEY(lang,key))` (o una riga per lingua con blob JSON) e, prima di chiamare l'LLM, controlla se la traduzione per quella lingua esiste già server-side: se sì, rispondi da cache senza chiamare OpenAI. Questo risolve sia l'abuso che la latenza per utenti legittimi.
+- Aggiungi rate limiting per IP riusando esattamente lo stesso pattern già presente in guestBattles.ts/auth.ts (tabella tipo `translate_rate_limits`, es. max 5 richieste/ora per IP — è comunque un'operazione rara per utente reale grazie alla cache del punto sopra).
+- Valida che `translations` non superi una dimensione massima ragionevole (es. rifiuta se il flatten supera 500 chiavi) per bloccare payload malevoli oversize.
+
+FIX 2 — Webhook Stripe punta al dominio sbagliato (index.ts, righe ~67-77)
+`const domain = process.env.REPLIT_DOMAINS?.split(",")[0]` non garantisce il dominio di produzione sgindex.work — può risolvere a un dominio interno/preview di Replit.
+- Introduci una variabile d'ambiente esplicita `PUBLIC_WEBHOOK_DOMAIN` (da settare manualmente a sgindex.work nei secrets di produzione).
+- Usa quella se presente; fai fallback a REPLIT_DOMAINS solo se assente (utile in dev/preview).
+- Logga chiaramente quale dominio è stato usato per la registrazione del webhook ad ogni boot, così è verificabile nei log.
+
+FIX 3 — Chiamata di scoring battaglie non contata nel budget (battleBudget.ts + battleScoring.ts/pvpBattleScoring.ts)
+Il budget di €50/mese per le battaglie auth copre tema+argomento+sparring ma NON la chiamata di scoring finale (che invece i guest tracciano, a costo 0.12¢). Aggiungi una nuova costante COST_BATTLE_SCORING_CENTS (usa lo stesso valore 0.12 già usato per i guest, o ricalibra se il prompt è diverso) e chiama isBattleBudgetOk()/chargeBattleBudget() anche nel punto in cui avviene lo scoring finale in battles.ts, sia per il flusso vs-AI che per quello PvP.
+
+FIX 4 — Costi guest vs auth disallineati per le stesse chiamate LLM
+Le costanti in guestBattles.ts (COST_AI_ARGUMENT_CENTS=0.03, COST_SPARRING_TURN_CENTS=0.05) e battleBudget.ts (COST_BATTLE_ARGUMENT_CENTS=0.027, COST_BATTLE_SPARRING_CENTS=0.018) stimano la stessa identica chiamata gpt-4o-mini con valori diversi. Consolida in un'unica fonte condivisa (es. sposta tutte le costanti COST_BATTLE_* in config/pricing.ts) e usa gli stessi valori in entrambi i file.
+
+FIX 5 — Missione "SGI Climber"/"Growth Champion" trivializzata (routes/gamification.ts, riga ~104)
+`Math.max(1, Math.round(event.sgiDelta))` fa contare qualsiasi delta positivo, anche minuscolo, come +1 pieno verso l'obiettivo "guadagna 5 punti SGI in una settimana". Cambia la logica per accumulare il delta REALE (non arrotondato a un minimo di 1): tieni un accumulatore frazionario e converti in intero solo quando aggiorni `missions.progress` (colonna intera), es. `newProgress = Math.min(m.progress + Math.max(0, event.sgiDelta), m.target)` con arrotondamento solo al momento dello store, senza il floor artificiale a 1.
+
+FIX 6 — Badge "Mind Changer" mai assegnabile (routes/users.ts, funzione checkAndAwardBadges)
+Il badge esiste in BADGE_DEFINITIONS (revisionSignal > 7.0) ma non ha logica di assegnazione. Aggiungi il controllo in checkAndAwardBadges: se l'ultimo snapshot scored in questa conversazione ha revisionSignal > 7.0 e l'utente non ha già il badge, assegnalo (stesso pattern degli altri controlli in quella funzione — richiede passare revisionSignal tra i `dims` già forniti alla funzione da chat.ts).
+
+Dopo tutti i fix: git add, commit descrittivo, push. Nessun test automatico — solo verifica manuale/log mirati sui punti toccati.

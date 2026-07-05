@@ -395,7 +395,7 @@ export async function updateLeaderboardRank(userId: number, snapshotId?: number)
   }
 }
 
-export async function checkAndAwardBadges(userId: number, dims: { interdisciplinaryScore: number; abstractionLevel: number }, conversationCount: number, domainsInConversation: string[]): Promise<void> {
+export async function checkAndAwardBadges(userId: number, dims: { interdisciplinaryScore: number; abstractionLevel: number; revisionSignal?: number }, conversationCount: number, domainsInConversation: string[]): Promise<void> {
   const existingBadges = await db.select({ badgeKey: badges.badgeKey }).from(badges).where(eq(badges.userId, userId));
   const existing = new Set(existingBadges.map(b => b.badgeKey));
 
@@ -404,6 +404,10 @@ export async function checkAndAwardBadges(userId: number, dims: { interdisciplin
   if (!existing.has("semantic_explorer") && conversationCount >= 5) toAward.push("semantic_explorer");
   if (!existing.has("systems_thinker") && dims.interdisciplinaryScore > 7.5) toAward.push("systems_thinker");
   if (!existing.has("abstract_reasoner") && dims.abstractionLevel > 8.0) toAward.push("abstract_reasoner");
+  // "Mind Changer" — sgiScoring.ts BADGE_DEFINITIONS.mind_changer ("Revised your
+  // position with a revisionSignal above 7.0") was never actually checked here,
+  // so it was permanently unassignable despite being defined.
+  if (!existing.has("mind_changer") && (dims.revisionSignal ?? 0) > 7.0) toAward.push("mind_changer");
 
   if (!existing.has("cross_domain_architect") && new Set(domainsInConversation).size >= 5) {
     toAward.push("cross_domain_architect");

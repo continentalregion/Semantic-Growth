@@ -92,6 +92,7 @@ export async function updateMissionProgress(userId: number, event: {
   for (const mission of activeMissions) {
     const m = { ...mission };
     let newProgress = m.progress;
+    let newProgressRaw = m.progressRaw;
 
     if (event.conversationCompleted && m.title === "First Steps") newProgress = Math.min(m.progress + 1, m.target);
     if (event.conversationCompleted && m.title === "Scholar of the Month") newProgress = Math.min(m.progress + 1, m.target);
@@ -101,17 +102,23 @@ export async function updateMissionProgress(userId: number, event: {
       newProgress = Math.min(m.progress + increment, m.target);
     }
     if (event.sgiDelta && event.sgiDelta > 0 && (m.title === "SGI Climber" || m.title === "Growth Champion")) {
-      newProgress = Math.min(m.progress + Math.max(1, Math.round(event.sgiDelta)), m.target);
+      // Accumulate the REAL fractional delta (e.g. +0.3, +0.8 SGI points) instead
+      // of forcing every positive event to count as a full point — that previously
+      // let a mission like "gain 5 SGI points" complete in 5 tiny +0.1 nudges.
+      // `progress` (integer column, drives target comparisons/UI) is derived by
+      // flooring the raw accumulator, so partial progress isn't lost between calls.
+      newProgressRaw = Math.min(m.progressRaw + event.sgiDelta, m.target);
+      newProgress = Math.min(Math.floor(newProgressRaw), m.target);
     }
     if (event.streakDays && m.title === "Daily Streak") newProgress = Math.min(event.streakDays, m.target);
 
     // `missions.progress` is an integer column — always store whole numbers.
     newProgress = Math.round(newProgress);
 
-    if (newProgress !== m.progress) {
+    if (newProgress !== m.progress || newProgressRaw !== m.progressRaw) {
       const completed = newProgress >= m.target ? 1 : 0;
       await db.update(missions)
-        .set({ progress: newProgress, completed })
+        .set({ progress: newProgress, progressRaw: newProgressRaw, completed })
         .where(eq(missions.id, m.id));
 
       if (completed && !m.completed) {

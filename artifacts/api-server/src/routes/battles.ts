@@ -32,6 +32,7 @@ import {
   COST_BATTLE_THEME_CENTS,
   COST_BATTLE_ARGUMENT_CENTS,
   COST_BATTLE_SPARRING_CENTS,
+  COST_BATTLE_SCORING_CENTS,
 } from "../lib/battleBudget.js";
 import { checkUserBattleAllowed, recordUserBattleUsage } from "../lib/userBattleUsage.js";
 
@@ -334,8 +335,11 @@ async function resolveMatch(matchId: string): Promise<void> {
       return;
     }
 
-    // Both have real content → head-to-head dual scoring.
+    // Both have real content → head-to-head dual scoring. This is the SAME
+    // call site for the vs-AI flow too (the AI opponent is just slot2's
+    // BattleEntry), so tracking it here covers both flows in one place.
     const evaln = await evaluatePvpBattle(match.theme, t1, t2);
+    void chargeBattleBudget(COST_BATTLE_SCORING_CENTS);
     const reasoning = evaln.outcome.winner === "tie"
       ? "Le due conversazioni sono risultate equivalenti per densità e forza argomentativa."
       : `La conversazione vincente è risultata più densa e convincente (scarto di ${Math.abs(evaln.outcome.margin).toFixed(1)} punti).`;

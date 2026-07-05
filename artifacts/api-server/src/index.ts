@@ -69,14 +69,22 @@ async function initStripe() {
     await cleanupForeignModeStripeData();
 
     const stripeSync = await getStripeSync();
-    const domain = process.env.REPLIT_DOMAINS?.split(",")[0];
+    // PUBLIC_WEBHOOK_DOMAIN must be set explicitly in production secrets to the
+    // real public domain (e.g. sgindex.work). REPLIT_DOMAINS is NOT guaranteed
+    // to resolve to that domain — it can be an internal/preview Replit domain,
+    // which would register the Stripe webhook against the wrong host. Fall
+    // back to REPLIT_DOMAINS only when PUBLIC_WEBHOOK_DOMAIN is unset (dev/preview).
+    const explicitDomain = process.env.PUBLIC_WEBHOOK_DOMAIN?.trim();
+    const domain = explicitDomain || process.env.REPLIT_DOMAINS?.split(",")[0];
+    const domainSource = explicitDomain ? "PUBLIC_WEBHOOK_DOMAIN" : "REPLIT_DOMAINS";
     if (domain) {
+      logger.info({ domain, source: domainSource }, "[stripe] registering managed webhook using domain");
       const webhook = await stripeSync.findOrCreateManagedWebhook(
         `https://${domain}/api/stripe/webhook`,
       );
       logger.info({ url: webhook?.url ?? "ok" }, "[stripe] managed webhook ready");
     } else {
-      logger.warn("[stripe] REPLIT_DOMAINS missing — skipping managed webhook setup");
+      logger.warn("[stripe] no domain available (PUBLIC_WEBHOOK_DOMAIN and REPLIT_DOMAINS both missing) — skipping managed webhook setup");
     }
 
     stripeSync

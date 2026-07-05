@@ -16,9 +16,16 @@ import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import { BATTLE_MONTHLY_BUDGET_CENTS } from "../config/pricing.js";
 
-export const COST_BATTLE_THEME_CENTS    = 0.022;  // gpt-4o-mini ~720 tokens
-export const COST_BATTLE_ARGUMENT_CENTS = 0.027;  // gpt-4o-mini ~900 tokens
-export const COST_BATTLE_SPARRING_CENTS = 0.018;  // gpt-4o-mini ~600 tokens blended
+// Re-exported for existing call sites (battles.ts) — the actual constants
+// now live in config/pricing.ts, the single shared source of truth used by
+// both the auth-user flow (this file) and the guest flow (guestBattles.ts),
+// since both invoke the exact same LLM calls under the hood.
+export {
+  COST_BATTLE_THEME_CENTS,
+  COST_BATTLE_ARGUMENT_CENTS,
+  COST_BATTLE_SPARRING_CENTS,
+  COST_BATTLE_SCORING_CENTS,
+} from "../config/pricing.js";
 
 let tableReady = false;
 

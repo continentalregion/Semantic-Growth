@@ -1,7 +1,82 @@
 import { Router } from "express";
 import { openai } from "@workspace/integrations-openai-ai-server";
+import { db } from "@workspace/db";
+import { sql } from "drizzle-orm";
 
 const router = Router();
+
+// ─── Server-side translation cache + rate limit (Postgres-backed) ────────────
+// Anti-abuse: /translate is unauthenticated by design (frontend calls it the
+// first time any visitor picks a non-cached language). Without a server-side
+// cache, every visitor re-triggers a paid GPT-4o-mini call for the SAME
+// language, and without a rate limit a scripted client can drive unlimited
+// spend. Tables created idempotently at module load, same pattern as
+// auth_rate_limits / guest_rate_limits in auth.ts / guestBattles.ts.
+const TRANSLATE_MAX_REQUESTS = 5; // per IP, per 1-hour window
+const MAX_TRANSLATION_KEYS = 500;
+
+void (async () => {
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS translation_cache (
+        lang TEXT PRIMARY KEY,
+        value JSONB NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS translate_rate_limits (
+        ip      TEXT NOT NULL,
+        win_key TEXT NOT NULL,
+        count   INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (ip, win_key)
+      )
+    `);
+  } catch (err) {
+    console.error("[translate] table init error:", err);
+  }
+})();
+
+function getClientIp(req: { ip?: string; headers: Record<string, string | string[] | undefined> }): string {
+  const forwarded = req.headers["x-forwarded-for"];
+  const first = Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(",")[0];
+  return first?.trim() ?? req.ip ?? "unknown";
+}
+
+function currentWindowKey(): string {
+  return new Date().toISOString().slice(0, 13); // YYYY-MM-DDTHH — 1-hour window
+}
+
+async function checkTranslateRateLimit(ip: string): Promise<boolean> {
+  const win = currentWindowKey();
+  const row = await db.execute(sql`
+    SELECT count FROM translate_rate_limits WHERE ip = ${ip} AND win_key = ${win}
+  `);
+  const count = (row.rows?.[0] as { count?: number } | undefined)?.count ?? 0;
+  return count < TRANSLATE_MAX_REQUESTS;
+}
+
+async function incrementTranslateRateLimit(ip: string): Promise<void> {
+  const win = currentWindowKey();
+  await db.execute(sql`
+    INSERT INTO translate_rate_limits (ip, win_key, count) VALUES (${ip}, ${win}, 1)
+    ON CONFLICT (ip, win_key) DO UPDATE SET count = translate_rate_limits.count + 1
+  `);
+}
+
+async function getCachedTranslation(lang: string): Promise<unknown | null> {
+  const row = await db.execute(sql`
+    SELECT value FROM translation_cache WHERE lang = ${lang}
+  `);
+  return (row.rows?.[0] as { value?: unknown } | undefined)?.value ?? null;
+}
+
+async function saveCachedTranslation(lang: string, value: unknown): Promise<void> {
+  await db.execute(sql`
+    INSERT INTO translation_cache (lang, value, updated_at) VALUES (${lang}, ${JSON.stringify(value)}::jsonb, now())
+    ON CONFLICT (lang) DO UPDATE SET value = ${JSON.stringify(value)}::jsonb, updated_at = now()
+  `);
+}
 
 const LANGUAGE_NAMES: Record<string, string> = {
   it: "Italian", en: "English", es: "Spanish", fr: "French",
@@ -60,10 +135,32 @@ router.post("/translate", async (req, res) => {
       return res.status(400).json({ error: "translations object required" });
     }
 
-    const langName = LANGUAGE_NAMES[targetLanguage.toLowerCase()] ?? targetLanguage;
+    const lang = targetLanguage.toLowerCase().trim();
+
+    // Server-side cache — the vast majority of requests are the SAME language
+    // requested by many different visitors, so this alone eliminates most
+    // paid LLM calls regardless of the per-IP rate limit below.
+    const cached = await getCachedTranslation(lang);
+    if (cached) {
+      console.info(`[translate] cache hit for ${lang}`);
+      return res.json({ language: targetLanguage, translations: cached });
+    }
+
+    // Only requests that actually reach the LLM (cache miss) count against
+    // the rate limit — legitimate repeat visitors never hit it.
+    const ip = getClientIp(req as Parameters<typeof getClientIp>[0]);
+    if (!(await checkTranslateRateLimit(ip))) {
+      return res.status(429).json({ error: "Too many translation requests, try again later", code: "RATE_LIMIT" });
+    }
+    await incrementTranslateRateLimit(ip);
+
+    const langName = LANGUAGE_NAMES[lang] ?? targetLanguage;
 
     const flat = flattenObject(translations);
     const total = Object.keys(flat).length;
+    if (total > MAX_TRANSLATION_KEYS) {
+      return res.status(400).json({ error: `translations payload too large (${total} > ${MAX_TRANSLATION_KEYS} keys)` });
+    }
 
     const CHUNK_SIZE = 80;
     const keys = Object.keys(flat);
@@ -115,7 +212,8 @@ Rules:
 
     const result = unflattenObject(translatedFlat);
 
-    console.info(`[translate] translated ${total} keys to ${langName}`);
+    await saveCachedTranslation(lang, result);
+    console.info(`[translate] translated ${total} keys to ${langName} (cached for future requests)`);
     return res.json({ language: targetLanguage, translations: result });
   } catch (err: unknown) {
     console.error("[translate] error:", err);

@@ -95,10 +95,23 @@ export const BATTLE_LIMIT_WARNING_RATIO = 0.75;
 
 // ─── Budget mensile chiamate LLM per battle auth-user ────────────────────────
 // Copre: generateBattleTheme, generateAiArgument (auto-escalation + ai-join),
-// e sparring turns. Separato dal GLOBAL_MONTHLY_BUDGET_CENTS (chat only).
+// sparring turns, e lo scoring finale (evaluatePvpBattle). Separato dal
+// GLOBAL_MONTHLY_BUDGET_CENTS (chat only).
 // Formula: ~0.07¢/battle × N_battles. A 1000 battle/mese = €0.70 → margine ampio.
 // Alzare proporzionalmente al crescere del traffico battle.
 export const BATTLE_MONTHLY_BUDGET_CENTS = 5_000;  // €50/mese
+
+// ─── Costi per singola chiamata LLM nel flusso battle (¢, gpt-4o-mini) ───────
+// FONTE UNICA: guest (guestBattles.ts) e utenti autenticati (battleBudget.ts)
+// invocano le STESSE funzioni condivise (generateAiArgument in aiOpponent.ts,
+// evaluatePvpBattle in pvpBattleScoring.ts, prompt di sparring quasi identico)
+// — quindi devono stimare lo stesso costo. In precedenza erano duplicate con
+// valori diversi (0.03 vs 0.027, 0.05 vs 0.018), disallineando le due stime
+// per la stessa identica chiamata.
+export const COST_BATTLE_THEME_CENTS    = 0.022;  // generateBattleTheme, ~720 token
+export const COST_BATTLE_ARGUMENT_CENTS = 0.03;   // generateAiArgument, ~900 token
+export const COST_BATTLE_SPARRING_CENTS = 0.05;   // turno di sparring, ~600 token blended
+export const COST_BATTLE_SCORING_CENTS  = 0.12;   // evaluatePvpBattle, dual-scoring
 
 // ─── Valvola globale di spesa mensile cross-tenant (Fase 5 — anti-abuso) ──────
 // Questa valvola è un firewall di emergenza, NON il meccanismo principale di

@@ -629,6 +629,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       await checkAndAwardBadges(user.id, {
         interdisciplinaryScore: scoreResult.dimensions.interdisciplinaryScore,
         abstractionLevel: scoreResult.dimensions.abstractionLevel,
+        revisionSignal: scoreResult.dimensions.revisionSignal,
       }, convoCount, scoreResult.domains);
     } catch (err) {
       console.error("[gamification] checkAndAwardBadges failed:", err);

@@ -33,6 +33,11 @@ import { generateBattleTheme } from "./battles.js";
 import { randomUUID } from "crypto";
 import { users } from "@workspace/db";
 import { recordGuestBattleUsage, getGuestFirstBattleAt, clearGuestUsage } from "../lib/userBattleUsage.js";
+import {
+  COST_BATTLE_ARGUMENT_CENTS as COST_AI_ARGUMENT_CENTS,
+  COST_BATTLE_SPARRING_CENTS as COST_SPARRING_TURN_CENTS,
+  COST_BATTLE_SCORING_CENTS as COST_SCORING_CENTS,
+} from "../config/pricing.js";
 
 const router = Router();
 
@@ -45,13 +50,13 @@ const TURN_WINDOW_S                   = 390;     // same server-enforced window
 const ACTIVE_TTL_MS                   = 24 * 60 * 60 * 1000;
 const MIN_CHARS                       = 30;
 
-// Cost estimates in ¢ (gpt-4o-mini blended ~0.03¢/1K tokens).
-// Budget is charged AFTER each successful LLM call; checked BEFORE.
+// Cost estimates (¢) — imported from config/pricing.ts, the single shared
+// source of truth also used by the auth-user flow (battleBudget.ts), since
+// guest and auth invoke the exact same underlying LLM calls (generateAiArgument,
+// evaluatePvpBattle, near-identical sparring prompt). Local aliases kept so the
+// rest of this file (and its cost-tracking semantics below) doesn't change.
 // Like theme-generation, these are platform costs NOT charged to aiCostCents —
 // guest users don't have a DB user record or a per-user budget.
-const COST_AI_ARGUMENT_CENTS   = 0.03;
-const COST_SPARRING_TURN_CENTS = 0.05;
-const COST_SCORING_CENTS       = 0.12;
 
 // ─── Guest theme pool (curated subset of the main pool) ───────────────────────
 const GUEST_THEME_POOL: Array<{ theme: string; category: string }> = [

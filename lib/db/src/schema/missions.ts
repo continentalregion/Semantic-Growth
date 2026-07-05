@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, timestamp, doublePrecision } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { users } from "./users";
@@ -10,6 +10,11 @@ export const missions = pgTable("missions", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   progress: integer("progress").notNull().default(0),
+  // Raw fractional accumulator for delta-based missions (e.g. "gain N SGI
+  // points"), so small increments (+0.3, +0.8...) aren't lost to integer
+  // rounding on `progress`. Unused (stays 0) for counter-type missions,
+  // where `progress` is incremented directly by whole steps.
+  progressRaw: doublePrecision("progress_raw").notNull().default(0),
   target: integer("target").notNull(),
   completed: integer("completed").notNull().default(0),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
