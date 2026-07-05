@@ -9,6 +9,15 @@ import { getOrCreateUser } from "../lib/getOrCreateUser";
 
 const router = Router();
 
+// Shared percentile formula: "you're ahead of X% of tracked users", derived
+// from a REAL rank + total (not to be confused with the hypothetical
+// percentile→rank projection formula used by /predictions, which runs the
+// inverse direction on a simulated future score and is intentionally kept
+// separate).
+function computePercentile(rank: number, total: number): number {
+  return Math.round((1 - rank / total) * 1000) / 10;
+}
+
 router.post("/users/me", async (req, res) => {
   try {
     const authUserId = getAuth(req).userId;
@@ -263,20 +272,27 @@ async function buildUserProfile(userId: number) {
   const sgiMonthlyDelta = snapshotMonth ? Math.round((user.sgiScore - snapshotMonth.score) * 10) / 10 : null;
 
   const rank = user.globalRank;
-  const percentile = rank ? Math.round((1 - rank / totalUsers) * 1000) / 10 : null;
+  const percentile = rank ? computePercentile(rank, totalUsers) : null;
 
-  const prevRankEntry = await db.select().from(sgiSnapshots)
-    .where(and(eq(sgiSnapshots.userId, userId), gte(sgiSnapshots.timestamp, monthAgo)))
+  // Real historical rank, not reconstructed from score: the oldest snapshot
+  // from the last 30 days that actually recorded a global_rank. Snapshots are
+  // additive-only (see sgiSnapshots.globalRank), so users who haven't
+  // accumulated 30 days of ranked history yet simply get null — no invented
+  // number.
+  const [oldestRankedSnapshot] = await db.select({ globalRank: sgiSnapshots.globalRank })
+    .from(sgiSnapshots)
+    .where(and(
+      eq(sgiSnapshots.userId, userId),
+      gte(sgiSnapshots.timestamp, monthAgo),
+      sql`${sgiSnapshots.globalRank} IS NOT NULL`,
+    ))
     .orderBy(asc(sgiSnapshots.timestamp))
     .limit(1);
 
-  let rankChange30d: number | null = null;
-  if (prevRankEntry.length > 0 && rank) {
-    const oldScore = prevRankEntry[0]!.score;
-    const oldPercentile = oldScore / 100;
-    const oldRank = Math.round(totalUsers * (1 - oldPercentile));
-    rankChange30d = oldRank - rank;
-  }
+  const rankChange30d: number | null =
+    oldestRankedSnapshot?.globalRank != null && rank != null
+      ? oldestRankedSnapshot.globalRank - rank
+      : null;
 
   // Latest snapshot → macro-dimensions breakdown for dashboard
   const latestSnap = snapshots[0];
@@ -315,7 +331,7 @@ async function buildUserProfile(userId: number) {
   };
 }
 
-export async function updateLeaderboardRank(userId: number): Promise<void> {
+export async function updateLeaderboardRank(userId: number, snapshotId?: number): Promise<void> {
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!user) return;
 
@@ -328,7 +344,38 @@ export async function updateLeaderboardRank(userId: number): Promise<void> {
 
   const totalCount = await db.select({ count: sql<number>`count(*)` }).from(leaderboardEntries);
   const total = Number(totalCount[0]?.count ?? 1);
-  const percentile = Math.round((1 - rank / total) * 1000) / 10;
+  const percentile = computePercentile(rank, total);
+
+  // Record this rank in the history trail (additive, no historical backfill)
+  // so rankChange30d can later be computed from a real past rank instead of
+  // being reconstructed from the score. If the caller just inserted a
+  // dimension-rich snapshot for this same scoring event (e.g. chat.ts), we
+  // piggyback the rank onto THAT row instead of inserting a second one —
+  // a dedicated zero-dimension row would otherwise become the "latest"
+  // snapshot and blank out the macro-dimensions breakdown on the dashboard.
+  // Callers with no associated snapshot (new user creation, battle XP) fall
+  // back to a lightweight dedicated insert.
+  if (snapshotId != null) {
+    await db.update(sgiSnapshots).set({ globalRank: rank }).where(eq(sgiSnapshots.id, snapshotId));
+  } else {
+    await db.insert(sgiSnapshots).values({
+      userId,
+      score: user.sgiScore,
+      globalRank: rank,
+    });
+  }
+
+  const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const [oldestRankedSnapshot] = await db.select({ globalRank: sgiSnapshots.globalRank })
+    .from(sgiSnapshots)
+    .where(and(
+      eq(sgiSnapshots.userId, userId),
+      gte(sgiSnapshots.timestamp, monthAgo),
+      sql`${sgiSnapshots.globalRank} IS NOT NULL`,
+    ))
+    .orderBy(asc(sgiSnapshots.timestamp))
+    .limit(1);
+  const rankChange30d = oldestRankedSnapshot?.globalRank != null ? oldestRankedSnapshot.globalRank - rank : null;
 
   const displayName = `User_${userId.toString().padStart(6, "0")}`;
 
@@ -339,11 +386,11 @@ export async function updateLeaderboardRank(userId: number): Promise<void> {
 
   if (existing) {
     await db.update(leaderboardEntries)
-      .set({ sgiScore: user.sgiScore, rank, percentile, updatedAt: new Date() })
+      .set({ sgiScore: user.sgiScore, rank, percentile, rankChange30d, updatedAt: new Date() })
       .where(eq(leaderboardEntries.id, existing.id));
   } else {
     await db.insert(leaderboardEntries).values({
-      userId, displayName, sgiScore: user.sgiScore, rank, percentile, isAnonymous: 1
+      userId, displayName, sgiScore: user.sgiScore, rank, percentile, rankChange30d, isAnonymous: 1
     });
   }
 }

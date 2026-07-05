@@ -494,7 +494,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     const sgiDelta = Math.round((newSgi - oldSgi) * 10) / 10;
 
     await db.update(users).set({ sgiScore: newSgi, updatedAt: new Date() }).where(eq(users.id, user.id));
-    await db.insert(sgiSnapshots).values({
+    const [insertedSnapshot] = await db.insert(sgiSnapshots).values({
       userId: user.id,
       conversationId: convoId,
       score: newSgi,
@@ -507,7 +507,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       stability: scoreResult.dimensions.stability,
       continuity: scoreResult.dimensions.continuity,
       revisionSignal: scoreResult.dimensions.revisionSignal,
-    });
+    }).returning({ id: sgiSnapshots.id });
 
     // Every 5 scored messages WITHIN this conversation, compute an early/late
     // progress-card trend. Pure SQL aggregation over already-computed snapshots —
@@ -651,7 +651,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     }
 
     try {
-      await updateLeaderboardRank(user.id);
+      await updateLeaderboardRank(user.id, insertedSnapshot?.id);
     } catch (err) {
       console.error("[gamification] updateLeaderboardRank failed:", err);
     }

@@ -1,0 +1,28 @@
+BUILD MODE. Nessun subagente, nessun testing monitor. Applica questi fix in ordine, uno alla volta, e conferma ogni fix con un breve diff prima di passare al successivo.
+
+FIX 1 — Label percentile invertita
+File: artifacts/sgi-app/src/pages/dashboard.tsx (riga ~206)
+Il campo profile.percentile significa "% di utenti che superi" (basso = sei indietro).
+Sostituisci la chiave i18n "dashboard.topGlobally" con "dashboard.surpassed" (già esistente e già tradotta IT/EN/ES in i18n.ts, usata correttamente in leaderboard.tsx). Verifica che il valore passato sia lo stesso (val/pct) e rimuovi ogni riferimento a "topGlobally" se non più usato altrove.
+
+FIX 2 — rankChange30d fittizio (users.ts, righe 268-278)
+Il calcolo attuale ricostruisce un "rank di 30 giorni fa" con oldScore/100, incompatibile con la formula del rank attuale (rank/totalUsers) e senza alcun dato storico reale.
+- Aggiungi una colonna `global_rank` (integer, nullable) alla tabella sgi_snapshots (migration Drizzle additiva, nessun backfill storico).
+- In updateLeaderboardRank() (users.ts riga 318), dopo aver calcolato il nuovo rank, salva anche uno snapshot con quel rank (puoi riusare l'insert esistente in sgi_snapshots se già presente al momento dello scoring, altrimenti crea un insert leggero dedicato).
+- In getUserProfile, sostituisci il blocco oldPercentile/oldRank con una query reale: prendi lo snapshot più vecchio con timestamp >= 30 giorni fa che abbia global_rank non nullo, e calcola rankChange30d = oldRank - rank.
+- Se non esiste ancora nessuno snapshot storico con rank (utente nuovo o dati non ancora accumulati), ritorna rankChange30d = null e NON mostrare la card invece di inventare un numero.
+
+FIX 3 — leaderboardEntries.rankChange30d mai scritto
+File: artifacts/api-server/src/routes/users.ts, funzione updateLeaderboardRank (righe 318-349)
+Il campo rankChange30d non viene mai settato in insert/update su leaderboardEntries — resta null per utenti reali per sempre. Dopo il FIX 2, usa la stessa fonte (global_rank storico da sgi_snapshots) per calcolare rankChange30d anche qui, e includilo sia nell'update che nell'insert di leaderboardEntries.
+
+FIX 4 — Consolidare le formule di percentile duplicate
+Nello stesso file users.ts ci sono 4 punti che calcolano percentile in modo diverso/duplicato (righe ~212-213, ~266, ~331, ~506-507). Estrai un'unica funzione condivisa computePercentile(rank, total) e sostituisci tutte le occorrenze con quella. Non cambiare la formula esistente in uso ai punti 266/331 (è quella corretta e già usata da leaderboard.tsx) — allinea solo i punti 212-213 e 506-507 se logicamente rappresentano lo stesso concetto; se invece servono a uno scopo diverso (es. stima pre-onboarding), lascia un commento che lo spiega esplicitamente per evitare confusione futura.
+
+FIX 5 — Verifica sync repo/deploy (solo diagnosi, non toccare se già ok)
+Controlla se questi due elementi sono presenti nel codice attualmente deployato su Replit ma NON in questo checkout GitHub (probabile sessione non pushata):
+a) artifacts/api-server/src/lib/progressCard.ts — HIGHLIGHT_CANDIDATE_METRICS ha solo 3 metriche; dovrebbe averne 7 (esclude revisionSignal).
+b) artifacts/api-server/src/routes/leaderboard.ts — dovrebbe avere caching in-memory con TTL 3 minuti sulla query di percentile/leaderboard; attualmente zero cache.
+Se il codice Replit ha già questi due elementi e GitHub è solo indietro, fai git push del branch corrente PRIMA di procedere con gli altri fix, così l'audit successivo lavora su stato reale. Se invece anche Replit non li ha, segnalamelo e basta, non implementarli in questa sessione.
+
+Dopo tutti i fix: git status, git add, git commit con messaggio descrittivo, git push. Nessun test automatico, nessun subagente — solo build e verifica manuale con qualche log/console.log temporaneo se necessario per confermare i valori.

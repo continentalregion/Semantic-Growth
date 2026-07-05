@@ -203,7 +203,7 @@ export default function Dashboard() {
               </div>
               <div className="text-xs text-muted-foreground mb-2">{t("dashboard.sgiPoints30")}</div>
               <div className="text-xs text-muted-foreground">
-                {t("dashboard.topGlobally", { val: profile?.percentile?.toFixed(1) ?? '--' })}
+                {t("leaderboard.surpassed", { pct: profile?.percentile?.toFixed(1) ?? '--' })}
               </div>
             </CardContent>
           </Card>

@@ -23,6 +23,11 @@ export const sgiSnapshots = pgTable("sgi_snapshots", {
   // Nullable, additive — lets the progress-card feature aggregate via plain SQL,
   // no LLM re-scoring and no re-derivation from the EMA-smoothed `score` above.
   rawScore: real("raw_score"),
+  // Nullable, additive — the user's global leaderboard rank AT THE TIME of this
+  // snapshot. Populated going forward only (no historical backfill), so that
+  // rankChange30d can be computed from a real historical rank instead of being
+  // reconstructed from the score via an incompatible formula.
+  globalRank: integer("global_rank"),
   timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
 });
 
