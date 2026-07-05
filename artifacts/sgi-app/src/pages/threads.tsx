@@ -92,7 +92,7 @@ export default function ThreadsPage() {
 
   function handleShare(battleCardId: string, e: React.MouseEvent) {
     e.stopPropagation();
-    const url = `${window.location.origin}/battle-card/${battleCardId}`;
+    const url = `${window.location.origin}/battle-cards/${battleCardId}`;
     navigator.clipboard.writeText(url).then(() => toast.success(t("threads.linkCopied"))).catch(() => {});
   }
 
@@ -272,7 +272,7 @@ export default function ThreadsPage() {
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <button
-                              onClick={() => setLocation(`/battle-card/${thread.battleCardId}`)}
+                              onClick={() => setLocation(`/battle-cards/${thread.battleCardId}`)}
                               className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
                               style={{ background: "rgba(240,192,64,0.12)", color: "#f0c040", border: "1px solid rgba(240,192,64,0.25)" }}
                               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(240,192,64,0.22)"; }}
