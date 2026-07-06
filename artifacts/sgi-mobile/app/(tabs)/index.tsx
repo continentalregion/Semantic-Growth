@@ -531,7 +531,7 @@ function SendButton({
   );
 }
 
-function MessageBubble({
+const MessageBubble = React.memo(function MessageBubble({
   msg,
   colors,
 }: {
@@ -697,7 +697,7 @@ function MessageBubble({
       </View>
     </View>
   );
-}
+});
 
 const bubbleStyles = StyleSheet.create({
   row: { flexDirection: "row", marginVertical: 4, paddingHorizontal: 12, alignItems: "flex-end" },

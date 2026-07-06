@@ -120,7 +120,7 @@ function timeAgo(dateStr: string, t: ReturnType<typeof useTranslation>["t"]) {
 }
 
 // ─── Conversation bubble ─────────────────────────────────────────────────────
-function Bubble({ m, colors, t }: { m: Msg; colors: ReturnType<typeof useColors>; t: (k: string) => string }) {
+const Bubble = React.memo(function Bubble({ m, colors, t }: { m: Msg; colors: ReturnType<typeof useColors>; t: (k: string) => string }) {
   const mine = m.role === "user";
   return (
     <View style={{ alignItems: mine ? "flex-end" : "flex-start", marginBottom: 10 }}>
@@ -142,7 +142,7 @@ function Bubble({ m, colors, t }: { m: Msg; colors: ReturnType<typeof useColors>
       </View>
     </View>
   );
-}
+});
 
 // ─── Collapsible conversation ────────────────────────────────────────────────
 function Collapsible({ title, accent, messages, colors, t }: {
