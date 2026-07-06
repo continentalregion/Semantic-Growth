@@ -310,7 +310,7 @@ export default function DashboardScreen() {
     query: { enabled: isPremiumOrPro },
   });
 
-  const isLoading = profileLoading || historyLoading;
+  const hasData = profile !== undefined || history !== undefined;
   const isRefreshing = refetchingProfile;
 
   const macro = (profile as unknown as {
@@ -384,7 +384,7 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {isLoading ? (
+      {!hasData ? (
         <View
           style={{
             flex: 1,

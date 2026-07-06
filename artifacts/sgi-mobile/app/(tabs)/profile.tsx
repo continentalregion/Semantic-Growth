@@ -67,7 +67,7 @@ export default function ProfileScreen() {
     await signOut();
   }
 
-  const isLoading = profileLoading || gamLoading;
+  const hasData = profile !== undefined || gamification !== undefined;
 
   return (
     <AnimatedScreen style={{ backgroundColor: colors.background }}>
@@ -91,7 +91,7 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {isLoading ? (
+      {!hasData ? (
         <View style={{ flex: 1, paddingHorizontal: colors.spacing.lg, paddingTop: colors.spacing.lg, gap: colors.spacing.lg }}>
           <SkeletonCard style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }} />
           <SkeletonCard style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }} />

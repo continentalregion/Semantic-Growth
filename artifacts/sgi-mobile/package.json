@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@clerk/expo": "^3.5.2",
+    "@tanstack/query-async-storage-persister": "^5.101.2",
+    "@tanstack/react-query-persist-client": "^5.101.2",
     "expo-secure-store": "^15.0.8",
     "expo-sharing": "~14.0.8",
     "i18next": "^26.3.1",
