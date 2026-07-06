@@ -35,6 +35,8 @@ import {
   useDeleteOpenaiConversation,
   getListOpenaiConversationsQueryKey,
   getGetOpenaiConversationQueryKey,
+  getGetMyProfileQueryKey,
+  getGetSgiHistoryQueryKey,
   useGetMyProfile,
 } from "@workspace/api-client-react";
 import { useTranslation } from "react-i18next";
@@ -283,6 +285,8 @@ export default function ChatScreen() {
               }
               qc.invalidateQueries({ queryKey: getGetOpenaiConversationQueryKey(convoId!) });
               qc.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
+              qc.invalidateQueries({ queryKey: getGetMyProfileQueryKey() });
+              qc.invalidateQueries({ queryKey: getGetSgiHistoryQueryKey() });
             }
             if (parsed.streamError) {
               setErrorMsg(parsed.message ?? t("chat.serverError"));
