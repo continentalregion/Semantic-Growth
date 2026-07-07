@@ -124,6 +124,7 @@ export default function ChatScreen() {
   const [sgiDelta, setSgiDelta] = useState<number | null>(null);
   const [usageRemaining, setUsageRemaining] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [retryContent, setRetryContent] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
   const flatListRef = useRef<FlatList<LocalMessage>>(null);
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
@@ -200,8 +201,8 @@ export default function ChatScreen() {
     return data.id;
   }, [getToken, qc]);
 
-  const sendMessage = useCallback(async () => {
-    const content = input.trim();
+  const sendMessage = useCallback(async (contentOverride?: string) => {
+    const content = (contentOverride ?? input).trim();
     if (!content || isStreaming) return;
     setInput("");
     setErrorMsg(null);
@@ -232,6 +233,12 @@ export default function ChatScreen() {
     let assistantId: string | null = null;
     let fullContent = "";
 
+    // Timeout only guards the initial connection (response headers).
+    // Once streaming begins we cancel it so background/foreground transitions
+    // cannot accidentally fire it mid-stream.
+    const abortController = new AbortController();
+    const connectionTimeoutId = setTimeout(() => abortController.abort(), 45_000);
+
     try {
       const resp = await fetch(`${BASE}/api/openai/conversations/${convoId}/messages`, {
         method: "POST",
@@ -241,7 +248,10 @@ export default function ChatScreen() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ content, model: selectedModel }),
+        signal: abortController.signal,
       });
+      // Server responded — clear the connection timeout so streaming is unaffected.
+      clearTimeout(connectionTimeoutId);
 
       if (resp.status === 429) {
         const data = await resp.json() as { used?: number; limit?: number; plan?: string };
@@ -323,10 +333,13 @@ export default function ChatScreen() {
           } catch {}
         }
       }
-    } catch {
-      setErrorMsg(t("chat.connLost"));
+    } catch (err) {
+      const isTimeout = (err as Error)?.name === "AbortError";
+      setErrorMsg(isTimeout ? t("chat.connWeak") : t("chat.connLost"));
       setMessages(prev => prev.filter(m => m.id !== userMsg.id));
+      if (isTimeout) setRetryContent(content);
     } finally {
+      clearTimeout(connectionTimeoutId);
       readerRef.current = null;
       setIsStreaming(false);
       setShowTyping(false);
@@ -340,8 +353,18 @@ export default function ChatScreen() {
     setConvoModal(false);
     setSgiDelta(null);
     setErrorMsg(null);
+    setRetryContent(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
+
+  const handleRetry = useCallback(() => {
+    if (!retryContent) return;
+    const content = retryContent;
+    setErrorMsg(null);
+    setRetryContent(null);
+    setInput("");
+    sendMessage(content);
+  }, [retryContent, sendMessage]);
 
   const selectConvo = useCallback((id: number) => {
     setActiveConvoId(id);
@@ -459,13 +482,23 @@ export default function ChatScreen() {
           <View style={s.errorBar}>
             <Ionicons name="alert-circle" size={14} color={colors.destructive} />
             <Text style={s.errorText} numberOfLines={2}>{errorMsg}</Text>
-            <PressableScale
-              onPress={() => setErrorMsg(null)}
-              haptic={false}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="close" size={16} color={colors.mutedForeground} />
-            </PressableScale>
+            {retryContent ? (
+              <PressableScale
+                onPress={handleRetry}
+                haptic={false}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={s.retryBtn}>{t("chat.retryLastMsg")}</Text>
+              </PressableScale>
+            ) : (
+              <PressableScale
+                onPress={() => setErrorMsg(null)}
+                haptic={false}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={16} color={colors.mutedForeground} />
+              </PressableScale>
+            )}
           </View>
         )}
 
@@ -1008,6 +1041,11 @@ function makeStyles(colors: ReturnType<typeof import("@/hooks/useColors").useCol
       color: colors.destructive,
       fontSize: 13,
       fontFamily: "Inter_400Regular",
+    },
+    retryBtn: {
+      color: colors.primary,
+      fontSize: 13,
+      fontFamily: "Inter_700Bold",
     },
     inputBar: {
       flexDirection: "row",
