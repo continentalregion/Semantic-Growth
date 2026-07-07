@@ -170,6 +170,9 @@ const IT = {
     privacyNotice: "SGI traccia i pattern semantici e linguistici delle tue conversazioni. Nessun contenuto personalmente identificabile viene conservato.",
     perMonth: "al mese",
     closeBtn: "Chiudi",
+    legalSection: "Legale",
+    privacyPolicy: "Privacy Policy",
+    termsOfService: "Termini di Servizio",
     planFeatures: {
       premium: [
         "600 messaggi al mese", "Claude Haiku + Sonnet",
@@ -560,6 +563,9 @@ const EN: typeof IT = {
     privacyNotice: "SGI tracks the semantic and linguistic patterns of your conversations. No personally identifiable content is stored.",
     perMonth: "per month",
     closeBtn: "Close",
+    legalSection: "Legal",
+    privacyPolicy: "Privacy Policy",
+    termsOfService: "Terms of Service",
     planFeatures: {
       premium: [
         "600 messages per month", "Claude Haiku + Sonnet",
@@ -950,6 +956,9 @@ const ES: typeof IT = {
     privacyNotice: "SGI rastrea los patrones semánticos y lingüísticos de tus conversaciones. No se almacena ningún contenido identificable personalmente.",
     perMonth: "al mes",
     closeBtn: "Cerrar",
+    legalSection: "Legal",
+    privacyPolicy: "Política de Privacidad",
+    termsOfService: "Términos de Servicio",
     planFeatures: {
       premium: [
         "600 mensajes al mes", "Claude Haiku + Sonnet",

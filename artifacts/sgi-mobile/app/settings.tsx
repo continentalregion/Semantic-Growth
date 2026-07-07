@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
+import { View, Text, Pressable, StyleSheet, Platform, Linking } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -113,6 +113,41 @@ export default function SettingsScreen() {
             })}
           </View>
         </View>
+
+        {/* Legal section */}
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View style={styles.sectionHeader}>
+            <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+              {t("settings.legalSection")}
+            </Text>
+          </View>
+
+          <Pressable
+            style={[styles.legalRow, { borderColor: colors.border }]}
+            onPress={() => Linking.openURL("https://sgindex.work/privacy-policy")}
+          >
+            <Text style={[styles.legalLabel, { color: colors.foreground }]}>
+              {t("settings.privacyPolicy")}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
+          </Pressable>
+
+          <Pressable
+            style={[styles.legalRow, { borderColor: colors.border }]}
+            onPress={() => Linking.openURL("https://sgindex.work/terms")}
+          >
+            <Text style={[styles.legalLabel, { color: colors.foreground }]}>
+              {t("settings.termsOfService")}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
+          </Pressable>
+        </View>
       </View>
     </AnimatedScreen>
   );
@@ -154,4 +189,13 @@ const styles = StyleSheet.create({
   },
   flag: { fontSize: 22 },
   langLabel: { flex: 1, fontSize: 14 },
+  legalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+  },
+  legalLabel: { flex: 1, fontSize: 14, fontFamily: "Inter_500Medium" },
 });
