@@ -1,12 +1,17 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
   ScrollView,
   Pressable,
   StyleSheet,
+  Modal,
+  Alert,
+  ActivityIndicator,
   useWindowDimensions,
 } from "react-native";
+import { captureRef } from "react-native-view-shot";
+import * as Sharing from "expo-sharing";
 import Animated, {
   useSharedValue,
   withTiming,
@@ -150,6 +155,24 @@ export default function ProgressScreen() {
   const missionsLocked = profile?.plan === "free";
   const rankChange = profile?.rankChange30d ?? 0;
 
+  const shareCardRef = useRef<View>(null);
+  const [shareVisible, setShareVisible] = useState(false);
+  const [sharing, setSharing] = useState(false);
+
+  const handleShareProgress = async () => {
+    if (!shareCardRef.current) return;
+    setSharing(true);
+    try {
+      const uri = await captureRef(shareCardRef, { format: "png", quality: 1 });
+      await Sharing.shareAsync(uri, { mimeType: "image/png" });
+    } catch {
+      Alert.alert(t("share.captureError"), "");
+    } finally {
+      setSharing(false);
+      setShareVisible(false);
+    }
+  };
+
   const streakDays = Array.from({ length: 21 }, (_, i) => i < streak);
   const STREAK_COLS = 7;
   const cellSize = Math.floor((screenWidth - 72) / 21);
@@ -177,6 +200,12 @@ export default function ProgressScreen() {
               {t("gamification.subtitle")}
             </Text>
           </View>
+          <Pressable
+            onPress={() => setShareVisible(true)}
+            style={({ pressed }) => [{ padding: 8, opacity: pressed ? 0.6 : 1 }]}
+          >
+            <Ionicons name="share-outline" size={22} color={colors.foreground} />
+          </Pressable>
         </View>
 
         {isLoading ? (
@@ -446,6 +475,90 @@ export default function ProgressScreen() {
             </Animated.View>
           </ScrollView>
         )}
+
+        {/* ── Share Progress Modal ── */}
+        <Modal visible={shareVisible} transparent animationType="slide" onRequestClose={() => setShareVisible(false)}>
+          <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.6)" }}>
+            <View style={{
+              backgroundColor: colors.card, borderTopLeftRadius: 22, borderTopRightRadius: 22,
+              padding: 20, gap: 14, paddingBottom: Math.max(insets.bottom, 16) + 8,
+            }}>
+              {/* Capture target */}
+              <View ref={shareCardRef} style={{
+                backgroundColor: colors.background, borderRadius: 16, padding: 20,
+                borderWidth: 1, borderColor: colors.border, gap: 14,
+              }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Ionicons name="trending-up" size={14} color={colors.primary} />
+                  <Text style={{ color: colors.primary, fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1.2, textTransform: "uppercase" }}>
+                    SGI Progress
+                  </Text>
+                </View>
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <View style={{ flex: 1, alignItems: "center", backgroundColor: colors.primary + "12", borderRadius: 10, padding: 10, borderWidth: 1, borderColor: colors.primary + "30" }}>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 9, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.6 }}>{t("gamification.level")}</Text>
+                    <Text style={{ color: colors.primary, fontSize: 24, fontFamily: "Inter_700Bold" }}>{level}</Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: "center", backgroundColor: colors.teal + "12", borderRadius: 10, padding: 10, borderWidth: 1, borderColor: colors.teal + "30" }}>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 9, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.6 }}>{t("gamification.totalXp")}</Text>
+                    <Text style={{ color: colors.teal, fontSize: 24, fontFamily: "Inter_700Bold" }}>{xp.toLocaleString()}</Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: "center", backgroundColor: "#ff990012", borderRadius: 10, padding: 10, borderWidth: 1, borderColor: "#ff990030" }}>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 9, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.6 }}>{t("gamification.streak")}</Text>
+                    <Text style={{ color: "#ff9900", fontSize: 22, fontFamily: "Inter_700Bold" }}>🔥{streak}</Text>
+                  </View>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Text style={{ color: BADGE_COLOR, fontSize: 13, fontFamily: "Inter_600SemiBold" }}>
+                      {earnedBadgeIds.size}/{ALL_BADGES.length}
+                    </Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 12, fontFamily: "Inter_400Regular" }}>
+                      {t("gamification.badges")}
+                    </Text>
+                  </View>
+                  {rankChange !== 0 && (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <Ionicons
+                        name={rankChange > 0 ? "trending-up" : "trending-down"}
+                        size={14}
+                        color={rankChange > 0 ? colors.teal : colors.pink}
+                      />
+                      <Text style={{ color: rankChange > 0 ? colors.teal : colors.pink, fontSize: 12, fontFamily: "Inter_600SemiBold" }}>
+                        {rankChange > 0 ? "+" : ""}{rankChange}
+                      </Text>
+                      <Text style={{ color: colors.mutedForeground, fontSize: 11, fontFamily: "Inter_400Regular" }}>
+                        {t("gamification.rankDelta")}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={{ color: colors.mutedForeground, fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "right" }}>
+                  sgindex.work
+                </Text>
+              </View>
+
+              <Pressable
+                style={({ pressed }) => [{
+                  backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 14,
+                  alignItems: "center", opacity: pressed || sharing ? 0.7 : 1,
+                }]}
+                onPress={handleShareProgress}
+                disabled={sharing}
+              >
+                {sharing
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={{ color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" }}>{t("share.shareCard")}</Text>}
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [{ alignItems: "center", paddingVertical: 10, opacity: pressed ? 0.6 : 1 }]}
+                onPress={() => setShareVisible(false)}
+              >
+                <Text style={{ color: colors.mutedForeground, fontSize: 13, fontFamily: "Inter_500Medium" }}>{t("share.close")}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       </View>
     </AnimatedScreen>
   );

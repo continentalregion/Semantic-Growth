@@ -399,6 +399,28 @@ const IT = {
     progressDesc: "Badge, livelli XP e traguardi raggiunti",
     comingSoon: "In arrivo",
   },
+  thread: {
+    title: "Thread",
+    openThread: "Thread Aperto",
+    sessions: "sessioni",
+    battleCardAvailable: "Battle Card disponibile",
+    battleCardDesc: "Due giocatori si sono sfidati su questa domanda. Scopri chi ha vinto.",
+    knowledgeBase: "Knowledge Base",
+    moreConnections: "altre connessioni",
+    leaderboard: "Classifiche Sessioni",
+    mySession: "La mia sessione",
+    completed: "Completata",
+    inProgress: "In corso",
+    viewThread: "Vedi Thread →",
+  },
+  share: {
+    shareCard: "Condividi card",
+    shareResult: "Condividi risultato",
+    captureError: "Errore durante la cattura",
+    shareProgress: "Condividi i tuoi progressi SGI",
+    shareBattle: "Condividi il risultato della battaglia",
+    close: "Chiudi",
+  },
 };
 
 // ─── English ──────────────────────────────────────────────────────────────────
@@ -792,6 +814,28 @@ const EN: typeof IT = {
     progressDesc: "Badges, XP levels, and achievements unlocked",
     comingSoon: "Coming soon",
   },
+  thread: {
+    title: "Thread",
+    openThread: "Open Thread",
+    sessions: "sessions",
+    battleCardAvailable: "Battle Card available",
+    battleCardDesc: "Two players competed on this topic. See who won.",
+    knowledgeBase: "Knowledge Base",
+    moreConnections: "more connections",
+    leaderboard: "Session Rankings",
+    mySession: "My Session",
+    completed: "Completed",
+    inProgress: "In progress",
+    viewThread: "See Thread →",
+  },
+  share: {
+    shareCard: "Share card",
+    shareResult: "Share result",
+    captureError: "Capture error",
+    shareProgress: "Share your SGI progress",
+    shareBattle: "Share the battle result",
+    close: "Close",
+  },
 };
 
 // ─── Spanish ──────────────────────────────────────────────────────────────────
@@ -1184,6 +1228,28 @@ const ES: typeof IT = {
     growthDesc: "Tu plan personalizado para mejorar tu SGI",
     progressDesc: "Insignias, niveles XP y logros desbloqueados",
     comingSoon: "Próximamente",
+  },
+  thread: {
+    title: "Hilo",
+    openThread: "Hilo Abierto",
+    sessions: "sesiones",
+    battleCardAvailable: "Battle Card disponible",
+    battleCardDesc: "Dos jugadores compitieron en este tema. Descubre quién ganó.",
+    knowledgeBase: "Base de Conocimiento",
+    moreConnections: "más conexiones",
+    leaderboard: "Clasificaciones de Sesión",
+    mySession: "Mi Sesión",
+    completed: "Completada",
+    inProgress: "En progreso",
+    viewThread: "Ver Hilo →",
+  },
+  share: {
+    shareCard: "Compartir tarjeta",
+    shareResult: "Compartir resultado",
+    captureError: "Error al capturar",
+    shareProgress: "Comparte tu progreso SGI",
+    shareBattle: "Comparte el resultado de la batalla",
+    close: "Cerrar",
   },
 };
 

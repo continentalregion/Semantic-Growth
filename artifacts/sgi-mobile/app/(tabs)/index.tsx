@@ -21,6 +21,7 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import Markdown from "react-native-markdown-display";
+import { router } from "expo-router";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -349,6 +350,23 @@ export default function ChatScreen() {
         <View style={s.sgiToast}>
           <Ionicons name="trending-up" size={14} color={colors.teal} />
           <Text style={s.sgiToastText}>SGI +{sgiDelta.toFixed(2)} pts</Text>
+          <Pressable
+            onPress={async () => {
+              try {
+                const token = await getToken();
+                const r = await fetch(`${BASE}/api/threads`, {
+                  headers: { Authorization: `Bearer ${token ?? ""}` },
+                });
+                if (r.ok) {
+                  const list = await r.json() as Array<{ id: string }>;
+                  if (list[0]) router.push(`/thread/${list[0].id}` as any);
+                }
+              } catch {}
+            }}
+            style={{ marginLeft: 6 }}
+          >
+            <Text style={s.sgiToastLink}>{t("thread.viewThread")}</Text>
+          </Pressable>
         </View>
       )}
 
@@ -911,6 +929,7 @@ function makeStyles(colors: ReturnType<typeof import("@/hooks/useColors").useCol
       marginTop: 8,
     },
     sgiToastText: { color: colors.teal, fontSize: 13, fontFamily: "Inter_600SemiBold" },
+    sgiToastLink: { color: colors.primary, fontSize: 12, fontFamily: "Inter_600SemiBold" },
     usageBadge: {
       alignSelf: "center",
       marginTop: 4,

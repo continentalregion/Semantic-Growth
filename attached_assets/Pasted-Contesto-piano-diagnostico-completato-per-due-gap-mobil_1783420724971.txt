@@ -1,0 +1,24 @@
+Contesto: piano diagnostico completato per due gap mobile rispetto al web. Implementa entrambi in questa sessione.
+
+PARTE 1 — Thread Detail
+
+Crea nuova route dinamica artifacts/sgi-mobile/app/(tabs)/thread/[id].tsx che replica il contenuto di thread-detail.tsx web: metadati del thread (question, description, category, createdByUsername, totalSessions), knowledgeBase (connessioni concettuali con strength), sessions[] con score breakdown (densità/connessioni/depth), mySession, battleCardId se presente.
+Recupera i dati con una query verso GET /api/threads/:id — dato che non esiste un hook generato in @workspace/api-client-react, usa un raw fetch/useQuery inline nella pagina (stesso approccio del web).
+Riusa componenti mobile già esistenti: pattern score breakdown già usato in battles.tsx, SkeletonBox per il caricamento, AnimatedScreen + header con chevron-back per coerenza visiva.
+Applica lo stesso pattern hasData/isCriticalError già validato in profile.tsx/dashboard.tsx/battles.tsx per la gestione di loading/errore.
+Aggiungi punto di navigazione: un pulsante/link "Vedi thread" alla fine di ogni sessione completata nella chat ((tabs)/index.tsx), quando arriva lo score finale nella bolla del messaggio — naviga con router.push(\/thread/${threadId}`)`.
+
+
+PARTE 2 — Progress Card e Battle Card condivisibili
+
+Per la progress card: in (tabs)/explore/progress.tsx, aggiungi un pulsante "Condividi card" nella sezione che mostra il delta SGI.
+Per la battle card: in battles.tsx, nella fine-battle modal già esistente, aggiungi un pulsante "Condividi risultato" che apre una bottom sheet con la card.
+Implementazione tecnica per entrambe: costruisci una View con componenti RN standard che replica visivamente il layout della versione Canvas web (gradient background, score, username, connessioni/risultato) — non serve Canvas 2D, non disponibile in RN.
+Usa react-native-view-shot (già installato, v4.0.3) per catturare quella View come PNG tramite ref.current.capture(), poi expo-sharing (già installato) con Sharing.shareAsync(uri) per condividerla via share sheet nativo.
+I dati arrivano già dagli endpoint esistenti GET /api/progress-cards/:id e GET /api/battle-cards/:id (stessi usati dal web) — nessun nuovo endpoint backend necessario.
+
+
+Non modificare la logica di scoring, matchmaking, o gli endpoint backend esistenti — solo aggiunta di UI/navigazione/cattura immagine lato client.
+Vincoli obbligatori:
+
+NON usare subagent né testing monitor (costo token).

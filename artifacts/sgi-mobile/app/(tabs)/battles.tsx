@@ -26,6 +26,8 @@ import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
 import { LinearGradient } from "expo-linear-gradient";
 import { fetch } from "expo/fetch";
+import { captureRef } from "react-native-view-shot";
+import * as Sharing from "expo-sharing";
 
 const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
 const MIN_CHARS = 10;
@@ -191,6 +193,23 @@ function BattlePvpModal({
   const arenaInit = useRef(false);
   const completing = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
+  const shareCardRef = useRef<View>(null);
+  const [shareVisible, setShareVisible] = useState(false);
+  const [sharing, setSharing] = useState(false);
+
+  const handleShareBattle = async () => {
+    if (!shareCardRef.current) return;
+    setSharing(true);
+    try {
+      const uri = await captureRef(shareCardRef, { format: "png", quality: 1 });
+      await Sharing.shareAsync(uri, { mimeType: "image/png" });
+    } catch {
+      Alert.alert(t("share.captureError"), "");
+    } finally {
+      setSharing(false);
+      setShareVisible(false);
+    }
+  };
 
   const authedFetch = useCallback(async (path: string, init?: Parameters<typeof fetch>[1]) => {
     const token = await getToken();
@@ -479,6 +498,14 @@ function BattlePvpModal({
             <Text style={[styles.rewardXp, { color: colors.gold }]}>+{res.xpAwarded} XP</Text>
           </View>
 
+          <Pressable
+            style={({ pressed }) => [styles.shareBtn, { borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}
+            onPress={() => setShareVisible(true)}
+          >
+            <Ionicons name="share-outline" size={15} color={colors.mutedForeground} />
+            <Text style={{ color: colors.mutedForeground, fontSize: 13, fontFamily: "Inter_500Medium" }}>{t("share.shareResult")}</Text>
+          </Pressable>
+
           {!!res.reasoning && (
             <View style={[styles.verdictBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
@@ -592,6 +619,105 @@ function BattlePvpModal({
           </View>
         </View>
         {renderBody()}
+
+        {/* ── Share Battle Result Modal ── */}
+        <Modal visible={shareVisible} transparent animationType="slide" onRequestClose={() => setShareVisible(false)}>
+          <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.6)" }}>
+            <View style={{
+              backgroundColor: colors.card, borderTopLeftRadius: 22, borderTopRightRadius: 22,
+              padding: 20, gap: 14, paddingBottom: Math.max(insets.bottom, 16) + 8,
+            }}>
+              {/* Capture target */}
+              <View ref={shareCardRef} style={{
+                backgroundColor: colors.background, borderRadius: 16, padding: 20,
+                borderWidth: 1, borderColor: colors.border, gap: 12,
+              }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Ionicons name="flash" size={14} color={colors.primary} />
+                  <Text style={{ color: colors.primary, fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1.2, textTransform: "uppercase" }}>
+                    SGI Battle
+                  </Text>
+                  {view && (
+                    <View style={{ backgroundColor: colors.muted, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>
+                      <Text style={{ color: colors.mutedForeground, fontSize: 10, fontFamily: "Inter_400Regular" }}>{view.category}</Text>
+                    </View>
+                  )}
+                </View>
+                {view && (
+                  <Text style={{ color: colors.foreground, fontSize: 14, fontFamily: "Inter_600SemiBold", lineHeight: 20 }} numberOfLines={2}>
+                    {view.theme}
+                  </Text>
+                )}
+                {view?.result && (
+                  <View style={{ flexDirection: "row", gap: 10, alignItems: "stretch" }}>
+                    <View style={{
+                      flex: 1, alignItems: "center",
+                      backgroundColor: view.result.outcome === "win" ? colors.teal + "18" : colors.card,
+                      borderRadius: 10, padding: 10, borderWidth: 1,
+                      borderColor: view.result.outcome === "win" ? colors.teal + "44" : colors.border,
+                    }}>
+                      <Text style={{ color: colors.mutedForeground, fontSize: 10, fontFamily: "Inter_400Regular" }}>{t("battles.myUsername")}</Text>
+                      <Text style={{ color: view.result.outcome === "win" ? colors.teal : colors.foreground, fontSize: 24, fontFamily: "Inter_700Bold" }}>
+                        {view.result.myRawScore.toFixed(0)}
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: "center", justifyContent: "center", paddingHorizontal: 4 }}>
+                      <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>vs</Text>
+                    </View>
+                    <View style={{
+                      flex: 1, alignItems: "center",
+                      backgroundColor: view.result.outcome === "loss" ? colors.pink + "18" : colors.card,
+                      borderRadius: 10, padding: 10, borderWidth: 1,
+                      borderColor: view.result.outcome === "loss" ? colors.pink + "44" : colors.border,
+                    }}>
+                      <Text style={{ color: colors.mutedForeground, fontSize: 10, fontFamily: "Inter_400Regular" }} numberOfLines={1}>
+                        {view.result.opponentUsername}
+                      </Text>
+                      <Text style={{ color: view.result.outcome === "loss" ? colors.pink : colors.foreground, fontSize: 24, fontFamily: "Inter_700Bold" }}>
+                        {view.result.opponentRawScore.toFixed(0)}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+                {view?.result && (
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                    <Text style={{
+                      fontSize: 14, fontFamily: "Inter_700Bold",
+                      color: view.result.outcome === "win" ? colors.teal : view.result.outcome === "tie" ? colors.gold : colors.pink,
+                    }}>
+                      {view.result.outcome === "win" ? `🏆 ${t("battles.stWin")}` : view.result.outcome === "tie" ? `🤝 ${t("battles.stTie")}` : `⚡ ${t("battles.stLoss")}`}
+                    </Text>
+                    <Text style={{ color: colors.gold, fontSize: 13, fontFamily: "Inter_600SemiBold" }}>
+                      +{view.result.xpAwarded} XP
+                    </Text>
+                  </View>
+                )}
+                <Text style={{ color: colors.mutedForeground, fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "right" }}>
+                  sgindex.work
+                </Text>
+              </View>
+
+              <Pressable
+                style={({ pressed }) => [{
+                  backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 14,
+                  alignItems: "center", opacity: pressed || sharing ? 0.7 : 1,
+                }]}
+                onPress={handleShareBattle}
+                disabled={sharing}
+              >
+                {sharing
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={{ color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" }}>{t("share.shareResult")}</Text>}
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [{ alignItems: "center", paddingVertical: 10, opacity: pressed ? 0.6 : 1 }]}
+                onPress={() => setShareVisible(false)}
+              >
+                <Text style={{ color: colors.mutedForeground, fontSize: 13, fontFamily: "Inter_500Medium" }}>{t("share.close")}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       </View>
     </Modal>
   );
@@ -949,6 +1075,7 @@ const styles = StyleSheet.create({
   scoreColNum: { fontSize: 34, fontFamily: "Inter_700Bold" },
   scoreColUnit: { fontSize: 10, fontFamily: "Inter_400Regular" },
   rewardBox: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 14, borderWidth: 1, padding: 14 },
+  shareBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 12, borderWidth: 1, paddingVertical: 12 },
   rewardXp: { fontSize: 18, fontFamily: "Inter_700Bold" },
   verdictBox: { borderRadius: 14, borderWidth: 1, padding: 14 },
   verdictTitle: { fontSize: 14, fontFamily: "Inter_700Bold" },
