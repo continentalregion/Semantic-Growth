@@ -628,6 +628,7 @@ export default function BattlesScreen() {
       ]);
       if (mineRes.ok) setMyMatches(await mineRes.json() as MyMatch[]);
       if (pubRes.ok) setPublicMatches(await pubRes.json() as PublicMatch[]);
+      if (!mineRes.ok && !pubRes.ok) setListError(true);
     } catch {
       setListError(true);
     }
@@ -727,12 +728,18 @@ export default function BattlesScreen() {
     </LinearGradient>
   );
 
-  if (listError && !loading) {
+  const hasData = myMatches.length > 0 || publicMatches.length > 0;
+  const isCriticalError = !hasData && listError;
+
+  if (isCriticalError) {
     return (
       <AnimatedScreen style={{ backgroundColor: colors.background }}>
         {header}
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 }}>
           <Ionicons name="wifi-outline" size={44} color={colors.mutedForeground} />
+          <Text style={{ color: colors.foreground, fontSize: 16, fontFamily: "Inter_600SemiBold", textAlign: "center" }}>
+            {t("common.errorTitle")}
+          </Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center" }}>
             {t("common.errorDesc")}
           </Text>
@@ -747,7 +754,7 @@ export default function BattlesScreen() {
     );
   }
 
-  if (loading) {
+  if (loading && !hasData) {
     return (
       <AnimatedScreen style={{ backgroundColor: colors.background }}>
         {header}
