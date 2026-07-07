@@ -379,6 +379,10 @@ const IT = {
     verdictTitle: "Verdetto",
     opponentLabel: "Avversario",
     arenaFirstMsg: "Scrivi il primo messaggio per aprire il confronto con lo sparring partner.",
+    vsLabel: "VS",
+    minCharsHint: "Almeno {{n}} caratteri",
+    timeUp: "Tempo scaduto",
+    finishNow: "Concludi ora",
   },
   common: {
     free: "Free",
@@ -795,6 +799,10 @@ const EN: typeof IT = {
     verdictTitle: "Verdict",
     opponentLabel: "Opponent",
     arenaFirstMsg: "Write your first message to open the debate with the sparring partner.",
+    vsLabel: "VS",
+    minCharsHint: "At least {{n}} characters",
+    timeUp: "Time's up",
+    finishNow: "Finish now",
   },
   common: {
     free: "Free",
@@ -1211,6 +1219,10 @@ const ES: typeof IT = {
     verdictTitle: "Veredicto",
     opponentLabel: "Rival",
     arenaFirstMsg: "Escribe tu primer mensaje para abrir el debate con el sparring partner.",
+    vsLabel: "VS",
+    minCharsHint: "Al menos {{n}} caracteres",
+    timeUp: "Tiempo agotado",
+    finishNow: "Finalizar ahora",
   },
   common: {
     free: "Gratuito",

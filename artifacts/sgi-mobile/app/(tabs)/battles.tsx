@@ -591,7 +591,7 @@ function BattlePvpModal({
               style={[styles.composerInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
               value={input}
               onChangeText={setInput}
-              placeholder="Sviluppa la tua tesi, vai in profondità…"
+              placeholder={t("battles.sessionPlaceholder")}
               placeholderTextColor={colors.mutedForeground}
               multiline
               editable={!timeUp && !sending}
@@ -607,10 +607,10 @@ function BattlePvpModal({
           </View>
           <View style={styles.composerFoot}>
             <Text style={{ fontSize: 11, color: chars > 0 && chars < MIN_CHARS ? colors.pink : colors.mutedForeground }}>
-              {chars > 0 && chars < MIN_CHARS ? `Almeno ${MIN_CHARS} caratteri` : timeUp ? "Tempo scaduto" : ""}
+              {chars > 0 && chars < MIN_CHARS ? t("battles.minCharsHint", { n: MIN_CHARS }) : timeUp ? t("battles.timeUp") : ""}
             </Text>
             <Pressable style={[styles.finishBtn, { borderColor: colors.border }]} onPress={handleComplete}>
-              <Text style={[styles.finishBtnText, { color: colors.mutedForeground }]}>Concludi ora</Text>
+              <Text style={[styles.finishBtnText, { color: colors.mutedForeground }]}>{t("battles.finishNow")}</Text>
             </Pressable>
           </View>
         </View>
@@ -675,7 +675,7 @@ function BattlePvpModal({
                       </Text>
                     </View>
                     <View style={{ alignItems: "center", justifyContent: "center", paddingHorizontal: 4 }}>
-                      <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>vs</Text>
+                      <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{t("battles.vsLabel")}</Text>
                     </View>
                     <View style={{
                       flex: 1, alignItems: "center",
@@ -743,6 +743,11 @@ export default function BattlesScreen() {
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const { getToken } = useAuth();
+  // Stable ref — prevents loadData from being recreated on every Clerk token
+  // refresh, which would fire the initial useEffect again and cause a freeze
+  // (setLoading(true) → AnimatedScreen remount/re-animation) mid-matchmaking.
+  const getTokenRef = useRef(getToken);
+  useEffect(() => { getTokenRef.current = getToken; });
 
   const [myMatches, setMyMatches] = useState<MyMatch[]>([]);
   const [publicMatches, setPublicMatches] = useState<PublicMatch[]>([]);
@@ -759,7 +764,7 @@ export default function BattlesScreen() {
     if (!silent) setLoading(true);
     setListError(false);
     try {
-      const token = await getToken();
+      const token = await getTokenRef.current();
       const h = { Authorization: `Bearer ${token ?? ""}` };
       const [mineRes, pubRes] = await Promise.all([
         fetch(`${BASE}/api/battles/matches/me`, { headers: h }),
@@ -773,9 +778,11 @@ export default function BattlesScreen() {
     }
     setLoading(false);
     setRefreshing(false);
-  }, [getToken]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadData(); }, []);
 
   const onRefresh = useCallback(() => { setRefreshing(true); loadData(true); }, [loadData]);
 
@@ -990,7 +997,7 @@ export default function BattlesScreen() {
                     <Text style={[styles.playerName, { color: colors.foreground }]} numberOfLines={1}>{winner.username}</Text>
                     <Text style={[styles.playerScore, { color: colors.primary }]}>{winner.rawScore.toFixed(0)}</Text>
                   </View>
-                  <Text style={[styles.vsText, { color: colors.mutedForeground }]}>VS</Text>
+                  <Text style={[styles.vsText, { color: colors.mutedForeground }]}>{t("battles.vsLabel")}</Text>
                   <View style={[styles.playerCol, { backgroundColor: colors.muted, borderColor: colors.border }]}>
                     <Text style={[styles.playerName, { color: colors.foreground }]} numberOfLines={1}>{loser.username}</Text>
                     <Text style={[styles.playerScore, { color: colors.mutedForeground }]}>{loser.rawScore.toFixed(0)}</Text>
