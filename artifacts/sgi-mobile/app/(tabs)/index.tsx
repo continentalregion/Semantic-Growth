@@ -248,7 +248,7 @@ export default function ChatScreen() {
           if (!raw) continue;
           try {
             const parsed = JSON.parse(raw) as {
-              chunk?: string;
+              content?: string;
               done?: boolean;
               sgiDelta?: number;
               title?: string;
@@ -256,8 +256,8 @@ export default function ChatScreen() {
               streamError?: boolean;
               message?: string;
             };
-            if (parsed.chunk) {
-              fullContent += parsed.chunk;
+            if (parsed.content) {
+              fullContent += parsed.content;
               setShowTyping(false);
               if (!assistantId) {
                 assistantId = Date.now().toString() + Math.random().toString(36).slice(2);
