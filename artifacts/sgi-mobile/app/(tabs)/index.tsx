@@ -148,7 +148,7 @@ export default function ChatScreen() {
       role: m.role as "user" | "assistant",
       content: m.content,
     }));
-    setMessages(mapped);
+    setMessages([...mapped].reverse());
   }, [activeConvo?.id, activeConvo?.messages.length]);
 
   useEffect(() => {
