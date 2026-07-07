@@ -240,6 +240,12 @@ function BattlePvpModal({
     }
   }, [matchId, authedFetch]);
 
+  // Stable ref to the latest `load` so effects that should fire only on
+  // visible/matchId/phase changes don't also fire when Clerk refreshes its
+  // getToken reference (which would recreate authedFetch → load).
+  const loadRef = useRef(load);
+  useEffect(() => { loadRef.current = load; });
+
   const handleComplete = useCallback(async () => {
     if (completing.current) return;
     completing.current = true;
@@ -305,6 +311,9 @@ function BattlePvpModal({
   }, [input, sending, secondsLeft, authedFetch, matchId, handleComplete, t]);
 
   // Reset + initial load when opened.
+  // Depends only on visible/matchId — not `load` — so that a Clerk token
+  // refresh (which changes getToken → authedFetch → load identity) never
+  // triggers setView(null) while the user is already in the waiting phase.
   useEffect(() => {
     if (!visible || !matchId) return;
     arenaInit.current = false;
@@ -315,8 +324,9 @@ function BattlePvpModal({
     setInput("");
     setSecondsLeft(390);
     setKeyboardHeight(0);
-    load();
-  }, [visible, matchId, load]);
+    loadRef.current();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, matchId]);
 
   // Track keyboard on iOS (pageSheet modals mis-handle KeyboardAvoidingView).
   useEffect(() => {
@@ -338,12 +348,15 @@ function BattlePvpModal({
       : "arena";
 
   // Poll passive phases.
+  // Uses loadRef so the interval is not torn down and restarted when `load`
+  // identity changes (Clerk token refresh) — only phase transitions matter.
   useEffect(() => {
     if (!visible) return;
     if (phase !== "waitingOpponent" && phase !== "scoring" && phase !== "waitingResult") return;
-    const id = setInterval(load, 4000);
+    const id = setInterval(() => loadRef.current(), 4000);
     return () => clearInterval(id);
-  }, [visible, phase, load]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, phase]);
 
   // Local countdown for the active arena; auto-complete at zero.
   useEffect(() => {
