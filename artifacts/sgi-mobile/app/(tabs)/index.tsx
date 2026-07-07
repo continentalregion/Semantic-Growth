@@ -343,7 +343,6 @@ export default function ChatScreen() {
                 );
               }
               qc.invalidateQueries({ queryKey: getGetOpenaiConversationQueryKey(convoId!) });
-              qc.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
               qc.invalidateQueries({ queryKey: getGetMyProfileQueryKey() });
               qc.invalidateQueries({ queryKey: getGetSgiHistoryQueryKey() });
             }
