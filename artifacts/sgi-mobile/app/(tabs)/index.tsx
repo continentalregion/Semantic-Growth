@@ -132,17 +132,37 @@ export default function ChatScreen() {
 
   const { data: profile } = useGetMyProfile();
   const { data: conversations, isLoading: convosLoading } = useListOpenaiConversations();
-  const { data: activeConvo } = useGetOpenaiConversation(activeConvoId ?? 0, {
+
+  // IDs that returned 404 this session — skip them when auto-selecting from the
+  // list so a stale persisted cache entry doesn't trigger an infinite 404 loop.
+  const invalidatedConvoIds = useRef<Set<number>>(new Set());
+
+  const { data: activeConvo, error: activeConvoError } = useGetOpenaiConversation(activeConvoId ?? 0, {
     query: {
       enabled: !!activeConvoId,
       queryKey: getGetOpenaiConversationQueryKey(activeConvoId ?? 0),
+      // 404 = conversation genuinely doesn't exist; don't waste a retry.
+      retry: (_count, err) => (err as { status?: number } | null)?.status !== 404,
     },
   });
   const deleteConvo = useDeleteOpenaiConversation();
 
+  // When the currently active conversation is not found (stale persisted cache
+  // from a previous session or deleted by the user), purge it and fall back to
+  // the next valid conversation in the list.
+  useEffect(() => {
+    const status = (activeConvoError as { status?: number } | null)?.status;
+    if (status === 404 && activeConvoId) {
+      invalidatedConvoIds.current.add(activeConvoId);
+      qc.removeQueries({ queryKey: getGetOpenaiConversationQueryKey(activeConvoId) });
+      setActiveConvoId(null);
+    }
+  }, [activeConvoError, activeConvoId, qc]);
+
   useEffect(() => {
     if (conversations && conversations.length > 0 && !activeConvoId) {
-      setActiveConvoId(conversations[0].id);
+      const valid = conversations.find(c => !invalidatedConvoIds.current.has(c.id));
+      if (valid) setActiveConvoId(valid.id);
     }
   }, [conversations, activeConvoId]);
 
