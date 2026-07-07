@@ -1,0 +1,26 @@
+Contesto: audit di parità mobile/web ha identificato 3 gap da colmare sul mobile (artifacts/sgi-mobile), tutti assenti rispetto alla versione web (artifacts/sgi-app/src/pages). Analizza tutti e tre, SENZA scrivere codice.
+
+1) Thread detail mancante
+Sul web esiste thread-detail.tsx (storico/dettaglio di una singola conversazione). Sul mobile manca del tutto.
+
+Leggi thread-detail.tsx: dati mostrati, endpoint chiamato, punto di navigazione da cui si accede
+Verifica se un endpoint equivalente è già disponibile lato client (@workspace/api-client-react) o se manca anche quello
+Controlla se dalla chat mobile ((tabs)/index.tsx) esiste già un modo per navigare a un thread precedente
+Proponi struttura file per la nuova route mobile (es. (tabs)/thread/[id].tsx via Expo Router dynamic route) e quali componenti esistenti (bubble messaggi, badge metriche) sono riutilizzabili
+
+2) Progress/battle card condivisibile mancante
+Sul web esistono progress-card.tsx e battle-card.tsx (card condivisibili/screenshot). Sul mobile mancano.
+
+Leggi entrambi i file: come generano la card (canvas/HTML lato client? server-side image?), e se producono immagine scaricabile o solo vista renderizzata
+Verifica se la tecnica usata sul web (es. html2canvas) è portabile su React Native o serve un approccio nativo diverso (es. react-native-view-shot per catturare screenshot di una view)
+Determina se serve un endpoint backend condiviso già riusabile, o se la generazione è puramente client-side sul web e va reimplementata
+Verifica se Expo ha già expo-sharing/react-native-view-shot installati o vanno aggiunti
+Indica dove agganciare il pulsante "Condividi": (tabs)/explore/progress.tsx per la progress card, fine-battle in (tabs)/battles.tsx per la battle card
+
+3) Privacy Policy / Terms mancanti
+Obbligatorie per approvazione App Store/Play Store, assenti sul mobile.
+
+Verifica se il contenuto di privacy-policy.tsx/terms.tsx sul web è riusabile as-is o richiede adattamento per mobile
+Valuta due opzioni: (A) schermate mobile native con lo stesso testo, raggiungibili da settings.tsx, oppure (B) link esterno a sgindex.work/privacy-policy e /terms aperto via browser di sistema (expo-web-browser, già installato)
+Determina se un semplice link esterno (opzione B) soddisfa i requisiti Apple/Google o se serve testo visibile anche offline dentro l'app
+Stima impatto su settings.tsx per aggiungere le voci di menu
