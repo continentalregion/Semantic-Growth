@@ -1,0 +1,20 @@
+PROMPT PER REPLIT AGENT (BUILD MODE)
+
+Contesto: il fix precedente (listener AppState che chiama readerRef.current.cancel() in background) ha introdotto una regressione: quando l’app va in background a metà di una risposta in streaming, la risposta resta bloccata a metà in modo permanente, e il punteggio SGI non viene mai assegnato per quel messaggio.
+
+Ipotesi da confermare prima di procedere: reader.cancel() su un reader ottenuto da fetch().body.getReader() in questo ambiente (Expo/React Native) probabilmente interrompe anche la connessione di rete sottostante lato server, non solo la lettura lato client — a differenza di quanto assunto nel fix precedente (che il server “continua comunque”). Se confermato, la generazione AI si interrompe realmente a metà, e il calcolo/salvataggio dello score SGI (che dipende dal completamento naturale dello stream, incluso parsed.done e sgiDelta) non viene mai eseguito.
+
+Verifica rapidamente questa ipotesi (log server su una richiesta cancellata), poi implementa il fix corretto:
+
+	1.	Rimuovi la chiamata a readerRef.current.cancel() nel listener AppState quando l’app va in background — non cancellare il reader, lascia che la connessione e la generazione server-side continuino indisturbate.
+	2.	Mantieni solo il safety reset locale al rientro in foreground (setIsStreaming(false), setShowTyping(false)) — questo sblocca comunque l’input dell’utente senza dover interrompere nulla lato server.
+	3.	Mantieni invalidateQueries al rientro in foreground — così, se il server ha completato la generazione (inclusi eventuali punti SGI) mentre l’app era in background, il client recupera la versione completa e corretta dal DB, invece di quella parziale rimasta in memoria locale.
+	4.	Verifica che il messaggio “parziale” mostrato localmente durante il background venga sostituito correttamente da quello completo recuperato via query, non lasciato duplicato o incoerente.
+
+Non toccare la logica di generazione server-side — il fix resta isolato al client (rimozione della cancel(), mantenimento del resto).
+
+Dopo l’implementazione, testa: invia un messaggio, backgrounda l’app a metà streaming, attendi qualche secondo, riapri — verifica che la risposta completa (testo + eventuale punteggio SGI) appaia correttamente, senza blocco.
+
+Vincoli obbligatori:
+
+	•	NON usare subagent né testing monitor (costo token).

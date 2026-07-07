@@ -162,15 +162,16 @@ export default function ChatScreen() {
     setSelectedModel(d);
   }, [profile?.plan, activeConvoId]);
 
-  // AppState listener: cancel active reader when app goes to background so
-  // the finally block runs and resets isStreaming; on foreground return,
-  // safety-reset state and refresh conversation to show any server-completed reply.
+  // AppState listener: on foreground return, safety-reset local streaming state
+  // and invalidate conversation query so any server-completed reply (text + SGI score)
+  // replaces the partial local buffer. Do NOT cancel the reader on background —
+  // that also kills the TCP connection, aborting AI generation and SGI scoring.
   useEffect(() => {
     const sub = AppState.addEventListener("change", nextState => {
       if (nextState === "background" || nextState === "inactive") {
-        if (readerRef.current) {
-          readerRef.current.cancel().catch(() => {});
-        }
+        // Do NOT cancel the reader — cancelling also kills the server-side
+        // connection, which aborts AI generation mid-stream and skips SGI scoring.
+        // Let the server finish; we recover the complete response on foreground return.
       }
       if (nextState === "active") {
         setIsStreaming(false);
