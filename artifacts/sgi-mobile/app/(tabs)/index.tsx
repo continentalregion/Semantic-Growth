@@ -19,6 +19,7 @@ import Animated, {
   withSequence,
   withDelay,
   Easing,
+  FadeIn,
 } from "react-native-reanimated";
 import Markdown from "react-native-markdown-display";
 import { router } from "expo-router";
@@ -123,6 +124,7 @@ export default function ChatScreen() {
   const [usageRemaining, setUsageRemaining] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
+  const flatListRef = useRef<FlatList<LocalMessage>>(null);
   const s = makeStyles(colors, insets);
 
   const { data: profile } = useGetMyProfile();
@@ -179,7 +181,7 @@ export default function ChatScreen() {
     if (!content || isStreaming) return;
     setInput("");
     setErrorMsg(null);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const userMsg: LocalMessage = {
       id: Date.now().toString() + Math.random().toString(36).slice(2),
@@ -258,8 +260,9 @@ export default function ChatScreen() {
             };
             if (parsed.content) {
               fullContent += parsed.content;
-              setShowTyping(false);
               if (!assistantId) {
+                setShowTyping(false);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 assistantId = Date.now().toString() + Math.random().toString(36).slice(2);
                 setMessages(prev => [
                   { id: assistantId!, role: "assistant", content: fullContent, streaming: true },
@@ -397,6 +400,7 @@ export default function ChatScreen() {
         keyboardVerticalOffset={0}
       >
         <FlatList
+          ref={flatListRef}
           data={messages}
           keyExtractor={m => m.id}
           inverted={messages.length > 0}
@@ -409,6 +413,11 @@ export default function ChatScreen() {
           maxToRenderPerBatch={6}
           initialNumToRender={10}
           windowSize={8}
+          onContentSizeChange={() => {
+            if (isStreaming) {
+              flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+            }
+          }}
           ListHeaderComponent={showTyping ? <TypingIndicator /> : null}
           ListEmptyComponent={
             <View style={s.empty}>
@@ -690,7 +699,10 @@ const MessageBubble = React.memo(function MessageBubble({
   };
 
   return (
-    <View style={[bubbleStyles.row, isUser ? bubbleStyles.rowUser : bubbleStyles.rowAssistant]}>
+    <Animated.View
+      entering={isUser ? undefined : FadeIn.duration(180)}
+      style={[bubbleStyles.row, isUser ? bubbleStyles.rowUser : bubbleStyles.rowAssistant]}
+    >
       {!isUser && (
         <View style={[bubbleStyles.avatar, { backgroundColor: c.primary + "22", borderColor: c.primary + "33" }]}>
           <Ionicons name="sparkles" size={14} color={c.primary} />
@@ -717,7 +729,7 @@ const MessageBubble = React.memo(function MessageBubble({
           </Markdown>
         )}
       </View>
-    </View>
+    </Animated.View>
   );
 });
 
