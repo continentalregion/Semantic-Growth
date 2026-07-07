@@ -13,6 +13,7 @@ export const conversations = pgTable("conversations", {
   // Drives the "every 5 messages" progress-card trigger, scoped per conversation.
   scoredMessageCount: integer("scored_message_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const insertConversationSchema = createInsertSchema(conversations).omit({

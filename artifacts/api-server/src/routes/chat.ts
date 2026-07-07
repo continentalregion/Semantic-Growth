@@ -77,7 +77,7 @@ router.get("/openai/conversations", async (req, res) => {
 
     const convos = await db.select().from(conversations)
       .where(eq(conversations.userId, user.id))
-      .orderBy(desc(conversations.createdAt))
+      .orderBy(desc(conversations.updatedAt))
       .limit(50);
 
     res.json(convos.map(c => ({
@@ -522,8 +522,13 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       insightText: string | null;
     } | undefined;
 
+    const newConvoDelta = (convo.sgiDelta ?? 0) + sgiDelta;
     const [updatedConvoCount] = await db.update(conversations)
-      .set({ scoredMessageCount: sql`${conversations.scoredMessageCount} + 1` })
+      .set({
+        scoredMessageCount: sql`${conversations.scoredMessageCount} + 1`,
+        sgiDelta: newConvoDelta,
+        updatedAt: new Date(),
+      })
       .where(eq(conversations.id, convoId))
       .returning({ scoredMessageCount: conversations.scoredMessageCount });
 
@@ -592,9 +597,6 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
 
     const totalConvos = await db.select({ count: sql<number>`count(*)` }).from(conversations).where(eq(conversations.userId, user.id));
     const convoCount = Number(totalConvos[0]?.count ?? 0);
-
-    const newConvoDelta = (convo.sgiDelta ?? 0) + sgiDelta;
-    await db.update(conversations).set({ sgiDelta: newConvoDelta }).where(eq(conversations.id, convoId));
 
     for (const domain of scoreResult.domains) {
       await db.insert(semanticDomains).values({
