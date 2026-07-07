@@ -56,8 +56,8 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const { signOut } = useAuth();
-  const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useGetMyProfile();
-  const { data: gamification, isLoading: gamLoading, refetch: refetchGam } = useGetMyGamification();
+  const { data: profile, isLoading: profileLoading, refetch: refetchProfile, isError: profileError } = useGetMyProfile();
+  const { data: gamification, isLoading: gamLoading, refetch: refetchGam, isError: gamError } = useGetMyGamification();
 
   const planLabel = { free: "Free", premium: "Premium", pro: "Pro" }[profile?.plan ?? "free"] ?? "Free";
   const planColor = { free: colors.mutedForeground, premium: colors.gold, pro: colors.teal }[profile?.plan ?? "free"] ?? colors.mutedForeground;
@@ -68,6 +68,12 @@ export default function ProfileScreen() {
   }
 
   const hasData = profile !== undefined || gamification !== undefined;
+  const isCriticalError = !hasData && (profileError || gamError);
+
+  function handleRetry() {
+    if (profileError) refetchProfile();
+    if (gamError) refetchGam();
+  }
 
   return (
     <AnimatedScreen style={{ backgroundColor: colors.background }}>
@@ -91,7 +97,25 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {!hasData ? (
+      {isCriticalError ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: colors.spacing.lg, gap: colors.spacing.md }}>
+          <Ionicons name="cloud-offline-outline" size={40} color={colors.mutedForeground} />
+          <Text style={{ color: colors.foreground, fontFamily: colors.font.family.semibold, fontSize: colors.font.size.md, textAlign: "center" }}>
+            {t("progress.errorTitle")}
+          </Text>
+          <Text style={{ color: colors.mutedForeground, fontFamily: colors.font.family.regular, fontSize: colors.font.size.sm, textAlign: "center" }}>
+            {t("progress.errorDesc")}
+          </Text>
+          <PressableScale
+            style={{ marginTop: colors.spacing.sm, backgroundColor: colors.primary + "18", borderWidth: 1, borderColor: colors.primary + "44", borderRadius: 10, paddingHorizontal: colors.spacing.lg, paddingVertical: colors.spacing.sm }}
+            onPress={handleRetry}
+          >
+            <Text style={{ color: colors.primary, fontFamily: colors.font.family.semibold, fontSize: colors.font.size.sm }}>
+              {t("progress.retryBtn")}
+            </Text>
+          </PressableScale>
+        </View>
+      ) : !hasData ? (
         <View style={{ flex: 1, paddingHorizontal: colors.spacing.lg, paddingTop: colors.spacing.lg, gap: colors.spacing.lg }}>
           <SkeletonCard style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }} />
           <SkeletonCard style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }} />

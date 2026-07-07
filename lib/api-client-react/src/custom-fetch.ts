@@ -365,7 +365,25 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  const timeoutSignal =
+    typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(10_000) : null;
+  const mergedSignal = (() => {
+    if (!init.signal && !timeoutSignal) return undefined;
+    if (!init.signal) return timeoutSignal!;
+    if (!timeoutSignal) return init.signal;
+    const ctrl = new AbortController();
+    const abort = () => ctrl.abort();
+    init.signal.addEventListener("abort", abort, { once: true });
+    timeoutSignal.addEventListener("abort", abort, { once: true });
+    return ctrl.signal;
+  })();
+
+  const response = await fetch(input, {
+    ...init,
+    method,
+    headers,
+    ...(mergedSignal !== undefined ? { signal: mergedSignal } : {}),
+  });
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);

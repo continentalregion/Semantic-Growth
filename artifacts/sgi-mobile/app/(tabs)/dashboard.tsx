@@ -6,6 +6,7 @@ import {
   StyleSheet,
   RefreshControl,
   Platform,
+  Pressable,
   useWindowDimensions,
 } from "react-native";
 import Animated, {
@@ -292,12 +293,14 @@ export default function DashboardScreen() {
     isLoading: profileLoading,
     refetch: refetchProfile,
     isRefetching: refetchingProfile,
+    isError: profileError,
   } = useGetMyProfile();
 
   const {
     data: history,
     isLoading: historyLoading,
     refetch: refetchHistory,
+    isError: historyError,
   } = useGetSgiHistory({ days: 30 });
 
   const isPremiumOrPro = profile?.plan === "premium" || profile?.plan === "pro";
@@ -311,7 +314,13 @@ export default function DashboardScreen() {
   });
 
   const hasData = profile !== undefined || history !== undefined;
+  const isCriticalError = !hasData && (profileError || historyError);
   const isRefreshing = refetchingProfile;
+
+  function handleRetry() {
+    if (profileError) refetchProfile();
+    if (historyError) refetchHistory();
+  }
 
   const macro = (profile as unknown as {
     macroDimensions?: {
@@ -384,7 +393,25 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {!hasData ? (
+      {isCriticalError ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24, gap: 12 }}>
+          <Ionicons name="cloud-offline-outline" size={40} color={colors.mutedForeground} />
+          <Text style={{ color: colors.foreground, fontFamily: "Inter_600SemiBold", fontSize: 16, textAlign: "center" }}>
+            {t("progress.errorTitle")}
+          </Text>
+          <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13, textAlign: "center" }}>
+            {t("progress.errorDesc")}
+          </Text>
+          <Pressable
+            onPress={handleRetry}
+            style={{ marginTop: 8, backgroundColor: colors.primary + "18", borderWidth: 1, borderColor: colors.primary + "44", borderRadius: 10, paddingHorizontal: 24, paddingVertical: 10 }}
+          >
+            <Text style={{ color: colors.primary, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>
+              {t("progress.retryBtn")}
+            </Text>
+          </Pressable>
+        </View>
+      ) : !hasData ? (
         <View
           style={{
             flex: 1,

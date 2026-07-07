@@ -33,6 +33,8 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 30_000,
       gcTime: CACHE_MAX_AGE,
+      retry: 1,
+      retryDelay: 2_000,
     },
   },
 });
