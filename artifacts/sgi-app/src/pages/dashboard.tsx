@@ -42,8 +42,8 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { getToken } = useAuth();
-  const { data: profile, isLoading: profileLoading } = useGetMyProfile();
-  const { data: history, isLoading: historyLoading } = useGetSgiHistory({ days: 30 });
+  const { data: profile, isLoading: profileLoading, isError: profileError, refetch: refetchProfile } = useGetMyProfile();
+  const { data: history, isLoading: historyLoading, isError: historyError, refetch: refetchHistory } = useGetSgiHistory({ days: 30 });
   const { data: progressCards } = useQuery<ProgressCardListItem[]>({
     queryKey: ["progress-cards"],
     queryFn: async () => {
@@ -60,7 +60,23 @@ export default function Dashboard() {
     },
   });
 
-  if (profileLoading || historyLoading) {
+  const hasData = profile !== undefined || history !== undefined;
+  const isCriticalError = !hasData && (profileError || historyError);
+
+  if (isCriticalError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4 text-center animate-in fade-in duration-300">
+        <Activity className="w-10 h-10 text-muted-foreground" />
+        <p className="text-lg font-semibold">{t("common.errorTitle")}</p>
+        <p className="text-sm text-muted-foreground">{t("common.errorDesc")}</p>
+        <Button variant="outline" onClick={() => { if (profileError) refetchProfile(); if (historyError) refetchHistory(); }}>
+          {t("common.retryBtn")}
+        </Button>
+      </div>
+    );
+  }
+
+  if (!hasData) {
     return <div className="space-y-6">
       <Skeleton className="h-40 w-full" />
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

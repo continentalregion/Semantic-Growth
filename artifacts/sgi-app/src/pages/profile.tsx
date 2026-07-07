@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Flame, CheckCircle2, Clock, Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Zap, Flame, CheckCircle2, Clock, Shield, WifiOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const BADGE_COLORS: Record<string, string> = {
@@ -16,12 +17,26 @@ const BADGE_COLORS: Record<string, string> = {
 
 export default function Profile() {
   const { t } = useTranslation();
-  const { data: gam, isLoading: gamLoading } = useGetMyGamification();
-  const { data: profile, isLoading: profileLoading } = useGetMyProfile();
+  const { data: gam, isLoading: gamLoading, isError: gamError, refetch: refetchGam } = useGetMyGamification();
+  const { data: profile, isLoading: profileLoading, isError: profileError, refetch: refetchProfile } = useGetMyProfile();
 
-  const isLoading = gamLoading || profileLoading;
+  const hasData = profile !== undefined || gam !== undefined;
+  const isCriticalError = !hasData && (profileError || gamError);
 
-  if (isLoading) {
+  if (isCriticalError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4 text-center animate-in fade-in duration-300">
+        <WifiOff className="w-10 h-10 text-muted-foreground" />
+        <p className="text-lg font-semibold">{t("common.errorTitle")}</p>
+        <p className="text-sm text-muted-foreground">{t("common.errorDesc")}</p>
+        <Button variant="outline" onClick={() => { if (profileError) refetchProfile(); if (gamError) refetchGam(); }}>
+          {t("common.retryBtn")}
+        </Button>
+      </div>
+    );
+  }
+
+  if (!hasData) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-40 w-full" />
