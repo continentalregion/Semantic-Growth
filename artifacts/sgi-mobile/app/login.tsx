@@ -11,11 +11,9 @@ import {
 } from "react-native";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { LogoMark } from "@/components/ui/Logo";
-// @clerk/expo/legacy esporta useSignIn/useSignUp con la forma legacy:
-//   { signIn, isLoaded, setActive }  — identica a @clerk/react/legacy
-// È un pacchetto locale (sgi-mobile/node_modules/@clerk/expo), Metro lo trova.
 import { useSignIn, useSignUp } from "@clerk/expo/legacy";
-import { useAuth, getClerkInstance } from "@clerk/expo";
+import { useAuth, getClerkInstance, useOAuth } from "@clerk/expo";
+import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -97,6 +95,27 @@ export default function LoginScreen() {
   };
 
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
+  const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
+
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true);
+    clearErrors();
+    try {
+      const { createdSessionId, setActive: oauthSetActive } = await startOAuthFlow({
+        redirectUrl: Linking.createURL("/"),
+      });
+      if (createdSessionId && oauthSetActive) {
+        await oauthSetActive({ session: createdSessionId });
+        haptic(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (err: unknown) {
+      setErrors(extractClerkErrors(err));
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
 
   // Se già autenticato, vai direttamente alla schermata principale
   useEffect(() => {
@@ -449,6 +468,28 @@ export default function LoginScreen() {
                   </Text>
                 )}
               </PressableScale>
+
+              <View style={s.divider}>
+                <View style={s.dividerLine} />
+                <Text style={s.dividerText}>oppure</Text>
+                <View style={s.dividerLine} />
+              </View>
+
+              <PressableScale
+                style={[s.googleBtn, googleLoading && s.btnDisabled]}
+                onPress={handleGoogleSignIn}
+                disabled={googleLoading}
+                haptic={false}
+              >
+                {googleLoading ? (
+                  <ActivityIndicator color={colors.foreground} />
+                ) : (
+                  <>
+                    <Text style={s.googleIcon}>G</Text>
+                    <Text style={s.googleBtnText}>Continua con Google</Text>
+                  </>
+                )}
+              </PressableScale>
             </View>
           )}
         </ScrollView>
@@ -578,6 +619,44 @@ function makeStyles(colors: ReturnType<typeof import("@/hooks/useColors").useCol
       color: "#fff",
       fontSize: 15,
       fontFamily: "Inter_600SemiBold",
+    },
+    divider: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginVertical: 4,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: colors.border,
+    },
+    dividerText: {
+      color: colors.mutedForeground,
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+    },
+    googleBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 10,
+      height: 50,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.muted,
+    },
+    googleIcon: {
+      color: colors.foreground,
+      fontSize: 16,
+      fontFamily: "Inter_700Bold",
+      lineHeight: 20,
+    },
+    googleBtnText: {
+      color: colors.foreground,
+      fontSize: 15,
+      fontFamily: "Inter_500Medium",
     },
   });
 }
