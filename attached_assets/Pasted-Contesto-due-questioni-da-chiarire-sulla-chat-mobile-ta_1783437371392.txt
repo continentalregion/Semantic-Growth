@@ -1,0 +1,29 @@
+Contesto: due questioni da chiarire sulla chat mobile ((tabs)/index.tsx).
+
+Parte A — Blocco persistente
+Nonostante i fix di oggi (contratto SSE parsed.content, ordine messaggi, haptics/fade-in), un messaggio lungo e complesso (richiesta di timeline allenamento + dieta) risulta ancora bloccato: nessuna risposta, nessun indicatore “sta scrivendo” visibile.
+
+Analizza, SENZA scrivere codice:
+
+	1.	Verifica se questo specifico tipo di richiesta (prompt lungo, risposta probabilmente lunga) va incontro a timeout lato server o lato client diverso dal bug già risolto
+	2.	Controlla i log server per il messaggio più recente inviato — la richiesta arriva al backend? Genera una risposta? Si interrompe a metà?
+	3.	Verifica se gli ultimi fix (fade-in, haptics) hanno introdotto una regressione che impedisce il render dei chunk in arrivo
+	4.	Controlla se esiste un limite di max_tokens o simile che potrebbe troncare/bloccare risposte lunghe come una timeline di allenamento completa
+
+Parte B — Funzionamento in background
+Voglio che la generazione della risposta AI continui anche se l’utente chiude/backgrounda l’app, invece di fermarsi quando la connessione SSE viene sospesa dal sistema operativo.
+
+Analizza, SENZA scrivere codice:
+
+	1.	Conferma se l’architettura attuale lega la generazione della risposta a una connessione SSE aperta col client (se il client si disconnette, la generazione si ferma anche lato server, o continua comunque?)
+	2.	Valuta la fattibilità di un’architettura a “job asincrono”: il client invia il messaggio, il server processa la risposta come task indipendente (continua anche se il client si disconnette), il client poi recupera il risultato al rientro in foreground tramite polling o riconnessione
+	3.	Stima se serve anche una notifica push (Expo push notifications) per avvisare l’utente quando la risposta è pronta mentre l’app è in background
+	4.	Valuta l’impatto sul modello di costo/budget (GLOBAL_MONTHLY_BUDGET_CENTS) se le risposte continuano a essere generate anche senza un client collegato — rischio di generare risposte che nessuno legge mai
+	5.	Stima la complessità: quanto è ampio il refactoring (solo backend? Anche schema DB per tracciare lo stato dei job? Nuovo endpoint di polling?)
+
+Restituisci un piano dettagliato per entrambe le parti (causa del blocco A, fattibilità e approccio consigliato per B) — nessuna implementazione in questa fase.
+
+Vincoli obbligatori:
+
+	•	Modalità PLAN ONLY: nessuna modifica al codice in questa sessione.
+	•	NON usare subagent né testing monitor (costo token).
