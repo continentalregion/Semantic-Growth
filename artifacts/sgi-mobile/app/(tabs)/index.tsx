@@ -516,7 +516,7 @@ export default function ChatScreen() {
             returnKeyType="default"
           />
           <SendButton
-            onPress={sendMessage}
+            onPress={() => sendMessage()}
             disabled={!input.trim() || isStreaming}
             streaming={isStreaming}
             colors={colors}
