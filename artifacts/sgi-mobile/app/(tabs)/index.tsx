@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   Modal,
+  AppState,
 } from "react-native";
 import Animated, {
   useSharedValue,
@@ -125,6 +126,7 @@ export default function ChatScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
   const flatListRef = useRef<FlatList<LocalMessage>>(null);
+  const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
   const s = makeStyles(colors, insets);
 
   const { data: profile } = useGetMyProfile();
@@ -159,6 +161,27 @@ export default function ChatScreen() {
     const d = (PLAN_DEFAULT_MODEL[profile.plan] ?? "claude-haiku-4-5") as ModelId;
     setSelectedModel(d);
   }, [profile?.plan, activeConvoId]);
+
+  // AppState listener: cancel active reader when app goes to background so
+  // the finally block runs and resets isStreaming; on foreground return,
+  // safety-reset state and refresh conversation to show any server-completed reply.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", nextState => {
+      if (nextState === "background" || nextState === "inactive") {
+        if (readerRef.current) {
+          readerRef.current.cancel().catch(() => {});
+        }
+      }
+      if (nextState === "active") {
+        setIsStreaming(false);
+        setShowTyping(false);
+        if (activeConvoId) {
+          qc.invalidateQueries({ queryKey: getGetOpenaiConversationQueryKey(activeConvoId) });
+        }
+      }
+    });
+    return () => sub.remove();
+  }, [activeConvoId, qc]);
 
   const createConversation = useCallback(async (firstMsg: string): Promise<number | null> => {
     const token = await getToken();
@@ -234,6 +257,7 @@ export default function ChatScreen() {
       }
 
       const reader = resp.body.getReader();
+      readerRef.current = reader;
       const decoder = new TextDecoder();
       let buf = "";
 
@@ -302,6 +326,7 @@ export default function ChatScreen() {
       setErrorMsg(t("chat.connLost"));
       setMessages(prev => prev.filter(m => m.id !== userMsg.id));
     } finally {
+      readerRef.current = null;
       setIsStreaming(false);
       setShowTyping(false);
       inputRef.current?.focus();
