@@ -113,6 +113,7 @@ export default function TabLayout() {
       {/* ── Hidden routes (still routable, not shown in tab bar) ── */}
       <Tabs.Screen name="leaderboard" options={{ href: null }} />
       <Tabs.Screen name="recommendations" options={{ href: null }} />
+      <Tabs.Screen name="thread/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

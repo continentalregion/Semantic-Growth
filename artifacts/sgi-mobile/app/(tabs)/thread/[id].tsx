@@ -108,7 +108,25 @@ export default function ThreadDetailScreen() {
     );
   }
 
-  if (!thread) return null;
+  if (!id || id === "[id]" || !thread) {
+    return (
+      <AnimatedScreen style={{ backgroundColor: colors.background }}>
+        {header}
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 }}>
+          <Ionicons name="document-outline" size={44} color={colors.mutedForeground} />
+          <Text style={{ color: colors.foreground, fontSize: 16, fontFamily: "Inter_600SemiBold", textAlign: "center" }}>
+            Thread non trovato
+          </Text>
+          <Pressable
+            style={{ backgroundColor: colors.primary, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 }}
+            onPress={() => router.back()}
+          >
+            <Text style={{ color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" }}>Torna indietro</Text>
+          </Pressable>
+        </View>
+      </AnimatedScreen>
+    );
+  }
 
   return (
     <AnimatedScreen style={{ backgroundColor: colors.background }}>

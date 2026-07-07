@@ -1,0 +1,27 @@
+Diagnosi
+Causa della tab fantasma: Expo Router auto-registra come tab screen ogni file/cartella dentro (tabs)/. Nel _layout.tsx le uniche route nascoste esplicitamente sono leaderboard e recommendations (righe 114–115) con href: null. La nuova cartella thread/ con [id].tsx non è dichiarata da nessuna parte nel <Tabs>, quindi Expo Router la scopre, la aggiunge alla tab bar con il nome letterale "thread/[id]" e la rende toccabile.
+
+Fix 1 — Visibilità tab (obbligatorio, 1 riga)
+File: (tabs)/_layout.tsx
+Dove: nella sezione "Hidden routes" insieme a leaderboard e recommendations
+
+<Tabs.Screen name="thread/[id]" options={{ href: null }} />
+
+Il name per una route in sottocartella è la path relativa al segmento (tabs), quindi "thread/[id]" (non "thread", non "[id]"). Questo è il pattern standard Expo Router: la route resta navigabile via router.push, sparisce solo dalla tab bar.
+
+Fix 2 — Guard difensivo in thread/[id].tsx (consigliato)
+Analisi dei tre casi limite quando si tocca la tab fantasma senza id reale:
+
+Valore id	enabled: !!id	Risultato attuale
+"[id]" (letterale)	true → query parte → API 404 → isCriticalError = true	✅ mostra schermata errore
+undefined	false → query disabilitata → isLoading=false, isError=false	❌ cade su if (!thread) return null → schermata bianca
+""	false → stesso caso	❌ schermata bianca
+Causa: L'ultima riga del componente è if (!thread) return null; — ramo raggiunto solo quando id è assente (query mai eseguita, nessuno stato di errore attivato).
+
+Fix: Sostituire if (!thread) return null; con una schermata "Thread non trovato" + pulsante back, oppure con router.replace('/(tabs)'). È sufficiente un controllo sull'id mancante prima di quel return.
+
+Riepilogo
+#	File	Modifica	Priorità
+1	(tabs)/_layout.tsx	<Tabs.Screen name="thread/[id]" options={{ href: null }} />	Obbligatorio
+2	(tabs)/thread/[id].tsx	Sostituire return null con schermata "Thread non trovato" + back	Consigliato
+Non serve spostare il file fuori da (tabs)/ — la convenzione href: null è esattamente il meccanismo pensato per questo caso da Expo Router.
