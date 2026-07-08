@@ -1159,7 +1159,7 @@ export default function BattlesScreen() {
         pointerEvents="none"
         style={{ position: "absolute", top: -9999, left: 0, width: Dimensions.get("window").width - 40 }}
       >
-        <View ref={hiddenShareCardRef} style={{
+        <View ref={hiddenShareCardRef} collapsable={false} style={{
           backgroundColor: colors.background, borderRadius: 16, padding: 20,
           borderWidth: 1, borderColor: colors.border, gap: 12,
         }}>
