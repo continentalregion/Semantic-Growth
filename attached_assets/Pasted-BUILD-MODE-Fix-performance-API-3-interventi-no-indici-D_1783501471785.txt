@@ -1,0 +1,25 @@
+BUILD MODE — Fix performance API (3 interventi, no indici DB in questo giro)
+
+Non usare subagent né testing monitor (costo token).
+
+Contesto: diagnosi completata l'8 luglio 2026. Il fix pool DB (idleTimeoutMillis 10s→30min) è attivo solo in dev, mai ridistribuito in production. Inoltre buildUserProfile fa 4 query seriali e /api/openai/usage (polled ogni ~60s dal mobile) fa un JOIN messages×conversations senza indici, costando 285-607ms anche warm.
+
+Esegui questi 3 fix, in quest'ordine, uno alla volta con conferma prima di passare al successivo:
+
+1. REDEPLOY PRODUCTION
+   - Verifica che il redeploy porti in produzione il codice con idleTimeoutMillis: 30 minuti (già presente in dev dal riavvio delle 08:52:07 di oggi).
+   - Non modificare altro codice in questo step: solo redeploy.
+   - Conferma dopo il deploy: uptime del processo production e valore effettivo di idleTimeoutMillis letto dal codice live.
+
+2. CACHE 60s SU /api/openai/usage
+   - Aggiungi cache in-memory (o Redis se già disponibile nello stack, altrimenti in-memory con TTL) con chiave per userId, TTL 60 secondi.
+   - Deve invalidarsi correttamente se l'utente compie un'azione che cambia lo usage nello stesso minuto (es. invio messaggio) — oppure, se più semplice e accettabile, accetta un ritardo massimo di 60s nell'aggiornamento usage mostrato (dati non real-time, è un poll heartbeat).
+   - Non toccare la logica di resetMonthlyIfNeeded, solo il layer di risposta cacheata.
+
+3. PARALLELIZZARE buildUserProfile CON Promise.all
+   - Le 4 query attualmente seriali in buildUserProfile (users, count leaderboard_entries, sgi_snapshots LIMIT 50, global_rank da sgi_snapshots) vanno eseguite in parallelo con Promise.all dove non c'è dipendenza di dati tra loro.
+   - Verifica che nessuna delle 4 query dipenda dal risultato di un'altra prima di parallelizzare (se sì, mantieni la sequenza necessaria e parallelizza solo quelle indipendenti).
+
+Per ciascuno dei 3 fix: riporta i file modificati e i tempi di risposta prima/dopo (usa gli stessi endpoint di test della diagnosi: /api/users/me, /api/openai/usage).
+
+Non toccare schema.ts, non aggiungere indici DB, non toccare Expo/EAS in questo giro.

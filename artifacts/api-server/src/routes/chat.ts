@@ -58,6 +58,14 @@ async function resetMonthlyIfNeeded(userId: number, user: MonthlyCountersUser): 
 
 const router = Router();
 
+// Per-user in-memory cache for /openai/usage (TTL 60s).
+// Mobile polls this endpoint every ~60s; caching avoids the expensive
+// JOIN messages×conversations on every heartbeat tick. A 60s staleness
+// window is acceptable since usage is not real-time (bar/counter updates
+// after each conversation, not mid-stream).
+const usageCache = new Map<number, { payload: object; expiresAt: number }>();
+const USAGE_CACHE_TTL_MS = 60_000;
+
 const SYSTEM_PROMPT = `You are an intellectually rigorous conversational partner. Your role is to engage deeply with ideas, challenge assumptions, explore connections across disciplines, and help the user develop richer frameworks for thinking.
 
 You are not a general assistant — you are a partner for intellectual exploration. Engage with philosophy, science, mathematics, history, literature, technology, and any domain the user brings. Ask probing follow-up questions. Make unexpected cross-domain connections. Never dumb down your language — match and slightly exceed the user's conceptual level.
@@ -100,6 +108,13 @@ router.get("/openai/usage", async (req, res) => {
     const user = await getOrCreateUser(clerkId);
     if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
 
+    // Serve cached response if still fresh (mobile polls every ~60s)
+    const cached = usageCache.get(user.id);
+    if (cached && Date.now() < cached.expiresAt) {
+      res.json(cached.payload);
+      return;
+    }
+
     const currentUsed = await resetMonthlyIfNeeded(user.id, user);
     const limit = MONTHLY_LIMITS[user.plan] ?? MONTHLY_LIMITS.free;
     const remaining = Math.max(0, limit - currentUsed);
@@ -118,7 +133,9 @@ router.get("/openai/usage", async (req, res) => {
     const totalCostCents = Number(costRow[0]?.total ?? 0);
 
     const warning = !user.firstChatUsedAt ? false : remaining > 0 && currentUsed / limit >= 0.75;
-    res.json({ used: currentUsed, limit, remaining, plan: user.plan, totalCostCents, warning });
+    const payload = { used: currentUsed, limit, remaining, plan: user.plan, totalCostCents, warning };
+    usageCache.set(user.id, { payload, expiresAt: Date.now() + USAGE_CACHE_TTL_MS });
+    res.json(payload);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal error" });
