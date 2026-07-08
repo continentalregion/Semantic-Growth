@@ -3,6 +3,7 @@ import {
   View,
   Text,
   FlatList,
+  Pressable,
   StyleSheet,
   RefreshControl,
   Platform,
@@ -15,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
+import { usePurchase } from "@/hooks/usePurchase";
 import { StaggeredItem } from "@/components/ui/StaggeredItem";
 import { SkeletonListCard } from "@/components/ui/SkeletonBox";
 
@@ -122,6 +124,7 @@ export default function RecommendationsScreen() {
   const tabBarHeight = useBottomTabBarHeight();
 
   const { data: recs, isLoading, error, refetch, isRefetching } = useGetMyRecommendations();
+  const { triggerPurchase } = usePurchase();
 
   const isPremiumLocked =
     (error as { status?: number } | null)?.status === 403 ||
@@ -158,19 +161,21 @@ export default function RecommendationsScreen() {
           <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center", lineHeight: 20 }}>
             {t("recommendations.premiumDesc")}
           </Text>
-          <View
-            style={{
+          <Pressable
+            style={({ pressed }) => ({
               backgroundColor: colors.primary,
               borderRadius: 12,
               paddingHorizontal: 24,
               paddingVertical: 14,
               marginTop: 8,
-            }}
+              opacity: pressed ? 0.8 : 1,
+            })}
+            onPress={() => triggerPurchase("premium")}
           >
             <Text style={{ color: palette.primaryFg, fontFamily: "Inter_600SemiBold", fontSize: 15 }}>
               {t("recommendations.upgradePremium")}
             </Text>
-          </View>
+          </Pressable>
         </View>
       ) : !recs || recs.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12 }}>

@@ -12,9 +12,17 @@ const PLAN_RANK: Record<string, number> = { free: 0, premium: 1, pro: 2 };
  * Gated on `stripeCustomerId`: users without one (e.g. the email-based admin
  * overrides applied at startup) are returned untouched. Best-effort — any
  * failure returns the user unchanged so the auth hot path never breaks.
+ *
+ * IAP precedence: if planSource = "iap", Stripe reconciliation is skipped.
+ * Apple/Google IAP lifecycle is managed exclusively via the RevenueCat webhook
+ * (POST /webhooks/revenuecat). This prevents Stripe from accidentally
+ * downgrading a user who paid via IAP.
  */
 export async function reconcileStripePlanForUser(user: DbUser): Promise<DbUser> {
   if (!user.stripeCustomerId) return user;
+
+  // Do not override plans managed by Apple/Google IAP.
+  if (user.planSource === "iap") return user;
 
   try {
     const result = await db.execute(sql`
@@ -33,13 +41,13 @@ export async function reconcileStripePlanForUser(user: DbUser): Promise<DbUser> 
       if (plan in PLAN_RANK && PLAN_RANK[plan] > PLAN_RANK[best]) best = plan;
     }
 
-    if (best !== user.plan) {
+    if (best !== user.plan || user.planSource !== "stripe") {
       const [updated] = await db
         .update(users)
-        .set({ plan: best })
+        .set({ plan: best, planSource: "stripe" })
         .where(eq(users.id, user.id))
         .returning();
-      return updated ?? { ...user, plan: best };
+      return updated ?? { ...user, plan: best, planSource: "stripe" };
     }
     return user;
   } catch (err) {

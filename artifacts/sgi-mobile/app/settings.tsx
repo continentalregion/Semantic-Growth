@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, Pressable, StyleSheet, Platform, Linking } from "react-native";
 import { router } from "expo-router";
+import { useGetMyProfile } from "@workspace/api-client-react";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,6 +22,7 @@ export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const [changing, setChanging] = useState(false);
+  const { data: profile } = useGetMyProfile();
 
   async function handleSetLanguage(code: LangCode) {
     if (changing || code === i18n.language) return;
@@ -112,6 +114,69 @@ export default function SettingsScreen() {
               );
             })}
           </View>
+        </View>
+
+        {/* Plan / upgrade section */}
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View style={styles.sectionHeader}>
+            <Ionicons name="star-outline" size={18} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+              Piano attivo
+            </Text>
+            <View
+              style={{
+                marginLeft: "auto",
+                backgroundColor: colors.primary + "18",
+                borderColor: colors.primary + "33",
+                borderWidth: 1,
+                borderRadius: 20,
+                paddingHorizontal: 10,
+                paddingVertical: 3,
+              }}
+            >
+              <Text style={{ color: colors.primary, fontFamily: "Inter_600SemiBold", fontSize: 12, textTransform: "capitalize" }}>
+                {profile?.plan ?? "free"}
+              </Text>
+            </View>
+          </View>
+          {profile?.plan === "free" && (
+            <Pressable
+              style={({ pressed }) => [
+                styles.legalRow,
+                {
+                  borderColor: colors.primary + "44",
+                  backgroundColor: colors.primary + "0d",
+                  opacity: pressed ? 0.75 : 1,
+                },
+              ]}
+              onPress={() => router.push("/upgrade")}
+            >
+              <Ionicons name="trending-up" size={16} color={colors.primary} />
+              <Text style={[styles.legalLabel, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
+                Upgrade a Premium o Pro
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+            </Pressable>
+          )}
+          {(profile?.plan === "premium" || profile?.plan === "pro") && (
+            <Pressable
+              style={({ pressed }) => [
+                styles.legalRow,
+                { borderColor: colors.border, opacity: pressed ? 0.75 : 1 },
+              ]}
+              onPress={() => router.push("/upgrade")}
+            >
+              <Text style={[styles.legalLabel, { color: colors.foreground }]}>
+                Gestisci piano
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
+            </Pressable>
+          )}
         </View>
 
         {/* Legal section */}

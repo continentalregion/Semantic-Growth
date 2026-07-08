@@ -33,6 +33,7 @@ import {
 } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
+import { usePurchase } from "@/hooks/usePurchase";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
 
@@ -316,9 +317,11 @@ function ScenarioCard({
 function PremiumGate({
   colors,
   t,
+  onUpgrade,
 }: {
   colors: ReturnType<typeof useColors>;
   t: (key: string) => string;
+  onUpgrade: () => void;
 }) {
   return (
     <View style={st.gateContainer}>
@@ -344,6 +347,7 @@ function PremiumGate({
           st.gateBtn,
           { backgroundColor: palette.primary, opacity: pressed ? 0.85 : 1 },
         ]}
+        onPress={onUpgrade}
       >
         <Ionicons name="trending-up" size={18} color="#fff" />
         <Text style={st.gateBtnText}>{t("predictions.upgradePremium")}</Text>
@@ -375,6 +379,7 @@ export default function PredictionsScreen() {
   const chartWidth = screenWidth - 64;
 
   const { data: profile, isLoading: profileLoading } = useGetMyProfile();
+  const { triggerPurchase } = usePurchase();
   const isPremiumOrPro =
     profile?.plan === "premium" || profile?.plan === "pro";
 
@@ -419,7 +424,7 @@ export default function PredictionsScreen() {
             <SkeletonPredictions />
           </ScrollView>
         ) : !isPremiumOrPro ? (
-          <PremiumGate colors={colors} t={t} />
+          <PremiumGate colors={colors} t={t} onUpgrade={() => triggerPurchase("premium")} />
         ) : !predictions ? null : (
           <ScrollView
             contentContainerStyle={[

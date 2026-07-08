@@ -1,0 +1,31 @@
+BUILD MODE — Preparazione RevenueCat/IAP mobile (lavoro sbloccato, no dipendenza da Apple)
+
+Non usare subagent né testing monitor (costo token).
+
+Obiettivo: preparare tutta l'infrastruttura per il checkout mobile Premium/Pro via RevenueCat/StoreKit, limitandosi a ciò che NON dipende dall'approvazione Apple Developer Program (ancora pendente). Nessun prodotto IAP reale verrà creato in questo turno — solo SDK, hook, endpoint, UI, collegamenti.
+
+1. INSTALLAZIONE SDK
+Installa react-native-purchases in artifacts/sgi-mobile/package.json e aggiungi il plugin Expo necessario in app.json. Non serve alcuna configurazione di prodotti reali — solo la libreria presente e pronta.
+
+2. HOOK usePurchase()
+Crea un hook artifacts/sgi-mobile/hooks/usePurchase.ts (o posizione coerente con gli altri hook esistenti) che esponga triggerPurchase(plan: "premium" | "pro"): Promise<void>. Per ora, poiché non esistono ancora prodotti IAP reali, implementa la logica reale di chiamata a Purchases.getOfferings() / purchasePackage() ma con gestione esplicita del caso in cui l'offering non esiste ancora (mostra un messaggio "Disponibile a breve" invece di un crash). Su successo reale (quando in futuro i prodotti esisteranno): invalida la query del profilo utente per riflettere il nuovo piano.
+
+3. COLLEGA I BOTTONI INERTI
+In predictions.tsx: aggiungi la prop onUpgrade a PremiumGate, collegala al Pressable esistente (oggi senza onPress), e passa onUpgrade={() => triggerPurchase("premium")} dal punto di rendering.
+In recommendations.tsx: converti la View decorativa in un Pressable reale con onPress={() => triggerPurchase("premium")}.
+
+4. SCHERMATA UPGRADE CENTRALIZZATA
+Crea una nuova schermata mobile (es. app/(tabs)/upgrade.tsx o come route modale, coerente con le convenzioni esistenti del progetto) che mostri i 3 piani (free/premium/pro) con prezzi e limiti presi da artifacts/api-server/src/config/pricing.ts (leggi i valori esatti da lì, non inventarli), con CTA che chiamano triggerPurchase(plan) per premium/pro. Deve essere raggiungibile da qualche punto della UI (es. un link nelle impostazioni, o dal PremiumGate stesso).
+
+5. ENDPOINT WEBHOOK REVENUECAT (backend)
+Crea artifacts/api-server/src/routes/revenuecat.ts (o percorso coerente) con POST /webhooks/revenuecat:
+- Verifica header Authorization con bearer token (leggi da variabile ambiente REVENUECAT_WEBHOOK_TOKEN, da configurare successivamente)
+- Legge event.type, event.app_user_id, event.product_id
+- Mappa product_id a "premium"/"pro" (usa costanti placeholder tipo "com.sgindex.premium.monthly" per ora, documentate come da sostituire quando i prodotti IAP reali saranno creati)
+- UPDATE users SET plan = ... WHERE clerkId = app_user_id (query naturalmente idempotente, nessuna deduplica aggiuntiva necessaria)
+- Risponde 200 OK
+
+6. COLONNA planSource
+Aggiungi una colonna planSource ("stripe" | "iap" | "admin", default "stripe") allo schema users — con la stessa disciplina già imparata oggi: sia lo schema.ts sia una migration drizzle-kit tracciata (NON un ALTER TABLE manuale non tracciato, vedi il problema già risolto in precedenza con conversations.updated_at). Aggiorna reconcileStripePlanForUser e il nuovo webhook RevenueCat perché ciascuno scriva planSource coerentemente quando aggiorna il piano.
+
+Riporta tutti i file creati/modificati con le righe esatte. Segnala esplicitamente se qualche prodotto NPM richiede una versione specifica per compatibilità con le librerie native già presenti nel progetto (reanimated, keyboard-controller).

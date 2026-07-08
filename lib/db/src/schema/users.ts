@@ -7,6 +7,7 @@ export const users = pgTable("users", {
   clerkId: text("clerk_id").notNull().unique(),
   email: text("email").notNull(),
   plan: text("plan").notNull().default("free"),
+  planSource: text("plan_source").notNull().default("stripe"),
   stripeCustomerId: text("stripe_customer_id").unique(),
   sgiScore: real("sgi_score").notNull().default(0),
   globalRank: integer("global_rank"),
