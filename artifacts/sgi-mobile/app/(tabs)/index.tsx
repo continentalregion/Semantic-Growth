@@ -151,6 +151,9 @@ export default function ChatScreen() {
   // IDs that returned 404 this session — skip them when auto-selecting from the
   // list so a stale persisted cache entry doesn't trigger an infinite 404 loop.
   const invalidatedConvoIds = useRef<Set<number>>(new Set());
+  // When true, the auto-select effect must skip re-selection (user explicitly
+  // requested a blank new chat via newChat()). Reset to false after one skip.
+  const skipAutoSelect = useRef(false);
 
   const { data: activeConvo, error: activeConvoError } = useGetOpenaiConversation(activeConvoId ?? 0, {
     query: {
@@ -176,6 +179,13 @@ export default function ChatScreen() {
 
   useEffect(() => {
     if (conversations && conversations.length > 0 && !activeConvoId) {
+      if (skipAutoSelect.current) {
+        // User explicitly requested a new chat — don't re-select the previous
+        // conversation. Consume the flag so future null transitions (404 recovery,
+        // first load) still trigger auto-selection normally.
+        skipAutoSelect.current = false;
+        return;
+      }
       const valid = conversations.find(c => !invalidatedConvoIds.current.has(c.id));
       if (valid) setActiveConvoId(valid.id);
     }
@@ -407,6 +417,7 @@ export default function ChatScreen() {
   }, [input, isStreaming, activeConvoId, selectedModel, getToken, qc, createConversation]);
 
   const newChat = useCallback(() => {
+    skipAutoSelect.current = true;
     setActiveConvoId(null);
     setMessages([]);
     setConvoModal(false);
