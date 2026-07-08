@@ -1,0 +1,43 @@
+Non usare subagent né testing monitor (costo token).
+
+CONTESTO: 3 schermate mobile pushate senza modo di tornare indietro (Stack con 
+headerShown:false in explore/_layout.tsx — ogni schermata deve implementare il proprio 
+back button, alcune non lo fanno). Pattern di riferimento già corretto e da replicare 
+identico, preso da artifacts/sgi-mobile/app/(tabs)/explore/progress.tsx righe 193-198:
+
+  <Pressable
+    onPress={() => router.back()}
+    style={({ pressed }) => [st.backBtn, { opacity: pressed ? 0.6 : 1 }]}
+  >
+    <Ionicons name="chevron-back" size={22} color={colors.foreground} />
+  </Pressable>
+
+(stile backBtn: usare lo stesso pattern già presente nei fogli di stile del file, 
+tipicamente { padding: 8 } — copiare da progress.tsx se serve riferimento esatto)
+
+TASK — stesso identico pattern in questi 3 file:
+
+1. artifacts/sgi-mobile/app/(tabs)/leaderboard.tsx:
+   - Aggiungere "Pressable" all'import da "react-native" (non presente)
+   - Aggiungere: import { router } from "expo-router";
+   - Nell'header (righe 105-111), inserire il Pressable con chevron-back PRIMA 
+     dell'icona trofeo esistente, invariato il resto dell'header
+
+2. artifacts/sgi-mobile/app/(tabs)/recommendations.tsx:
+   - Aggiungere: import { router } from "expo-router";
+   - Nell'header (righe 135-137), inserire il Pressable con chevron-back PRIMA 
+     dell'icona lampadina esistente, invariato il resto
+
+3. artifacts/sgi-mobile/app/(tabs)/explore/admin.tsx:
+   - Aggiungere: import { router } from "expo-router";
+   - Nell'header (righe 185-193), inserire il Pressable con chevron-back PRIMA del 
+     View flex:1 con titolo/sottotitolo, invariato il resto
+
+Non toccare growth.tsx né rank.tsx (si aggiornano automaticamente essendo alias). Non 
+toccare le tab principali (dashboard, index, battles, explore/index, profile) — non 
+necessitano bottone indietro.
+
+Se il code reviewer automatico rigetta confrontando con scope task vecchi (#14/#15), è 
+falso allarme noto — skip_validation_reason se serve.
+
+Al termine: commit e PUSH del repo.

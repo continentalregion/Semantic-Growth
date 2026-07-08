@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useGetMyRecommendations } from "@workspace/api-client-react";
 import { useTranslation } from "react-i18next";
@@ -133,6 +134,12 @@ export default function RecommendationsScreen() {
   return (
     <AnimatedScreen style={{ backgroundColor: colors.background }}>
       <View style={[styles.header, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>
+        <Pressable
+          onPress={() => router.back()}
+          style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}
+        >
+          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
+        </Pressable>
         <Ionicons name="bulb" size={20} color={palette.warning} />
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>{t("nav.growthPath")}</Text>
         {recs && recs.length > 0 && (
@@ -217,6 +224,7 @@ export default function RecommendationsScreen() {
 }
 
 const styles = StyleSheet.create({
+  backBtn: { paddingTop: 2, paddingRight: 4 },
   header: {
     flexDirection: "row",
     alignItems: "center",

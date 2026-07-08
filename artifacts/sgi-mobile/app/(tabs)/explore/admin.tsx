@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useColors } from "@/hooks/useColors";
@@ -191,6 +192,12 @@ export default function AdminMonitorScreen() {
           },
         ]}
       >
+        <Pressable
+          onPress={() => router.back()}
+          style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}
+        >
+          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
+        </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={[styles.headerTitle, { color: colors.foreground }]}>Admin Monitor</Text>
           <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
@@ -398,6 +405,7 @@ export default function AdminMonitorScreen() {
 }
 
 const styles = StyleSheet.create({
+  backBtn: { paddingTop: 2, paddingRight: 4 },
   header: {
     paddingHorizontal: 20,
     paddingBottom: 12,
