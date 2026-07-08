@@ -44,6 +44,8 @@ const BADGE_META: Record<string, { emoji: string }> = {
   cross_domain_architect: { emoji: "🔗" },
   abstract_reasoner:      { emoji: "♾️" },
   high_growth_user:       { emoji: "🚀" },
+  mind_changer:           { emoji: "💡" },
+  battle_victor:          { emoji: "🏆" },
 };
 
 const ALL_BADGES = [
@@ -52,6 +54,8 @@ const ALL_BADGES = [
   { id: "cross_domain_architect", name: "Cross-D." },
   { id: "abstract_reasoner",      name: "Abstract" },
   { id: "high_growth_user",       name: "High Growth" },
+  { id: "mind_changer",           name: "Mind Changer" },
+  { id: "battle_victor",          name: "Battle Victor" },
 ];
 
 function XpBar({

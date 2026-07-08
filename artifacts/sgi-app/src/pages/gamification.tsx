@@ -9,6 +9,8 @@ const BADGE_META: Record<string, { emoji: string; color: string }> = {
   cross_domain_architect: { emoji: "🔗", color: "rgba(255,153,0,0.12)" },
   abstract_reasoner:      { emoji: "♾️",  color: "rgba(6,214,160,0.12)" },
   high_growth_user:       { emoji: "🚀", color: "rgba(247,37,133,0.12)" },
+  mind_changer:           { emoji: "💡", color: "rgba(255,214,0,0.12)" },
+  battle_victor:          { emoji: "🏆", color: "rgba(255,80,80,0.12)" },
 };
 
 const ALL_BADGES = [
@@ -17,6 +19,8 @@ const ALL_BADGES = [
   { id: "cross_domain_architect", name: "Cross-Domain" },
   { id: "abstract_reasoner",      name: "Abstract" },
   { id: "high_growth_user",       name: "High Growth" },
+  { id: "mind_changer",           name: "Mind Changer" },
+  { id: "battle_victor",          name: "Battle Victor" },
 ];
 
 export default function Gamification() {
