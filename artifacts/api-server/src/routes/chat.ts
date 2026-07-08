@@ -19,7 +19,6 @@ import {
   PRICING_SUMMARY,
   DEFAULT_MODEL,
   ALLOWED_MODELS,
-  GLOBAL_MONTHLY_BUDGET_CENTS,
   GLOBAL_BUDGET_DEGRADATION_THRESHOLD,
   OPUS_MONTHLY_LIMIT,
   OPUS_FALLBACK_MODEL,
@@ -28,6 +27,7 @@ import {
   COST_CAP_FALLBACK_MODEL,
 } from "../config/pricing";
 import { currentMonthKey, resetAllMonthlyCountersIfNeeded, type MonthlyCountersUser } from "../lib/monthlyReset.js";
+import { getGlobalBudgetCapCents } from "../lib/dynamicBudget.js";
 
 // o4-mini rimosso: era in ALLOWED_MODELS.pro ma assente dal selettore UI —
 // incoerenza chiusa rimuovendo la voce server-side (Opzione A).
@@ -331,7 +331,8 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
 
     // ── FASE 5: valvola globale — controlla budget mensile totale ─────────────
     // Se l'app si avvicina al tetto globale, declassa automaticamente a Haiku
-    const globalBudgetThreshold = GLOBAL_MONTHLY_BUDGET_CENTS * GLOBAL_BUDGET_DEGRADATION_THRESHOLD;
+    const globalBudgetCap = await getGlobalBudgetCapCents();
+    const globalBudgetThreshold = globalBudgetCap * GLOBAL_BUDGET_DEGRADATION_THRESHOLD;
     const monthStart = new Date(currentMonthKey());
     const globalCostRow = await db.select({ total: sql<number>`coalesce(sum(${messages.costCents}), 0)` })
       .from(messages)
@@ -342,7 +343,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     if (globalCostCents >= globalBudgetThreshold) {
       const safeModel = "claude-haiku-4-5" as ModelId;
       if (chosenModel !== safeModel) {
-        console.warn(`[global-valve] budget ${globalCostCents.toFixed(1)}/${GLOBAL_MONTHLY_BUDGET_CENTS}¢ — degrading ${chosenModel} → ${safeModel}`);
+        console.warn(`[global-valve] budget ${globalCostCents.toFixed(1)}/${globalBudgetCap}¢ — degrading ${chosenModel} → ${safeModel}`);
         if (LOG_BLOCKS) {
           await db.insert(blockedAttempts).values({
             userId: user.id, plan: user.plan,

@@ -14,7 +14,7 @@
 
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
-import { BATTLE_MONTHLY_BUDGET_CENTS } from "../config/pricing.js";
+import { getBattleBudgetCapCents } from "./dynamicBudget.js";
 
 // Re-exported for existing call sites (battles.ts) — the actual constants
 // now live in config/pricing.ts, the single shared source of truth used by
@@ -58,7 +58,8 @@ export async function isBattleBudgetOk(): Promise<boolean> {
       SELECT used_cents FROM battle_budget WHERE month = ${month}
     `);
     const used = Number((rows.rows[0] as { used_cents: number } | undefined)?.used_cents ?? 0);
-    return used < BATTLE_MONTHLY_BUDGET_CENTS;
+    const cap = await getBattleBudgetCapCents();
+    return used < cap;
   } catch (err) {
     console.warn("[battleBudget] isBattleBudgetOk error (fail-open):", err instanceof Error ? err.message : err);
     return true;

@@ -1,0 +1,47 @@
+Non usare subagent né testing monitor (costo token).
+
+CONTESTO: BATTLE_MONTHLY_BUDGET_CENTS (€50) e GLOBAL_MONTHLY_BUDGET_CENTS (€500) in 
+pricing.ts sono tetti fissi. Vanno resi dinamici: il più alto tra il valore fisso attuale 
+(come pavimento minimo di sicurezza) e una percentuale dell'MRR reale da Stripe — stessa 
+query già usata e funzionante in artifacts/api-server/src/routes/admin.ts (righe 34-49, 
+stripe.subscriptions/subscription_items/prices).
+
+TASK 1 — Nuovo file artifacts/api-server/src/lib/dynamicBudget.ts:
+- Funzione privata getCurrentMrrCents(): esegue la STESSA query SQL già presente in 
+  admin.ts righe 35-43 (adattata per restituire il totale in centesimi, non EUR), con 
+  cache in-memory TTL 5 minuti (stesso pattern del thresholdCache già in 
+  artifacts/api-server/src/routes/leaderboard.ts righe 15-16) per non interrogare 
+  Stripe ad ogni singolo controllo budget. Se la query fallisce, log di warning e 
+  ritorna il valore cache precedente se esiste, altrimenti 0 (fail-safe verso il basso, 
+  mai verso l'alto).
+- Funzione esportata getBattleBudgetCapCents(): Promise<number> — 
+  Math.max(BATTLE_MONTHLY_BUDGET_CENTS, Math.round(mrrCents * 0.15))
+- Funzione esportata getGlobalBudgetCapCents(): Promise<number> — 
+  Math.max(GLOBAL_MONTHLY_BUDGET_CENTS, Math.round(mrrCents * 0.50))
+  (import BATTLE_MONTHLY_BUDGET_CENTS e GLOBAL_MONTHLY_BUDGET_CENTS da ../config/pricing 
+  come pavimenti minimi, NON eliminarli da pricing.ts — restano i valori di sicurezza)
+
+TASK 2 — artifacts/api-server/src/lib/battleBudget.ts:
+  In isBattleBudgetOk(), sostituire:
+    return used < BATTLE_MONTHLY_BUDGET_CENTS;
+  con:
+    const cap = await getBattleBudgetCapCents();
+    return used < cap;
+  (import getBattleBudgetCapCents da ./dynamicBudget)
+
+TASK 3 — artifacts/api-server/src/routes/chat.ts, FASE 5 (righe ~332-345):
+  Sostituire:
+    const globalBudgetThreshold = GLOBAL_MONTHLY_BUDGET_CENTS * GLOBAL_BUDGET_DEGRADATION_THRESHOLD;
+  con:
+    const globalBudgetCap = await getGlobalBudgetCapCents();
+    const globalBudgetThreshold = globalBudgetCap * GLOBAL_BUDGET_DEGRADATION_THRESHOLD;
+  (import getGlobalBudgetCapCents da ../lib/dynamicBudget; aggiornare il messaggio di 
+  log riga 345 per usare globalBudgetCap invece di GLOBAL_MONTHLY_BUDGET_CENTS)
+
+Non toccare GLOBAL_BUDGET_DEGRADATION_THRESHOLD, i cost cap per-utente (MONTHLY_LIMITS), 
+né altra logica di pricing.
+
+Se il code reviewer automatico rigetta confrontando con scope task vecchi (#14/#15), è 
+falso allarme noto — skip_validation_reason se serve.
+
+Al termine: commit e PUSH del repo.
