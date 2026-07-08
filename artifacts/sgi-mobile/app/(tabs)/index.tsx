@@ -610,7 +610,17 @@ export default function ChatScreen() {
           onNew={newChat}
           onDelete={async (id) => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            await deleteConvo.mutateAsync({ id });
+            try {
+              await deleteConvo.mutateAsync({ id });
+            } catch (err) {
+              const status = (err as { status?: number } | null)?.status;
+              if (status !== 404) throw err;
+              // 404 = already gone on the server; treat as silent success.
+              // Clean up local state exactly like the auto-selection guard does.
+              invalidatedConvoIds.current.add(id);
+              qc.removeQueries({ queryKey: getGetOpenaiConversationQueryKey(id) });
+            }
+            // Always proceed regardless of whether delete succeeded or was a no-op 404.
             if (id === activeConvoId) newChat();
           }}
           onClose={() => setConvoModal(false)}

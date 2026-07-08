@@ -1,0 +1,19 @@
+BUILD MODE — Fix "Uncaught 404 Conversation not found" su delete/new chat
+
+Non usare subagent né testing monitor (costo token).
+
+Errore riportato: "Uncaught (in promise, id: 0) ApiError: HTTP 404: Conversation not found", stack in custom-fetch.ts:194 (ApiError#constructor) via customFetch:390. Sintomi: l'utente non riesce a eliminare un thread/conversazione vecchia, e nemmeno il pulsante "new" (nuova chat) funziona — l'app resta bloccata.
+
+Contesto: esiste già un fix precedente (7 luglio) per 404 su conversazione stale in cache ALL'AVVIO, basato su invalidatedConvoIds (Set di ID già falliti) + retry condizionale (non-retry solo su 404) + qc.removeQueries + filtro nell'auto-selezione, in artifacts/sgi-mobile/app/(tabs)/index.tsx. Questo bug sembra diverso — non è auto-selezione, ma un'azione ESPLICITA dell'utente (delete o new) che fallisce con la stessa causa di fondo (ID stale/già invalidato).
+
+Fai quanto segue in ordine:
+
+1. Trova la funzione di delete conversazione (probabilmente una mutation che chiama DELETE /api/openai/conversations/:id o simile) e la funzione newChat(). Identifica se una delle due, o entrambe, referenziano un activeConvoId che punta a una conversazione già cancellata/invalidata lato server, causando il 404 non gestito.
+
+2. Aggiungi un try/catch (o .catch()) attorno alla chiamata che genera questo errore specifico, così l'eccezione non resta "Uncaught in promise". Su 404 in questo contesto: pulisci lo stato locale (activeConvoId, cache React Query per quell'ID) e permetti comunque all'azione di procedere logicamente (es. se l'utente sta eliminando una conversazione già sparita, trattalo come successo silenzioso; se sta creando una nuova, non lasciare che il 404 di quella vecchia blocchi la creazione della nuova).
+
+3. Se newChat() oggi dipende in qualche modo dal completamento di un'invalidazione/query sulla conversazione attiva prima di poter procedere, disaccoppia questa dipendenza — creare una nuova conversazione non dovrebbe mai fallire per colpa dello stato di una vecchia.
+
+4. Riusa lo stesso pattern invalidatedConvoIds già esistente se applicabile, invece di introdurre un meccanismo nuovo parallelo.
+
+Riporta i file e le righe esatte modificate, e conferma di aver testato mentalmente lo scenario: utente su una conversazione che il server ha già rimosso, preme "elimina" o "nuova chat" — l'azione deve completarsi senza errori uncaught.
