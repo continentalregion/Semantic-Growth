@@ -137,8 +137,10 @@ export default function ChatScreen() {
   const [progressCardShare, setProgressCardShare] = useState<{
     id: string;
     deltaPct: number;
+    isPositive: boolean;
     highlightMetric: string;
     highlightDeltaPct: number;
+    insightText: string | null;
   } | null>(null);
   const [chatShareVisible, setChatShareVisible] = useState(false);
   const [chatSharing, setChatSharing] = useState(false);
@@ -664,7 +666,70 @@ export default function ChatScreen() {
         </Pressable>
       </Modal>
 
-      {/* ── Chat milestone share popup ── */}
+      {/* ── Off-screen capture target for chat share ──────────────────────────
+           Rendered OUTSIDE the Modal so react-native-view-shot resolves the
+           correct native layer (transparent-Modal nesting confuses the layer
+           resolver in Expo Go when multiple Modals exist in the same component).
+           collapsable={false} required on Android for view-shot to work.       */}
+      {progressCardShare && (
+        <View
+          ref={chatShareRef}
+          collapsable={false}
+          style={{
+            position: "absolute",
+            top: -9999,
+            left: 0,
+            width: 320,
+            backgroundColor: colors.background,
+            borderRadius: 16,
+            padding: 20,
+            borderWidth: 1,
+            borderColor: colors.border,
+            gap: 12,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Ionicons name="trending-up" size={14} color={colors.teal} />
+            <Text style={{ color: colors.teal, fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1.2, textTransform: "uppercase" }}>
+              SGI Progress
+            </Text>
+          </View>
+          {activeConvo?.title ? (
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, fontFamily: "Inter_400Regular" }} numberOfLines={1}>
+              {activeConvo.title}
+            </Text>
+          ) : null}
+          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}>
+            <Text style={{ fontSize: 36, fontFamily: "Inter_700Bold", color: colors.teal }}>
+              +{progressCardShare.deltaPct.toFixed(1)}%
+            </Text>
+            <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: colors.mutedForeground }}>
+              {t("progressCard.growth")}
+            </Text>
+          </View>
+          <View style={{
+            backgroundColor: colors.teal + "12", borderRadius: 10, padding: 12,
+            borderWidth: 1, borderColor: colors.teal + "30",
+          }}>
+            <Text style={{ fontSize: 11, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 4 }}>
+              {progressCardShare.highlightMetric}
+            </Text>
+            <Text style={{ fontSize: 22, fontFamily: "Inter_700Bold", color: colors.teal }}>
+              +{progressCardShare.highlightDeltaPct.toFixed(1)}%
+            </Text>
+          </View>
+          {progressCardShare.insightText ? (
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, fontFamily: "Inter_400Regular", fontStyle: "italic", lineHeight: 18 }}>
+              {progressCardShare.insightText}
+            </Text>
+          ) : null}
+          <Text style={{ color: colors.mutedForeground, fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "right" }}>
+            sgindex.work
+          </Text>
+        </View>
+      )}
+
+      {/* ── Chat milestone share popup (visual UI only — no captureRef here) ── */}
       <Modal visible={chatShareVisible} transparent animationType="slide" onShow={() => setChatModalReady(true)} onRequestClose={() => { setChatShareVisible(false); setChatModalReady(false); }}>
         <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.6)" }}>
           <View style={{
@@ -676,8 +741,8 @@ export default function ChatScreen() {
                 <Ionicons name="close" size={24} color={colors.mutedForeground} />
               </Pressable>
             </View>
-            {/* Capture target */}
-            <View ref={chatShareRef} style={{
+            {/* Visual preview of card — NOT the captureRef target */}
+            <View style={{
               backgroundColor: colors.background, borderRadius: 16, padding: 20,
               borderWidth: 1, borderColor: colors.border, gap: 12,
             }}>
@@ -687,6 +752,11 @@ export default function ChatScreen() {
                   SGI Progress
                 </Text>
               </View>
+              {activeConvo?.title ? (
+                <Text style={{ color: colors.mutedForeground, fontSize: 11, fontFamily: "Inter_400Regular" }} numberOfLines={1}>
+                  {activeConvo.title}
+                </Text>
+              ) : null}
               {progressCardShare ? (
                 <>
                   <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}>
@@ -708,6 +778,11 @@ export default function ChatScreen() {
                       +{progressCardShare.highlightDeltaPct.toFixed(1)}%
                     </Text>
                   </View>
+                  {progressCardShare.insightText ? (
+                    <Text style={{ color: colors.mutedForeground, fontSize: 12, fontFamily: "Inter_400Regular", fontStyle: "italic", lineHeight: 18 }}>
+                      {progressCardShare.insightText}
+                    </Text>
+                  ) : null}
                 </>
               ) : (
                 <Text style={{ color: colors.mutedForeground, fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", paddingVertical: 8 }}>

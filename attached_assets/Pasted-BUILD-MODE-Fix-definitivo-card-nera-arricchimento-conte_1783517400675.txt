@@ -1,0 +1,22 @@
+BUILD MODE — Fix definitivo card nera + arricchimento contenuto
+
+Non usare subagent né testing monitor (costo token).
+
+Contesto: diagnosi completata. La card nera non è un problema di timing (già risolto in precedenza) ma di layer nativo: captureRef in Expo Go non risolve correttamente la View quando questa è annidata dentro un Modal transparent, specialmente in presenza di altri Modal nello stesso componente (index.tsx ha 3 Modal). Il workaround canonico è spostare la View catturata FUORI dal Modal.
+
+File: artifacts/sgi-mobile/app/(tabs)/index.tsx
+
+FIX 1 — Sposta la View di cattura fuori dal Modal (priorità, risolve il bug reale)
+1. Rendi una nuova View con ref={chatShareRef}, posizionata ASSOLUTA e fuori-schermo (es. position: "absolute", top: -9999, o opacity: 0 con pointerEvents: "none") nel layer principale del componente — NON dentro <Modal>. Deve contenere esattamente lo stesso markup/contenuto già presente nella View catturata oggi (header, dati, footer).
+2. Renderizza questa View solo quando chatShareVisible === true (o quando progressCardShare non è null), così non occupa risorse quando non serve.
+3. Il Modal continua a mostrare la UI interattiva (preview della card, bottoni, X) esattamente come ora — ma NON è più lui il target di captureRef. handleShareChat deve chiamare captureRef sulla NUOVA View off-screen, non su quella dentro il Modal.
+4. Aggiungi collapsable={false} sulla View catturata (necessario su Android, oggi assente sia qui che in battles.tsx — ma qui è a rischio reale, aggiungilo).
+5. Non toccare battles.tsx: funziona correttamente, nessuna modifica necessaria lì.
+
+FIX 2 — Arricchisci il contenuto (una volta risolto Fix 1)
+1. Aggiungi isPositive: boolean e insightText: string | null al tipo dello state progressCardShare (righe ~137-142), oggi mancanti nonostante arrivino già nel payload SSE.
+2. Nella View catturata (sia quella vecchia dentro il Modal per l'anteprima, sia quella nuova off-screen per la cattura), aggiungi il rendering di insightText se presente (es. testo in corsivo sotto il delta, coerente con lo stile web "testo italico sotto il delta").
+3. Aggiungi il titolo della conversazione: leggi activeConvo?.title (già disponibile in stato, nessuna chiamata di rete extra) e mostralo come header/sottotitolo nella card.
+4. NON serve far combaciare lo stile visivo con la pagina web — solo aggiungere questi due dati mancanti nel layout esistente della card mobile.
+
+Riporta le righe esatte modificate per entrambi i fix.
