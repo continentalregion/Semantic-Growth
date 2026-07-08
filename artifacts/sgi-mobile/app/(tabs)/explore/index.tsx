@@ -5,8 +5,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { useUser } from "@clerk/expo";
 import { useColors } from "@/hooks/useColors";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
+
+const ADMIN_EMAILS = ["francescoullo1@gmail.com"];
 
 type TileColor = "gold" | "teal" | "primary" | "pink";
 
@@ -59,6 +62,9 @@ export default function ExploreHubScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
+  const { user } = useUser();
+  const email = user?.primaryEmailAddress?.emailAddress ?? "";
+  const isAdmin = ADMIN_EMAILS.includes(email.toLowerCase());
 
   return (
     <AnimatedScreen style={{ backgroundColor: colors.background }}>
@@ -135,6 +141,48 @@ export default function ExploreHubScreen() {
             </Pressable>
           );
         })}
+
+        {isAdmin && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.tile,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.pink + "44",
+                opacity: pressed ? 0.72 : 1,
+              },
+            ]}
+            onPress={() => router.push("/(tabs)/explore/admin" as never)}
+          >
+            <View
+              style={[
+                styles.tileIcon,
+                {
+                  backgroundColor: colors.pink + "18",
+                  borderColor: colors.pink + "30",
+                },
+              ]}
+            >
+              <Ionicons name="pulse-outline" size={24} color={colors.pink} />
+            </View>
+            <View style={styles.tileText}>
+              <Text style={[styles.tileTitle, { color: colors.foreground }]}>
+                Admin Monitor
+              </Text>
+              <Text
+                style={[styles.tileDesc, { color: colors.mutedForeground }]}
+                numberOfLines={2}
+              >
+                Utenti, MRR, messaggi, errori e modelli in tempo reale
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={colors.mutedForeground}
+            />
+          </Pressable>
+        )}
       </ScrollView>
     </AnimatedScreen>
   );
