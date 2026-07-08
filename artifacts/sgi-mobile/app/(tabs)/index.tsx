@@ -142,6 +142,7 @@ export default function ChatScreen() {
   } | null>(null);
   const [chatShareVisible, setChatShareVisible] = useState(false);
   const [chatSharing, setChatSharing] = useState(false);
+  const [chatModalReady, setChatModalReady] = useState(false);
   const s = makeStyles(colors, insets);
 
   const { data: profile } = useGetMyProfile();
@@ -446,6 +447,7 @@ export default function ChatScreen() {
     } finally {
       setChatSharing(false);
       setChatShareVisible(false);
+      setChatModalReady(false);
     }
   }, [t]);
 
@@ -652,14 +654,14 @@ export default function ChatScreen() {
       </Modal>
 
       {/* ── Chat milestone share popup ── */}
-      <Modal visible={chatShareVisible} transparent animationType="slide" onRequestClose={() => setChatShareVisible(false)}>
+      <Modal visible={chatShareVisible} transparent animationType="slide" onShow={() => setChatModalReady(true)} onRequestClose={() => { setChatShareVisible(false); setChatModalReady(false); }}>
         <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.6)" }}>
           <View style={{
             backgroundColor: colors.card, borderTopLeftRadius: 22, borderTopRightRadius: 22,
             padding: 20, gap: 14, paddingBottom: Math.max(insets.bottom, 16) + 8,
           }}>
             <View style={{ alignItems: "flex-end" }}>
-              <Pressable onPress={() => setChatShareVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Pressable onPress={() => { setChatShareVisible(false); setChatModalReady(false); }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Ionicons name="close" size={24} color={colors.mutedForeground} />
               </Pressable>
             </View>
@@ -674,7 +676,7 @@ export default function ChatScreen() {
                   SGI Progress
                 </Text>
               </View>
-              {progressCardShare && (
+              {progressCardShare ? (
                 <>
                   <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}>
                     <Text style={{ fontSize: 36, fontFamily: "Inter_700Bold", color: colors.teal }}>
@@ -696,6 +698,10 @@ export default function ChatScreen() {
                     </Text>
                   </View>
                 </>
+              ) : (
+                <Text style={{ color: colors.mutedForeground, fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", paddingVertical: 8 }}>
+                  SGI Progress
+                </Text>
               )}
               <Text style={{ color: colors.mutedForeground, fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "right" }}>
                 sgindex.work
@@ -705,10 +711,10 @@ export default function ChatScreen() {
             <Pressable
               style={({ pressed }) => [{
                 backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 14,
-                alignItems: "center", opacity: pressed || chatSharing ? 0.7 : 1,
+                alignItems: "center", opacity: pressed || chatSharing || !chatModalReady ? 0.7 : 1,
               }]}
               onPress={handleShareChat}
-              disabled={chatSharing}
+              disabled={chatSharing || !chatModalReady}
             >
               {chatSharing
                 ? <ActivityIndicator size="small" color="#fff" />
@@ -716,7 +722,7 @@ export default function ChatScreen() {
             </Pressable>
             <Pressable
               style={({ pressed }) => [{ alignItems: "center", paddingVertical: 10, opacity: pressed ? 0.6 : 1 }]}
-              onPress={() => setChatShareVisible(false)}
+              onPress={() => { setChatShareVisible(false); setChatModalReady(false); }}
             >
               <Text style={{ color: colors.mutedForeground, fontSize: 13, fontFamily: "Inter_500Medium" }}>{t("share.close")}</Text>
             </Pressable>

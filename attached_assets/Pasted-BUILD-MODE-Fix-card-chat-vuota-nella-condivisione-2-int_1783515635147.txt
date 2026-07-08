@@ -1,0 +1,20 @@
+BUILD MODE — Fix card chat vuota nella condivisione (2 interventi mirati)
+
+Non usare subagent né testing monitor (costo token).
+
+Contesto: diagnosi completata. Causa: captureRef(chatShareRef) viene eseguito prima che il Modal (animationType="slide") abbia completato l'animazione e il primo layout pass nativo, producendo un'immagine vuota/nera. Il pattern battles.tsx non soffre di questo perché ha sempre un ritardo naturale (interazione utente) tra apertura modal e tap "condividi"; qui l'auto-apertura da SSE elimina quel ritardo.
+
+File: artifacts/sgi-mobile/app/(tabs)/index.tsx
+
+FIX 1 — Timing corretto via onShow del Modal
+Il componente Modal di React Native supporta la prop onShow, un callback nativo che si attiva SOLO dopo che l'animazione di apertura è completa e il layout è pronto — più affidabile di un setTimeout arbitrario.
+1. Aggiungi uno stato tipo modalReady (boolean, default false).
+2. Sul Modal della chat (righe ~644 in poi), aggiungi onShow={() => setModalReady(true)}.
+3. Il bottone "condividi" (handleShareChat) deve essere disabled finché modalReady non è true — se l'utente preme prima, non deve fare nulla o mostrare un piccolo delay visivo (es. lo stesso ActivityIndicator già usato per chatSharing).
+4. Reset di modalReady a false quando il Modal si chiude (onRequestClose o dentro setChatShareVisible(false)), così la prossima apertura riparte pulita.
+
+FIX 2 — Rimuovi il gate condizionale sul contenuto dati
+Nella View catturata (righe ~677-699), il blocco {progressCardShare && (...)} nasconde tutto il contenuto dati se progressCardShare è null. Dato che il Fix 1 elimina il rischio di race condition sul timing, questo fix è una difesa aggiuntiva:
+1. Sostituisci il gate con un fallback esplicito, es. se progressCardShare è null mostra comunque una versione minimale della card (solo header + footer, magari con un messaggio placeholder) invece di uno spazio vuoto — così anche in un edge case futuro imprevisto la card non risulta mai completamente nera.
+
+Non toccare battles.tsx (già funzionante, nessuna modifica necessaria lì). Riporta le righe esatte modificate.
