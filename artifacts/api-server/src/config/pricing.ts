@@ -112,6 +112,7 @@ export const COST_BATTLE_THEME_CENTS    = 0.022;  // generateBattleTheme, ~720 t
 export const COST_BATTLE_ARGUMENT_CENTS = 0.03;   // generateAiArgument, ~900 token
 export const COST_BATTLE_SPARRING_CENTS = 0.05;   // turno di sparring, ~600 token blended
 export const COST_BATTLE_SCORING_CENTS  = 0.12;   // evaluatePvpBattle, dual-scoring
+export const COST_BATTLE_RECAP_CENTS    = 0.006;  // recap condivisione, claude-haiku-4-5, max_tokens:60
 
 // ─── Valvola globale di spesa mensile cross-tenant (Fase 5 — anti-abuso) ──────
 // Questa valvola è un firewall di emergenza, NON il meccanismo principale di

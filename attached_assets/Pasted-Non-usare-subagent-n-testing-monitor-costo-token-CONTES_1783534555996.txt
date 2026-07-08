@@ -1,0 +1,66 @@
+Non usare subagent né testing monitor (costo token).
+
+CONTESTO: due modifiche legate alla condivisione risultato battaglia in 
+artifacts/sgi-mobile/app/(tabs)/battles.tsx.
+
+PARTE 1 — FIX IMMAGINE NERA NELLA CONDIVISIONE:
+Causa: shareCardRef (riga 661, dentro il Modal di condivisione riga 649) è annidato 
+dentro DUE <Modal> React Native (l'arena pageSheet riga 634 + il foglio condivisione 
+riga 649). react-native-view-shot non riesce a catturare contenuto dentro un Modal su 
+iOS (finestra nativa separata) → risultato: immagine nera.
+
+Fix:
+- In BattlePvpModal, quando il risultato della battaglia è pronto (quando view.result 
+  viene popolato), invocare una prop callback `onResult(data)` verso il genitore 
+  BattlesScreen, passando: { theme: view.theme, category: view.category, 
+  myScore: view.result.myRawScore, opponentScore: view.result.opponentRawScore, 
+  opponentUsername: view.result.opponentUsername, outcome: view.result.outcome, 
+  xpAwarded: view.result.xpAwarded, matchId }
+- In BattlesScreen (componente default export, righe 757+): aggiungere state 
+  `shareData` popolato da questa callback, e un nuovo View con ref (hiddenShareCardRef) 
+  posizionato FUORI da qualunque Modal (sibling di <BattlePvpModal>, style={{ position: 
+  "absolute", top: -9999, left: 0 }} — fuori schermo ma dentro la gerarchia principale), 
+  che replica lo stesso contenuto/stile della card attuale (righe 661-728) usando 
+  shareData invece di view.
+- captureRef in handleShareBattle deve puntare a questo nuovo ref in BattlesScreen, non 
+  più a shareCardRef locale in BattlePvpModal. Il foglio visibile dentro il Modal resta 
+  com'è per l'anteprima utente — non è più lui il target catturato.
+- Non toccare matchmaking/arena/timer in BattlePvpModal, solo il punto dove il risultato 
+  diventa disponibile.
+
+PARTE 2 — TEMA PER INTERO + RECAP AI DISCRETO SULLA CARD:
+Sia nel foglio di anteprima (righe 676-680, testo tema) SIA nella nuova card nascosta 
+di PARTE 1:
+- RIMUOVERE `numberOfLines={2}` dal testo del tema — deve uscire COMPLETO, andando a 
+  capo quante righe servono (nessun troncamento). Se serve, aumentare leggermente il 
+  padding verticale della card per accogliere temi lunghi senza rompere il layout.
+- Aggiungere sotto il tema (prima del blocco punteggi) un nuovo campo testo per il 
+  recap AI: stile DISCRETO/secondario — font più piccolo (11-12px), colore muted 
+  (colors.mutedForeground), fontStyle italic, NON in grassetto, per non competere 
+  visivamente con tema e punteggi che restano gli elementi principali della card.
+
+Backend, artifacts/api-server/src/routes/battles.ts — nuovo endpoint:
+  POST /battles/matches/:id/recap
+  - Auth: stesso pattern già usato in /battles/matches/:id/turn (clerkId da getAuth)
+  - Trova la battleEntries row di QUESTO utente per matchId (non dell'avversario)
+  - Legge entry.userText (campo già esistente e popolato, schema riga 51)
+  - Chiama anthropic.messages.create (model: "claude-haiku-4-5", max_tokens: 60, 
+    temperature: 0.4), prompt: "Riassumi in UNA frase (max 140 caratteri, in [lingua]) 
+    la posizione difesa da questo utente nel dibattito sul tema: '[theme]'. Testo 
+    dell'utente: '[userText troncato a 800 caratteri]'. Restituisci SOLO la frase, 
+    senza virgolette, tono neutro/sintetico."
+  - lingua: parametro `lang` nel body della richiesta (IT/EN/ES, il client manda 
+    i18n.language corrente)
+  - Risposta: { recap: string }
+  - Try/catch: se fallisce, ritornare { recap: null } — la card deve funzionare 
+    comunque senza recap, mai bloccare la condivisione
+
+Frontend: quando shareVisible diventa true, chiamare questo endpoint una volta (useEffect 
+con guardia per non richiamarlo più volte nella stessa apertura del foglio), mostrare un 
+piccolo ActivityIndicator al posto del testo recap finché non arriva, poi popolarlo sia 
+nell'anteprima che nella card nascosta catturata.
+
+Se il code reviewer automatico rigetta confrontando con scope task vecchi (#14/#15), è 
+falso allarme noto — skip_validation_reason se serve.
+
+Al termine: commit e PUSH del repo. Non dichiarare "fatto" senza aver pushato.

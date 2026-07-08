@@ -13,6 +13,7 @@ import {
   Platform,
   Keyboard,
   ActivityIndicator,
+  Dimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -168,15 +169,117 @@ function Collapsible({ title, accent, messages, colors, t }: {
   );
 }
 
+// ─── Battle result share card content (shared by the visible preview inside
+// the share sheet and the hidden off-modal capture target in BattlesScreen) ──
+function ShareCardBody({
+  theme, category, myScore, opponentScore, opponentUsername, outcome, xpAwarded, recap, recapLoading, colors, t,
+}: {
+  theme: string;
+  category: string;
+  myScore: number;
+  opponentScore: number;
+  opponentUsername: string;
+  outcome: "win" | "loss" | "tie";
+  xpAwarded: number;
+  recap: string | null;
+  recapLoading: boolean;
+  colors: ReturnType<typeof useColors>;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  return (
+    <>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <Ionicons name="flash" size={14} color={colors.primary} />
+        <Text style={{ color: colors.primary, fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1.2, textTransform: "uppercase" }}>
+          SGI Battle
+        </Text>
+        <View style={{ backgroundColor: colors.muted, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>
+          <Text style={{ color: colors.mutedForeground, fontSize: 10, fontFamily: "Inter_400Regular" }}>{category}</Text>
+        </View>
+      </View>
+      <Text style={{ color: colors.foreground, fontSize: 14, fontFamily: "Inter_600SemiBold", lineHeight: 20 }}>
+        {theme}
+      </Text>
+      {(recapLoading || recap) && (
+        recapLoading
+          ? <ActivityIndicator size="small" color={colors.mutedForeground} />
+          : (
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, fontFamily: "Inter_400Regular", fontStyle: "italic", lineHeight: 17 }}>
+              {recap}
+            </Text>
+          )
+      )}
+      <View style={{ flexDirection: "row", gap: 10, alignItems: "stretch" }}>
+        <View style={{
+          flex: 1, alignItems: "center",
+          backgroundColor: outcome === "win" ? colors.teal + "18" : colors.card,
+          borderRadius: 10, padding: 10, borderWidth: 1,
+          borderColor: outcome === "win" ? colors.teal + "44" : colors.border,
+        }}>
+          <Text style={{ color: colors.mutedForeground, fontSize: 10, fontFamily: "Inter_400Regular" }}>{t("battles.myUsername")}</Text>
+          <Text style={{ color: outcome === "win" ? colors.teal : colors.foreground, fontSize: 24, fontFamily: "Inter_700Bold" }}>
+            {myScore.toFixed(0)}
+          </Text>
+        </View>
+        <View style={{ alignItems: "center", justifyContent: "center", paddingHorizontal: 4 }}>
+          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{t("battles.vsLabel")}</Text>
+        </View>
+        <View style={{
+          flex: 1, alignItems: "center",
+          backgroundColor: outcome === "loss" ? colors.pink + "18" : colors.card,
+          borderRadius: 10, padding: 10, borderWidth: 1,
+          borderColor: outcome === "loss" ? colors.pink + "44" : colors.border,
+        }}>
+          <Text style={{ color: colors.mutedForeground, fontSize: 10, fontFamily: "Inter_400Regular" }} numberOfLines={1}>
+            {opponentUsername}
+          </Text>
+          <Text style={{ color: outcome === "loss" ? colors.pink : colors.foreground, fontSize: 24, fontFamily: "Inter_700Bold" }}>
+            {opponentScore.toFixed(0)}
+          </Text>
+        </View>
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Text style={{
+          fontSize: 14, fontFamily: "Inter_700Bold",
+          color: outcome === "win" ? colors.teal : outcome === "tie" ? colors.gold : colors.pink,
+        }}>
+          {outcome === "win" ? `🏆 ${t("battles.stWin")}` : outcome === "tie" ? `🤝 ${t("battles.stTie")}` : `⚡ ${t("battles.stLoss")}`}
+        </Text>
+        <Text style={{ color: colors.gold, fontSize: 13, fontFamily: "Inter_600SemiBold" }}>
+          +{xpAwarded} XP
+        </Text>
+      </View>
+      <Text style={{ color: colors.mutedForeground, fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "right" }}>
+        sgindex.work
+      </Text>
+    </>
+  );
+}
+
+interface ShareData {
+  matchId: string;
+  theme: string;
+  category: string;
+  myScore: number;
+  opponentScore: number;
+  opponentUsername: string;
+  outcome: "win" | "loss" | "tie";
+  xpAwarded: number;
+  recap: string | null;
+  recapLoading: boolean;
+}
+
 // ─── PvP Battle Modal (matchmaking → arena → result) ─────────────────────────
 function BattlePvpModal({
-  visible, matchId, onClose, colors, getToken,
+  visible, matchId, onClose, colors, getToken, onResult, hiddenShareCardRef,
 }: {
   visible: boolean;
   matchId: string | null;
   onClose: () => void;
   colors: ReturnType<typeof useColors>;
   getToken: () => Promise<string | null>;
+  onResult: (data: ShareData) => void;
+  hiddenShareCardRef: React.RefObject<View | null>;
 }) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -193,16 +296,24 @@ function BattlePvpModal({
   const arenaInit = useRef(false);
   const completing = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
+  // Local ref: only used to render the visible preview card inside the share
+  // sheet. NOT captured — react-native-view-shot cannot capture content
+  // nested inside a Modal on iOS (separate native window → black image).
+  // The actual capture target is `hiddenShareCardRef`, owned by the parent
+  // BattlesScreen and rendered outside any Modal.
   const shareCardRef = useRef<View>(null);
   const [shareVisible, setShareVisible] = useState(false);
   const [sharing, setSharing] = useState(false);
   const hasAutoShared = useRef(false);
+  const [recap, setRecap] = useState<string | null>(null);
+  const [recapLoading, setRecapLoading] = useState(false);
+  const recapRequestedRef = useRef(false);
 
   const handleShareBattle = async () => {
-    if (!shareCardRef.current) return;
+    if (!hiddenShareCardRef.current) return;
     setSharing(true);
     try {
-      const uri = await captureRef(shareCardRef, { format: "png", quality: 1 });
+      const uri = await captureRef(hiddenShareCardRef, { format: "png", quality: 1 });
       await Sharing.shareAsync(uri, { mimeType: "image/png" });
     } catch {
       Alert.alert(t("share.captureError"), "");
@@ -327,6 +438,9 @@ function BattlePvpModal({
     setSecondsLeft(390);
     setKeyboardHeight(0);
     setShareVisible(false);
+    setRecap(null);
+    setRecapLoading(false);
+    recapRequestedRef.current = false;
     loadRef.current();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, matchId]);
@@ -369,6 +483,48 @@ function BattlePvpModal({
       setShareVisible(true);
     }
   }, [phase]);
+
+  // Fetch the discrete AI recap once per share-sheet opening. Never blocks
+  // sharing: the endpoint always resolves (falls back to { recap: null }).
+  useEffect(() => {
+    if (!shareVisible) { recapRequestedRef.current = false; return; }
+    if (recapRequestedRef.current || !matchId) return;
+    recapRequestedRef.current = true;
+    setRecapLoading(true);
+    (async () => {
+      try {
+        const r = await authedFetch(`/battles/matches/${matchId}/recap`, {
+          method: "POST",
+          body: JSON.stringify({ lang: i18n.language }),
+        });
+        const data = await r.json().catch(() => ({ recap: null })) as { recap: string | null };
+        setRecap(data.recap ?? null);
+      } catch {
+        setRecap(null);
+      } finally {
+        setRecapLoading(false);
+      }
+    })();
+  }, [shareVisible, matchId, authedFetch, i18n.language]);
+
+  // Mirror the result (and, once available, the recap) up to BattlesScreen so
+  // it can render the hidden off-modal capture target with the same content.
+  useEffect(() => {
+    if (!view?.result || !matchId) return;
+    onResult({
+      matchId,
+      theme: view.theme,
+      category: view.category,
+      myScore: view.result.myRawScore,
+      opponentScore: view.result.opponentRawScore,
+      opponentUsername: view.result.opponentUsername,
+      outcome: view.result.outcome,
+      xpAwarded: view.result.xpAwarded,
+      recap,
+      recapLoading,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view?.result, matchId, recap, recapLoading]);
 
   // Local countdown for the active arena; auto-complete at zero.
   useEffect(() => {
@@ -657,74 +813,28 @@ function BattlePvpModal({
                   <Ionicons name="close" size={24} color={colors.mutedForeground} />
                 </Pressable>
               </View>
-              {/* Capture target */}
+              {/* Visible preview — NOT the capture target (nested inside Modals,
+                  react-native-view-shot would capture black). Purely for the
+                  user to see what they're about to share. */}
               <View ref={shareCardRef} style={{
                 backgroundColor: colors.background, borderRadius: 16, padding: 20,
                 borderWidth: 1, borderColor: colors.border, gap: 12,
               }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Ionicons name="flash" size={14} color={colors.primary} />
-                  <Text style={{ color: colors.primary, fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1.2, textTransform: "uppercase" }}>
-                    SGI Battle
-                  </Text>
-                  {view && (
-                    <View style={{ backgroundColor: colors.muted, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>
-                      <Text style={{ color: colors.mutedForeground, fontSize: 10, fontFamily: "Inter_400Regular" }}>{view.category}</Text>
-                    </View>
-                  )}
-                </View>
-                {view && (
-                  <Text style={{ color: colors.foreground, fontSize: 14, fontFamily: "Inter_600SemiBold", lineHeight: 20 }} numberOfLines={2}>
-                    {view.theme}
-                  </Text>
-                )}
                 {view?.result && (
-                  <View style={{ flexDirection: "row", gap: 10, alignItems: "stretch" }}>
-                    <View style={{
-                      flex: 1, alignItems: "center",
-                      backgroundColor: view.result.outcome === "win" ? colors.teal + "18" : colors.card,
-                      borderRadius: 10, padding: 10, borderWidth: 1,
-                      borderColor: view.result.outcome === "win" ? colors.teal + "44" : colors.border,
-                    }}>
-                      <Text style={{ color: colors.mutedForeground, fontSize: 10, fontFamily: "Inter_400Regular" }}>{t("battles.myUsername")}</Text>
-                      <Text style={{ color: view.result.outcome === "win" ? colors.teal : colors.foreground, fontSize: 24, fontFamily: "Inter_700Bold" }}>
-                        {view.result.myRawScore.toFixed(0)}
-                      </Text>
-                    </View>
-                    <View style={{ alignItems: "center", justifyContent: "center", paddingHorizontal: 4 }}>
-                      <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{t("battles.vsLabel")}</Text>
-                    </View>
-                    <View style={{
-                      flex: 1, alignItems: "center",
-                      backgroundColor: view.result.outcome === "loss" ? colors.pink + "18" : colors.card,
-                      borderRadius: 10, padding: 10, borderWidth: 1,
-                      borderColor: view.result.outcome === "loss" ? colors.pink + "44" : colors.border,
-                    }}>
-                      <Text style={{ color: colors.mutedForeground, fontSize: 10, fontFamily: "Inter_400Regular" }} numberOfLines={1}>
-                        {view.result.opponentUsername}
-                      </Text>
-                      <Text style={{ color: view.result.outcome === "loss" ? colors.pink : colors.foreground, fontSize: 24, fontFamily: "Inter_700Bold" }}>
-                        {view.result.opponentRawScore.toFixed(0)}
-                      </Text>
-                    </View>
-                  </View>
+                  <ShareCardBody
+                    theme={view.theme}
+                    category={view.category}
+                    myScore={view.result.myRawScore}
+                    opponentScore={view.result.opponentRawScore}
+                    opponentUsername={view.result.opponentUsername}
+                    outcome={view.result.outcome}
+                    xpAwarded={view.result.xpAwarded}
+                    recap={recap}
+                    recapLoading={recapLoading}
+                    colors={colors}
+                    t={t}
+                  />
                 )}
-                {view?.result && (
-                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                    <Text style={{
-                      fontSize: 14, fontFamily: "Inter_700Bold",
-                      color: view.result.outcome === "win" ? colors.teal : view.result.outcome === "tie" ? colors.gold : colors.pink,
-                    }}>
-                      {view.result.outcome === "win" ? `🏆 ${t("battles.stWin")}` : view.result.outcome === "tie" ? `🤝 ${t("battles.stTie")}` : `⚡ ${t("battles.stLoss")}`}
-                    </Text>
-                    <Text style={{ color: colors.gold, fontSize: 13, fontFamily: "Inter_600SemiBold" }}>
-                      +{view.result.xpAwarded} XP
-                    </Text>
-                  </View>
-                )}
-                <Text style={{ color: colors.mutedForeground, fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "right" }}>
-                  sgindex.work
-                </Text>
               </View>
 
               <Pressable
@@ -776,6 +886,11 @@ export default function BattlesScreen() {
 
   const [modalMatchId, setModalMatchId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  // Mirror of the battle result + recap, owned here so the hidden capture
+  // target below can live outside any Modal (react-native-view-shot cannot
+  // capture content nested inside a Modal's separate native window).
+  const [shareData, setShareData] = useState<ShareData | null>(null);
+  const hiddenShareCardRef = useRef<View>(null);
 
   const loadData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -832,6 +947,7 @@ export default function BattlesScreen() {
   function closeModal() {
     setModalVisible(false);
     setModalMatchId(null);
+    setShareData(null);
     loadData(true);
   }
 
@@ -1032,7 +1148,38 @@ export default function BattlesScreen() {
         onClose={closeModal}
         colors={colors}
         getToken={getToken}
+        onResult={setShareData}
+        hiddenShareCardRef={hiddenShareCardRef}
       />
+
+      {/* Hidden off-screen capture target for the share image. Rendered as a
+          sibling of the pageSheet Modal (not inside it) so
+          react-native-view-shot captures real pixels instead of black. */}
+      <View
+        pointerEvents="none"
+        style={{ position: "absolute", top: -9999, left: 0, width: Dimensions.get("window").width - 40 }}
+      >
+        <View ref={hiddenShareCardRef} style={{
+          backgroundColor: colors.background, borderRadius: 16, padding: 20,
+          borderWidth: 1, borderColor: colors.border, gap: 12,
+        }}>
+          {shareData && (
+            <ShareCardBody
+              theme={shareData.theme}
+              category={shareData.category}
+              myScore={shareData.myScore}
+              opponentScore={shareData.opponentScore}
+              opponentUsername={shareData.opponentUsername}
+              outcome={shareData.outcome}
+              xpAwarded={shareData.xpAwarded}
+              recap={shareData.recap}
+              recapLoading={shareData.recapLoading}
+              colors={colors}
+              t={t}
+            />
+          )}
+        </View>
+      </View>
     </AnimatedScreen>
   );
 }

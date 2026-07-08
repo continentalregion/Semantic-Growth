@@ -14,6 +14,7 @@ import {
 } from "@workspace/db";
 import { eq, and, desc, lt, inArray, sql } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { anonHandle } from "../lib/anonHandle";
 import {
@@ -34,6 +35,7 @@ import {
   COST_BATTLE_ARGUMENT_CENTS,
   COST_BATTLE_SPARRING_CENTS,
   COST_BATTLE_SCORING_CENTS,
+  COST_BATTLE_RECAP_CENTS,
 } from "../lib/battleBudget.js";
 import { checkUserBattleAllowed, recordUserBattleUsage } from "../lib/userBattleUsage.js";
 
@@ -860,6 +862,44 @@ router.post("/battles/matches/:id/turn", async (req, res) => {
   } catch (err) {
     console.error("[battles] turn error", err);
     res.status(500).json({ error: "Turn failed" });
+  }
+});
+
+// ─── POST /battles/matches/:id/recap — discrete AI recap for share card ──────
+// Never blocks sharing: any failure (missing entry, empty text, LLM error)
+// resolves to { recap: null } so the client falls back to no-recap silently.
+router.post("/battles/matches/:id/recap", async (req, res) => {
+  const clerkId = getAuth(req).userId;
+  if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  try {
+    const matchId = req.params.id!;
+    const lang: string = typeof req.body?.lang === "string" ? req.body.lang : "it";
+    const langName = lang.startsWith("en") ? "inglese" : lang.startsWith("es") ? "spagnolo" : "italiano";
+
+    const [match] = await db.select().from(battleMatches).where(eq(battleMatches.id, matchId)).limit(1);
+    const [mine] = await db.select().from(battleEntries)
+      .where(and(eq(battleEntries.matchId, matchId), eq(battleEntries.userId, clerkId))).limit(1);
+    if (!match || !mine) { res.json({ recap: null }); return; }
+
+    const userText = (mine.userText ?? "").trim().slice(0, 800);
+    if (!userText) { res.json({ recap: null }); return; }
+
+    const message = await anthropic.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 60,
+      temperature: 0.4,
+      messages: [{
+        role: "user",
+        content: `Riassumi in UNA frase (max 140 caratteri, in ${langName}) la posizione difesa da questo utente nel dibattito sul tema: "${match.theme}". Testo dell'utente: "${userText}". Restituisci SOLO la frase, senza virgolette, tono neutro/sintetico.`,
+      }],
+    });
+    const block = message.content[0];
+    const recap = block && block.type === "text" ? block.text.trim() : null;
+    if (recap) void chargeBattleBudget(COST_BATTLE_RECAP_CENTS);
+    res.json({ recap: recap || null });
+  } catch (err) {
+    console.error("[battles] recap error (non-blocking)", err);
+    res.json({ recap: null });
   }
 });
 

@@ -25,6 +25,7 @@ export {
   COST_BATTLE_ARGUMENT_CENTS,
   COST_BATTLE_SPARRING_CENTS,
   COST_BATTLE_SCORING_CENTS,
+  COST_BATTLE_RECAP_CENTS,
 } from "../config/pricing.js";
 
 let tableReady = false;
