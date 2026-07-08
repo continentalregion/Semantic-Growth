@@ -1,0 +1,22 @@
+PLAN MODE — Solo diagnosi, non modificare codice
+
+Non usare subagent né testing monitor (costo token).
+
+Obiettivo: aggiungere un popup di condivisione card automatico su mobile, in due punti:
+1. Alla fine di una battle (già esiste il meccanismo di sharing manuale via captureRef + expo-sharing per le battle — verificare se può essere riusato/richiamato automaticamente, o se serve un componente popup nuovo che lo wrappa)
+2. Sulla chat semantica, ogni multiplo di 5 messaggi (5, 10, 15, 20...) nella stessa conversazione
+
+Il popup deve:
+- Usare lo stesso meccanismo di condivisione nativa già verificato (captureRef + expo-sharing, share sheet nativo — NON l'integrazione diretta Instagram Stories API, quella resta deferita post-Apple come da roadmap esistente)
+- Avere una X visibile in alto sulla card per chiuderlo istantaneamente
+- Alla chiusura (sia con X che dopo aver condiviso), il flusso sottostante deve continuare normalmente senza bloccare o interrompere: per la battle, l'utente deve poter tornare alla schermata post-battle normale; per la chat, l'utente deve poter continuare a scrivere messaggi senza interruzioni
+
+Verifica, SENZA modificare nulla:
+
+1. Com'è implementato oggi il web per questo stesso comportamento (popup a fine battle e al 5° messaggio) — quale componente, che dati mostra sulla card, che libreria di generazione immagine usa lato web
+2. Come funziona oggi su mobile il meccanismo esistente captureRef + expo-sharing per le battle — dov'è il trigger attuale (bottone manuale?), che componente genera la card visuale, può essere riutilizzato per un trigger automatico o va rifattorizzato
+3. Sulla chat semantica mobile, esiste già un contatore di messaggi per conversazione accessibile facilmente (es. già presente nello state o va aggiunto), per poter agganciare il trigger "ogni multiplo di 5"
+4. Se esiste già un componente Modal/Popup riutilizzabile su mobile per questo tipo di overlay, o va creato da zero
+5. Rischio di doppio trigger: se l'utente manda 5 messaggi molto rapidamente, o se il conteggio dei messaggi viene ricalcolato da fonti diverse (es. history caricata da DB vs stato locale), verificare che il popup non appaia due volte per lo stesso multiplo di 5
+
+Riporta la diagnosi con le aree di codice coinvolte (file esatti), il livello di riuso possibile del meccanismo esistente, e una stima di complessità. Non implementare nulla in questo turno.
