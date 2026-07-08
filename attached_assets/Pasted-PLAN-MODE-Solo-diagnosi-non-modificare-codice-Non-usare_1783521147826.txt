@@ -1,0 +1,26 @@
+PLAN MODE — Solo diagnosi, non modificare codice
+
+Non usare subagent né testing monitor (costo token).
+
+Due verifiche in questa sessione, entrambe solo diagnosi.
+
+PARTE 1 — Checkout Stripe su mobile
+Verifica, SENZA modificare nulla:
+1. Come viene avviato il flusso di upgrade a Premium (€9.99) o Pro (€19.99) da mobile — quale componente/schermata, che libreria usa (Stripe Checkout via browser esterno? WebView? Stripe React Native SDK?).
+2. Se il flusso richiede di aprire un browser esterno (Linking.openURL verso una Checkout Session URL) o se è integrato nativamente.
+3. Se esiste già del codice per questo su mobile, o se il flusso di upgrade oggi è disponibile SOLO su web (nessun modo di pagare da telefono).
+4. Se un flusso mobile esiste, verifica cosa succede dopo il pagamento: redirect/deep-link di ritorno all'app funziona? La sessione utente si aggiorna correttamente (piano Premium/Pro riflesso subito, o richiede refresh manuale)?
+5. IMPORTANTE — vincolo Apple: se in futuro Francesco vuole vendere Premium/Pro anche da mobile mentre l'app è su iOS, Apple richiede che gli acquisti in-app di contenuti digitali passino da Apple IAP (commissione 15-30%), non Stripe diretto. Verifica se il codice attuale, se già esiste un flusso mobile, userebbe Stripe direttamente (violazione delle linee guida Apple) o se questo è già stato evitato/rimandato consapevolmente.
+
+PARTE 2 — Audit completo Billing/Stripe (area 2 del piano)
+File: billing.ts, webhookHandlers.ts, reconcileStripePlan.ts, cleanupStripeData.ts (e qualunque altro file di route/lib collegato ai pagamenti)
+
+Verifica, SENZA modificare nulla, usando il metodo "chi chiama cosa" (frontend web+mobile, non solo backend isolato):
+1. Logica di upgrade/downgrade piano: cosa succede se un utente passa da Free a Premium a metà mese, o da Premium a Pro, o cancella e poi si riabbona — i contatori di utilizzo (messaggi/battaglie usati questo mese) vengono gestiti correttamente in ogni transizione?
+2. reconcileStripePlan.ts: quando/come viene chiamato, cosa concilia esattamente, e cosa succede se il piano su Stripe e quello nel DB divergono (fonte di verità: chi vince in caso di conflitto?).
+3. cleanupStripeData.ts: già emerso in precedenza che contiene isStripeLiveMode() con un timeout osservato — verifica il resto della funzione, cosa pulisce, quando viene invocata, e se un fallimento silenzioso (già visto, benigno) potrebbe in altri scenari lasciare dati Stripe inconsistenti nel DB.
+4. Edge case pagamento fallito: se una carta viene rifiutata o un pagamento ricorrente fallisce, cosa succede al piano dell'utente (retrocede subito a Free? C'è un periodo di grazia? L'utente viene notificato?).
+5. Idempotenza webhook: se Stripe invia lo stesso evento due volte (comportamento noto e documentato di Stripe), il codice gestisce la deduplica, o rischia di applicare un upgrade/downgrade due volte?
+6. Qualsiasi altro problema strutturale che emerga leggendo il codice con lo stesso rigore già applicato alle aree precedenti.
+
+Riporta entrambe le diagnosi separatamente, con riferimenti a file/riga per ogni problema trovato. Non implementare nulla in questo turno.
