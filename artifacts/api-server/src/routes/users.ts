@@ -6,6 +6,7 @@ import { eq, desc, gte, and, asc, sql, inArray } from "drizzle-orm";
 import { SyncUserBody } from "@workspace/api-zod";
 import { computeLevel, xpToNextLevel as xpToNext, levelProgress as lvlProgress, BADGE_DEFINITIONS, computeMacroDimensions } from "../lib/sgiScoring";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
+import { generateRecommendations } from "../lib/generateRecommendations";
 
 const router = Router();
 
@@ -52,7 +53,7 @@ router.post("/users/me", async (req, res) => {
       { userId: newUser.id, type: "weekly", title: "Deep Thinker", description: "Achieve a reasoning depth score of 7+", progress: 0, target: 1, completed: 0, expiresAt: nextWeek },
     ]);
 
-    await generateRecommendations(newUser.id);
+    await generateRecommendations(newUser.id, "it");
     await updateLeaderboardRank(newUser.id);
 
     const profile = await buildUserProfile(newUser.id);
@@ -445,19 +446,6 @@ export async function checkAndAwardBadges(userId: number, dims: { interdisciplin
   }
 }
 
-async function generateRecommendations(userId: number): Promise<void> {
-  const recs = [
-    { category: "reasoning", content: "Explore Bayesian probability — practice updating beliefs with new evidence in your conversations", estimatedSgiGain: 8.5 },
-    { category: "interdisciplinary", content: "Connect economics and psychology by exploring behavioral economics concepts like loss aversion and anchoring", estimatedSgiGain: 12.0 },
-    { category: "abstraction", content: "Study systems theory — practice describing complex systems at multiple levels of abstraction", estimatedSgiGain: 10.0 },
-    { category: "domain", content: "Deepen your exploration of information theory — discuss entropy, channel capacity, and compression", estimatedSgiGain: 7.5 },
-    { category: "conceptual", content: "Explore causal modeling — practice distinguishing correlation from causation in complex domains", estimatedSgiGain: 9.0 },
-  ];
-
-  for (const rec of recs) {
-    await db.insert(recommendations).values({ userId, ...rec }).onConflictDoNothing();
-  }
-}
 
 function formatDomain(d: string): string {
   return d.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());

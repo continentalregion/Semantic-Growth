@@ -1,11 +1,14 @@
 import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { users, recommendations } from "@workspace/db";
+import { recommendations } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
+import { generateRecommendations } from "../lib/generateRecommendations";
 
 const router = Router();
+
+const REGEN_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 router.get("/recommendations/me", async (req, res) => {
   try {
@@ -18,6 +21,26 @@ router.get("/recommendations/me", async (req, res) => {
     if (user.plan === "free") {
       res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" });
       return;
+    }
+
+    const lang = typeof req.query.lang === "string" ? req.query.lang : "it";
+
+    // Find the most recent recommendation for this user to decide freshness.
+    const [newest] = await db.select({ createdAt: recommendations.createdAt })
+      .from(recommendations)
+      .where(eq(recommendations.userId, user.id))
+      .orderBy(desc(recommendations.createdAt))
+      .limit(1);
+
+    const stale =
+      !newest ||
+      Date.now() - newest.createdAt.getTime() > REGEN_INTERVAL_MS;
+
+    if (stale) {
+      // Synchronous regeneration: we await before responding so the client
+      // always receives fresh, personalised content. This runs at most once
+      // every 7 days per user, so the extra latency is acceptable.
+      await generateRecommendations(user.id, lang);
     }
 
     const recs = await db.select().from(recommendations)

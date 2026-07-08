@@ -1,0 +1,70 @@
+Non usare subagent né testing monitor (costo token).
+
+CONTESTO: artifacts/api-server/src/routes/users.ts, funzione generateRecommendations 
+(riga 448) genera 5 suggerimenti HARDCODED identici per ogni utente, mai personalizzati, 
+sempre in inglese — nonostante la pagina dichiari "personalizzati basati sul tuo 
+profilo semantico". Va sostituita con generazione dinamica reale, sincrona (nessuna 
+risposta vuota o con dati vecchi), protetta da rigenerazioni concorrenti.
+
+TASK:
+
+1. Riscrivere generateRecommendations(userId: number, lang: string): Promise<void> in 
+   users.ts:
+
+   a) Lock atomico per-utente PRIMA di qualunque query/generazione:
+      const lockAcquired = await db.execute(sql`SELECT pg_try_advisory_lock(${userId})`);
+      if (!lockAcquired.rows[0]?.pg_try_advisory_lock) {
+        // Un'altra richiesta sta già rigenerando per questo utente: aspetta il 
+        // rilascio invece di duplicare la generazione, poi esci — il chiamante 
+        // rileggerà le recommendations già scritte dall'altra richiesta.
+        await db.execute(sql`SELECT pg_advisory_lock(${userId})`);
+        await db.execute(sql`SELECT pg_advisory_unlock(${userId})`);
+        return;
+      }
+      try {
+        // ... tutto il resto della funzione (punti b-f) va dentro questo try ...
+      } finally {
+        await db.execute(sql`SELECT pg_advisory_unlock(${userId})`);
+      }
+
+   b) Query semanticDomains per userId, ORDER BY explorationScore ASC LIMIT 3 
+      (domini meno esplorati).
+
+   c) Query sgiSnapshots per userId, ultimi 20 record ORDER BY timestamp DESC, calcola 
+      la media di conceptualComplexity/semanticVariety/interdisciplinaryScore/
+      reasoningDepth/originality/stability/continuity/revisionSignal, prendi le 3 
+      dimensioni con media più bassa.
+
+   d) Se l'utente ha meno di 5 sgiSnapshots totali (utente nuovo, poca storia): usa 
+      direttamente un set di 5 suggerimenti generici di fallback (scritti bene, non 
+      finto-specifici) nella lingua richiesta — NESSUNA chiamata LLM in questo caso.
+
+   e) Altrimenti chiama anthropic.messages.create (model: "claude-haiku-4-5", 
+      max_tokens: 500, temperature: 0.6) con un prompt che passa le dimensioni deboli 
+      + domini meno esplorati, chiedendo di restituire JSON: array di 5 oggetti 
+      {category, content, estimatedSgiGain (numero plausibile 5-15)}, contenuto nella 
+      lingua richiesta. Parsing difensivo (replace ```json fences, try/catch, fallback 
+      al set generico del punto d se il parsing fallisce).
+
+   f) DELETE delle recommendations esistenti per userId prima di inserire le nuove.
+
+2. Aggiornare la chiamata a generateRecommendations a riga 55 (onboarding) passando 
+   "it" come lang di default.
+
+3. In artifacts/api-server/src/routes/recommendations.ts, GET /recommendations/me:
+   - Leggi il createdAt più recente delle recommendations esistenti per l'utente
+   - Se NON esistono O sono più vecchie di 7 giorni: fai AWAIT di 
+     generateRecommendations(user.id, lang) prima di rispondere (lang da query param 
+     `?lang=`, default "it") — accettabile qualche secondo di attesa in più, succede 
+     al massimo una volta ogni 7 giorni per utente, MAI una risposta vuota o con 
+     contenuto stantio
+   - Poi rileggi le recommendations appena inserite/esistenti e rispondi con quelle
+   - Se sono più recenti di 7 giorni: rispondi normalmente con quelle esistenti, 
+     nessuna rigenerazione, nessuna attesa
+
+Non toccare l'endpoint /users/me/predictions né altre route.
+
+Se il code reviewer automatico rigetta confrontando con scope task vecchi (#14/#15), è 
+falso allarme noto — skip_validation_reason se serve.
+
+Al termine: commit e PUSH del repo.
