@@ -1,0 +1,98 @@
+Non usare subagent né testing monitor (costo token).
+
+CONTESTO: redesign completo palette da dark-purple a light-terracotta su mobile e web, 
+mantenendo la struttura a token esistente (già ben fatta, zero hardcoded hex nella 
+maggior parte delle schermate). Sostituzione dell'icona "sparkles" (AI avatar in chat) 
+con il logo SGI animato a pulsazione.
+
+TASK 1 — artifacts/sgi-mobile/constants/theme.ts, sostituire l'oggetto palette (righe 
+9-33) con:
+  bg:            "#FAF9F5",
+  surface1:      "#FFFFFF",   // card
+  surface2:      "#F3F1EA",   // muted background
+  surface3:      "rgba(31,30,29,0.08)", // border/input — mantenere come stringa rgba
+  textPrimary:   "#1F1E1D",
+  textSecondary: "#6B6963",
+  primary:       "#CC785C",   // terracotta
+  primaryLight:  "#E0A08A",   // variante più chiara per icone secondarie
+  primaryFg:     "#FFFFFF",   // testo SU sfondo primary
+  teal:    "#0D9488",
+  cyan:    "#0891B2",
+  violet:  "#8B5CF6",
+  pink:    "#E11D48",
+  gold:    "#B8860B",
+  silver:  "#9CA3AF",
+  bronze:  "#B45309",
+  warning: "#D97706",
+  white: "#ffffff",
+  transparent: "transparent",
+Non toccare spacing, font, radii, animation — restano invariati (già coerenti). 
+Ricontrollare eventuali contrasti testo-su-colore che con la palette vecchia 
+presumevano sfondo scuro (es. badge/testo bianco su pink/gold) e correggerli se il 
+nuovo pink/gold risultano ora troppo scuri per un testo bianco sopra — usare 
+textPrimary scuro dove necessario per contrasto.
+
+TASK 2 — Correggere i 2 file con hex hardcoded rimasti dalla vecchia palette (violano 
+la regola "zero hardcoded hex" del progetto):
+  - artifacts/sgi-mobile/app/(tabs)/explore/progress.tsx righe 36,38,39,266,510,512,664: 
+    sostituire ogni hex hardcoded con il token equivalente da useColors()/palette 
+    (es. "#7c6bff" → colors.primary, "#ffbb55"/"#ff9900" → colors.warning o colors.gold 
+    a seconda del contesto semantico della riga, "#f72585" → colors.pink, 
+    "#06d6a0" → colors.teal) — leggere il contesto di ogni riga per capire quale token 
+    semantico è corretto
+  - artifacts/sgi-mobile/app/(tabs)/explore/predictions.tsx righe 42,43: stessa 
+    correzione ("#6366f1"→colors.primary, "#22c55e"→colors.teal)
+
+TASK 3 — artifacts/sgi-app/src/index.css, sostituire i valori HSL corrispondenti sia 
+nel blocco :root (righe ~113-135) sia nel blocco .dark (righe ~197-230) — DEVONO 
+restare identici tra loro, stessa logica attuale:
+  --background: 48 33% 97%;
+  --foreground: 30 3% 12%;
+  --border: 30 10% 89%;
+  --card: 0 0% 100%;
+  --card-foreground: 30 3% 12%;
+  --card-border: 30 10% 89%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 30 3% 12%;
+  --popover-border: 30 10% 89%;
+  --primary: 15 52% 58%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 48 15% 93%;
+  --secondary-foreground: 30 3% 12%;
+  --muted: 48 15% 93%;
+  --muted-foreground: 30 5% 45%;
+  --accent: 15 52% 58%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 347 77% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --sidebar: 48 25% 95%;
+  --sidebar-foreground: 30 3% 12%;
+  --sidebar-border: 30 10% 89%;
+  --sidebar-primary: 15 52% 58%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 48 15% 91%;
+  --sidebar-accent-foreground: 30 3% 12%;
+  --sidebar-ring: 15 52% 58%;
+  --chart-1: 15 52% 58%;   /* primary/terracotta */
+  --chart-2: 175 84% 32%;  /* teal */
+  --chart-3: 43 89% 38%;   /* gold */
+  --chart-4: 262 80% 65%;  /* violet, invariato di tono ma verificare contrasto */
+  --chart-5: 347 77% 50%;  /* pink/destructive */
+Anche le variabili --sgi-purple/--sgi-teal/--sgi-pink (righe 102-104 e 198-200) vanno 
+aggiornate a: --sgi-purple: #CC785C; --sgi-teal: #0D9488; --sgi-pink: #E11D48; 
+(e i corrispondenti -dim in rgba con gli stessi nuovi valori RGB, stessa opacità 
+attuale).
+
+TASK 4 — artifacts/sgi-mobile/app/(tabs)/index.tsx, sostituire l'icona sparkles 
+(riga 1119-1122, avatar AI nei bubble di chat) con il logo SGI pulsante:
+  - Sostituire <Ionicons name="sparkles" size={14} color={c.primary} /> con 
+    <LogoMark size={16} /> (componente già importato in questo file, riga 32)
+  - Wrappare il LogoMark in un Animated.View con opacity animata in loop (stesso 
+    pattern esatto di TypingDot: useSharedValue(0.4), withRepeat(withSequence(
+    withTiming(1, {duration:600}), withTiming(0.4, {duration:600})), -1, false)) 
+    così il logo pulsa (appare/scompare in loop) invece di un'icona statica
+
+Se il code reviewer automatico rigetta confrontando con scope task vecchi (#14/#15), è 
+falso allarme noto — skip_validation_reason se serve.
+
+Al termine: commit e PUSH del repo.

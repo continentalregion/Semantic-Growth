@@ -985,6 +985,21 @@ const MessageBubble = React.memo(function MessageBubble({
   const isUser = msg.role === "user";
   const c = colors;
 
+  const logoOpacity = useSharedValue(0.4);
+  const logoAnimStyle = useAnimatedStyle(() => ({ opacity: logoOpacity.value }));
+  useEffect(() => {
+    if (!isUser) {
+      logoOpacity.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 600 }),
+          withTiming(0.4, { duration: 600 }),
+        ),
+        -1,
+        false,
+      );
+    }
+  }, [isUser]);
+
   const markdownStyles = {
     body: {
       color: c.foreground,
@@ -1118,7 +1133,9 @@ const MessageBubble = React.memo(function MessageBubble({
     >
       {!isUser && (
         <View style={[bubbleStyles.avatar, { backgroundColor: c.primary + "22", borderColor: c.primary + "33" }]}>
-          <Ionicons name="sparkles" size={14} color={c.primary} />
+          <Animated.View style={logoAnimStyle}>
+            <LogoMark size={16} />
+          </Animated.View>
         </View>
       )}
       <View

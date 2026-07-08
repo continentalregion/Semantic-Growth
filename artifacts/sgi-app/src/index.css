@@ -98,12 +98,12 @@
    SGI DESIGN TOKENS (matching HTML prototype palette)
    ============================================================ */
 :root {
-  --sgi-purple: #7c6bff;
-  --sgi-teal: #06d6a0;
-  --sgi-pink: #f72585;
-  --sgi-purple-dim: rgba(124,107,255,0.15);
-  --sgi-teal-dim: rgba(6,214,160,0.15);
-  --sgi-pink-dim: rgba(247,37,133,0.12);
+  --sgi-purple: #CC785C;
+  --sgi-teal: #0D9488;
+  --sgi-pink: #E11D48;
+  --sgi-purple-dim: rgba(204,120,92,0.15);
+  --sgi-teal-dim: rgba(13,148,136,0.15);
+  --sgi-pink-dim: rgba(225,29,72,0.12);
 
   --button-outline: rgba(255,255,255,.10);
   --badge-outline: rgba(255,255,255,.05);
@@ -111,48 +111,48 @@
   --elevate-1: rgba(255,255,255,.04);
   --elevate-2: rgba(255,255,255,.09);
 
-  /* SGI dark palette — #08090f → #0f1020 → #151728 */
-  --background: 240 50% 5%;
-  --foreground: 240 30% 97%;
-  --border: 238 30% 16%;
-  --card: 237 40% 10%;
-  --card-foreground: 240 30% 97%;
-  --card-border: 238 30% 18%;
-  --sidebar: 240 50% 7%;
-  --sidebar-foreground: 240 30% 97%;
-  --sidebar-border: 238 30% 14%;
-  --sidebar-primary: 248 100% 71%;
-  --sidebar-primary-foreground: 248 100% 10%;
-  --sidebar-accent: 237 35% 16%;
-  --sidebar-accent-foreground: 240 30% 97%;
-  --sidebar-ring: 248 100% 71%;
-  --popover: 237 40% 10%;
-  --popover-foreground: 240 30% 97%;
-  --popover-border: 238 30% 18%;
+  /* SGI light palette — terracotta #CC785C */
+  --background: 48 33% 97%;
+  --foreground: 30 3% 12%;
+  --border: 30 10% 89%;
+  --card: 0 0% 100%;
+  --card-foreground: 30 3% 12%;
+  --card-border: 30 10% 89%;
+  --sidebar: 48 25% 95%;
+  --sidebar-foreground: 30 3% 12%;
+  --sidebar-border: 30 10% 89%;
+  --sidebar-primary: 15 52% 58%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 48 15% 91%;
+  --sidebar-accent-foreground: 30 3% 12%;
+  --sidebar-ring: 15 52% 58%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 30 3% 12%;
+  --popover-border: 30 10% 89%;
 
-  /* Primary = SGI purple #7c6bff */
-  --primary: 248 100% 71%;
-  --primary-foreground: 248 100% 10%;
+  /* Primary = SGI terracotta #CC785C */
+  --primary: 15 52% 58%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 237 35% 16%;
-  --secondary-foreground: 240 30% 97%;
-  --muted: 237 35% 13%;
-  --muted-foreground: 240 15% 55%;
-  --accent: 248 100% 71%;
-  --accent-foreground: 248 100% 10%;
+  --secondary: 48 15% 93%;
+  --secondary-foreground: 30 3% 12%;
+  --muted: 48 15% 93%;
+  --muted-foreground: 30 5% 45%;
+  --accent: 15 52% 58%;
+  --accent-foreground: 0 0% 100%;
 
-  /* Destructive = SGI pink #f72585 */
-  --destructive: 327 93% 57%;
-  --destructive-foreground: 0 0% 98%;
-  --input: 238 30% 18%;
-  --ring: 248 100% 71%;
+  /* Destructive = SGI pink #E11D48 */
+  --destructive: 347 77% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 30 10% 89%;
+  --ring: 15 52% 58%;
 
   /* Chart colors */
-  --chart-1: 248 100% 71%;   /* sgi-purple */
-  --chart-2: 163 96% 44%;   /* sgi-teal */
-  --chart-3: 327 93% 57%;   /* sgi-pink */
-  --chart-4: 38 96% 55%;    /* amber */
-  --chart-5: 210 89% 60%;   /* blue */
+  --chart-1: 15 52% 58%;   /* primary/terracotta */
+  --chart-2: 175 84% 32%;  /* teal */
+  --chart-3: 43 89% 38%;   /* gold */
+  --chart-4: 262 80% 65%;  /* violet */
+  --chart-5: 347 77% 50%;  /* pink/destructive */
 
   --app-font-sans: 'Inter', sans-serif;
   --app-font-display: 'Space Grotesk', sans-serif;
@@ -194,9 +194,9 @@
 }
 
 .dark {
-  --sgi-purple: #7c6bff;
-  --sgi-teal: #06d6a0;
-  --sgi-pink: #f72585;
+  --sgi-purple: #CC785C;
+  --sgi-teal: #0D9488;
+  --sgi-pink: #E11D48;
 
   --button-outline: rgba(255,255,255,.10);
   --badge-outline: rgba(255,255,255,.05);
@@ -204,40 +204,40 @@
   --elevate-1: rgba(255,255,255,.04);
   --elevate-2: rgba(255,255,255,.09);
 
-  --background: 240 50% 5%;
-  --foreground: 240 30% 97%;
-  --border: 238 30% 16%;
-  --card: 237 40% 10%;
-  --card-foreground: 240 30% 97%;
-  --card-border: 238 30% 18%;
-  --sidebar: 240 50% 7%;
-  --sidebar-foreground: 240 30% 97%;
-  --sidebar-border: 238 30% 14%;
-  --sidebar-primary: 248 100% 71%;
-  --sidebar-primary-foreground: 248 100% 10%;
-  --sidebar-accent: 237 35% 16%;
-  --sidebar-accent-foreground: 240 30% 97%;
-  --sidebar-ring: 248 100% 71%;
-  --popover: 237 40% 10%;
-  --popover-foreground: 240 30% 97%;
-  --popover-border: 238 30% 18%;
-  --primary: 248 100% 71%;
-  --primary-foreground: 248 100% 10%;
-  --secondary: 237 35% 16%;
-  --secondary-foreground: 240 30% 97%;
-  --muted: 237 35% 13%;
-  --muted-foreground: 240 15% 55%;
-  --accent: 248 100% 71%;
-  --accent-foreground: 248 100% 10%;
-  --destructive: 327 93% 57%;
-  --destructive-foreground: 0 0% 98%;
-  --input: 238 30% 18%;
-  --ring: 248 100% 71%;
-  --chart-1: 248 100% 71%;
-  --chart-2: 163 96% 44%;
-  --chart-3: 327 93% 57%;
-  --chart-4: 38 96% 55%;
-  --chart-5: 210 89% 60%;
+  --background: 48 33% 97%;
+  --foreground: 30 3% 12%;
+  --border: 30 10% 89%;
+  --card: 0 0% 100%;
+  --card-foreground: 30 3% 12%;
+  --card-border: 30 10% 89%;
+  --sidebar: 48 25% 95%;
+  --sidebar-foreground: 30 3% 12%;
+  --sidebar-border: 30 10% 89%;
+  --sidebar-primary: 15 52% 58%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 48 15% 91%;
+  --sidebar-accent-foreground: 30 3% 12%;
+  --sidebar-ring: 15 52% 58%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 30 3% 12%;
+  --popover-border: 30 10% 89%;
+  --primary: 15 52% 58%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 48 15% 93%;
+  --secondary-foreground: 30 3% 12%;
+  --muted: 48 15% 93%;
+  --muted-foreground: 30 5% 45%;
+  --accent: 15 52% 58%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 347 77% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 30 10% 89%;
+  --ring: 15 52% 58%;
+  --chart-1: 15 52% 58%;
+  --chart-2: 175 84% 32%;
+  --chart-3: 43 89% 38%;
+  --chart-4: 262 80% 65%;
+  --chart-5: 347 77% 50%;
 
   --shadow-2xs: 0px 2px 4px 0px hsl(240 50% 3% / 0.60);
   --shadow-xs: 0px 2px 4px 0px hsl(240 50% 3% / 0.60);

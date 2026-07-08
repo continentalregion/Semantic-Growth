@@ -6,30 +6,30 @@
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 export const palette = {
-  // Surfaces (darkest → lightest)
-  bg:       "#08090f",
-  surface1: "#0f1322",  // card
-  surface2: "#151728",  // muted background
-  surface3: "#1a1e3a",  // border / input
+  // Surfaces (lightest → darkest)
+  bg:       "#FAF9F5",
+  surface1: "#FFFFFF",   // card
+  surface2: "#F3F1EA",   // muted background
+  surface3: "rgba(31,30,29,0.08)" as string, // border / input
 
   // Text
-  textPrimary:   "#f0f1fa",
-  textSecondary: "#7a7ea8",
+  textPrimary:   "#1F1E1D",
+  textSecondary: "#6B6963",
 
-  // Brand purple
-  primary:      "#7c6bff",
-  primaryLight: "#a89fff",   // secondary icons, dimmer purple
-  primaryFg:    "#0a0e1a",   // text ON primary background
+  // Brand terracotta
+  primary:      "#CC785C",   // terracotta
+  primaryLight: "#E0A08A",   // lighter variant for secondary icons
+  primaryFg:    "#FFFFFF",   // text ON primary background
 
   // Semantic colours
-  teal:    "#06d6a0",   // success / positive delta
-  cyan:    "#06b6d4",   // connectivity / info accent
-  violet:  "#a855f7",   // precision / secondary accent
-  pink:    "#f72585",   // error / negative / destructive
-  gold:    "#ffd700",   // trophy / rank-1
-  silver:  "#c0c0c0",   // rank-2
-  bronze:  "#cd7f32",   // rank-3
-  warning: "#ffd166",   // amber / caution
+  teal:    "#0D9488",   // success / positive delta
+  cyan:    "#0891B2",   // connectivity / info accent
+  violet:  "#8B5CF6",   // precision / secondary accent
+  pink:    "#E11D48",   // error / negative / destructive
+  gold:    "#B8860B",   // trophy / rank-1
+  silver:  "#9CA3AF",   // rank-2
+  bronze:  "#B45309",   // rank-3
+  warning: "#D97706",   // amber / caution
 
   // Misc
   white: "#ffffff",
@@ -49,10 +49,10 @@ export const colorTokens = {
   primary:             palette.primary,
   primaryLight:        palette.primaryLight,
   primaryForeground:   palette.primaryFg,
-  secondary:           "#1b1e35",
+  secondary:           palette.surface2,
   secondaryForeground: palette.textPrimary,
   accent:              palette.primary,
-  accentForeground:    palette.textPrimary,
+  accentForeground:    palette.primaryFg,
   destructive:         palette.pink,
   destructiveForeground: palette.white,
   teal:                palette.teal,

@@ -39,8 +39,8 @@ import { SkeletonBox } from "@/components/ui/SkeletonBox";
 
 const AnimatedRect = createAnimatedComponent(SvgRect);
 
-const CONSERVATIVE_COLOR = "#6366f1";
-const OPTIMISTIC_COLOR = "#22c55e";
+const CONSERVATIVE_COLOR = palette.primary;
+const OPTIMISTIC_COLOR = palette.teal;
 
 type ScenarioKey = "conservative" | "realistic" | "optimistic";
 

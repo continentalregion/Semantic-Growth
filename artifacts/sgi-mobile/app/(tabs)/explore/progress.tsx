@@ -33,10 +33,10 @@ import { palette } from "@/constants/theme";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
 
-const LEVEL_COLOR = "#7c6bff";
+const LEVEL_COLOR = palette.primary;
 const XP_COLOR = palette.teal;
-const BADGE_COLOR = "#ffbb55";
-const STREAK_COLOR = "#ff9900";
+const BADGE_COLOR = palette.gold;
+const STREAK_COLOR = palette.warning;
 
 const BADGE_META: Record<string, { emoji: string }> = {
   semantic_explorer:      { emoji: "🧭" },
@@ -263,7 +263,7 @@ export default function ProgressScreen() {
                   rankChange > 0
                     ? XP_COLOR
                     : rankChange < 0
-                    ? "#f72585"
+                    ? palette.pink
                     : colors.mutedForeground
                 }
                 colors={colors}
@@ -507,9 +507,9 @@ export default function ProgressScreen() {
                     <Text style={{ color: colors.mutedForeground, fontSize: 9, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.6 }}>{t("gamification.totalXp")}</Text>
                     <Text style={{ color: colors.teal, fontSize: 24, fontFamily: "Inter_700Bold" }}>{xp.toLocaleString()}</Text>
                   </View>
-                  <View style={{ flex: 1, alignItems: "center", backgroundColor: "#ff990012", borderRadius: 10, padding: 10, borderWidth: 1, borderColor: "#ff990030" }}>
+                  <View style={{ flex: 1, alignItems: "center", backgroundColor: palette.warning + "12", borderRadius: 10, padding: 10, borderWidth: 1, borderColor: palette.warning + "30" }}>
                     <Text style={{ color: colors.mutedForeground, fontSize: 9, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.6 }}>{t("gamification.streak")}</Text>
-                    <Text style={{ color: "#ff9900", fontSize: 22, fontFamily: "Inter_700Bold" }}>🔥{streak}</Text>
+                    <Text style={{ color: palette.warning, fontSize: 22, fontFamily: "Inter_700Bold" }}>🔥{streak}</Text>
                   </View>
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -661,7 +661,7 @@ const st = StyleSheet.create({
   xpFill: {
     height: "100%",
     borderRadius: 4,
-    background: "linear-gradient(90deg, #7c6bff, #06d6a0)",
+    background: `linear-gradient(90deg, ${palette.primary}, ${palette.teal})`,
     backgroundColor: LEVEL_COLOR,
   },
   xpToNext: {
