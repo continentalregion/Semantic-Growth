@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { Alert, Platform } from "react-native";
+import { useAuth } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMyProfileQueryKey } from "@workspace/api-client-react";
 
@@ -39,6 +40,7 @@ interface UsePurchaseResult {
  */
 export function usePurchase(): UsePurchaseResult {
   const [isPurchasing, setIsPurchasing] = useState(false);
+  const { userId } = useAuth();
   const qc = useQueryClient();
 
   const triggerPurchase = useCallback(async (plan: PurchasePlan) => {
@@ -69,6 +71,28 @@ export function usePurchase(): UsePurchaseResult {
         : (process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? "");
 
       Purchases.configure({ apiKey });
+
+      // Link RevenueCat anonymous user to the real Clerk user ID so the
+      // backend webhook (WHERE users.clerkId = appUserId) can find the row.
+      if (!userId) {
+        Alert.alert(
+          "Sessione non valida",
+          "Accedi di nuovo prima di effettuare un acquisto.",
+          [{ text: "OK" }],
+        );
+        return;
+      }
+      try {
+        await Purchases.logIn(userId);
+      } catch (loginErr) {
+        console.error("[usePurchase] Purchases.logIn failed:", loginErr);
+        Alert.alert(
+          "Acquisto non disponibile",
+          "Impossibile verificare il tuo account. Controlla la connessione e riprova.",
+          [{ text: "OK" }],
+        );
+        return;
+      }
 
       // Fetch available offerings from RevenueCat
       const offerings = await Purchases.getOfferings();
@@ -128,7 +152,7 @@ export function usePurchase(): UsePurchaseResult {
     } finally {
       setIsPurchasing(false);
     }
-  }, [isPurchasing, qc]);
+  }, [isPurchasing, userId, qc]);
 
   return { triggerPurchase, isPurchasing };
 }
