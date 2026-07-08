@@ -1,3 +1,21 @@
+// Safety net for Postgres idle-connection termination events (pg code 57P01).
+// pg-pool emits 'error' on the pool when Neon terminates an idle connection;
+// if that event is unhandled, Node.js throws and kills the process. This handler
+// intercepts 57P01 errors at the process level (defence-in-depth alongside the
+// pool.on('error') in lib/db/src/index.ts) and lets the process continue.
+// For all other uncaught exceptions, it logs and exits so real bugs don't hide.
+process.on("uncaughtException", (err: any) => {
+  if (err?.code === "57P01") {
+    console.error(
+      "[db-pool] connection terminated by Neon compute autosuspend (57P01) — pool will reconnect on next query:",
+      err.message,
+    );
+    return;
+  }
+  console.error("[fatal] uncaught exception — exiting:", err);
+  process.exit(1);
+});
+
 import { runMigrations } from "stripe-replit-sync";
 import app from "./app";
 import { logger } from "./lib/logger";
