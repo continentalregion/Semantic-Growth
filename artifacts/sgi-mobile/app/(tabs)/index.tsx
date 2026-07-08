@@ -11,6 +11,7 @@ import {
   Modal,
   AppState,
   Alert,
+  Keyboard,
 } from "react-native";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
@@ -254,6 +255,7 @@ export default function ChatScreen() {
   const sendMessage = useCallback(async (contentOverride?: string) => {
     const content = (contentOverride ?? input).trim();
     if (!content || isStreaming) return;
+    Keyboard.dismiss();
     setInput("");
     setErrorMsg(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
