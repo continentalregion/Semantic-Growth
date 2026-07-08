@@ -1,0 +1,59 @@
+Non usare subagent né testing monitor (costo token).
+
+CONTESTO: artifacts/sgi-mobile/app/(tabs)/index.tsx — sostituire il modal dal basso 
+delle conversazioni (Modal a pageSheet, riga 621, componente ConvoModal riga 1067, 
+ConvoRow riga 1147) con un drawer laterale animato in stile Claude.app, usando le 
+librerie già installate (react-native-reanimated ~4.1.1, react-native-gesture-handler 
+~2.28.0) — NON aggiungere @react-navigation/drawer né altre dipendenze.
+
+TASK 1 — Drawer sempre montato, animato con Reanimated:
+- Sostituire <Modal visible={convoModal}...> con un Animated.View posizionato assoluto 
+  a sinistra, larghezza 82% dello schermo, SEMPRE montato nell'albero (mai smontato), 
+  con translateX animato tra -larghezza (chiuso) e 0 (aperto) via useSharedValue + 
+  withTiming (easing decelerate, ~280ms), pilotato dallo stesso stato convoModal 
+  esistente (rinominare in drawerOpen se più chiaro, ma riusare la stessa logica di 
+  apertura/chiusura già presente)
+- Backdrop: View semi-trasparente (es. rgba(0,0,0,0.5)) dietro il drawer, opacity 
+  animata in sync con translateX, Pressable che chiama onClose al tap
+- Apertura/chiusura anche tramite gesture: PanGestureHandler (o Gesture.Pan() dalla 
+  nuova API react-native-gesture-handler) che permette swipe da bordo sinistro schermo 
+  per aprire, swipe verso sinistra sul drawer per chiudere, con soglia di velocità/
+  distanza ragionevole e fallback a snap aperto/chiuso a fine gesture
+
+TASK 2 — Ristrutturare l'header del drawer (dentro ConvoModal, ridenominabile 
+ChatDrawer):
+- In alto: logo/nome app (riusa LogoMark già usato altrove nell'app, es. 
+  ShareableBattleCard.tsx) invece del solo testo "Conversazioni"
+- Sotto: etichetta sezione "RECENTI" (o t("chat.recent") nuova chiave i18n) in 
+  maiuscolo, font piccolo, colore mutedForeground — stesso trattamento tipografico 
+  delle altre sezioni "uppercase tracking-wide" già usate nell'app (vedi pattern in 
+  altre pagine con textTransform:"uppercase", letterSpacing)
+- Spostare il bottone "Nuova chat" (oggi in alto, riga 1104-1110) in un footer FISSO 
+  in fondo al drawer, fuori dalla FlatList/scroll, sempre visibile — stile pieno 
+  (background colors.primary, non solo outline) per dargli più peso visivo essendo 
+  l'azione principale
+
+TASK 3 — Footer con utente:
+- Sotto il bottone "Nuova chat", aggiungere una riga con: cerchio iniziale utente 
+  (prima lettera email/nome, riusa lo stesso pattern già presente in profile.tsx per 
+  l'iniziale utente) + testo con il piano corrente (Free/Premium/Pro, da 
+  useGetMyProfile già importato in questo file)
+
+TASK 4 — Swipe-to-delete su ConvoRow (riga 1147):
+- Sostituire/affiancare il bottone cestino statico con Swipeable (da 
+  "react-native-gesture-handler") che rivela l'azione elimina scorrendo la riga verso 
+  sinistra, chiamando lo stesso onDelete(item.id) già esistente — mantenere l'evidenza 
+  della riga attiva (isActive) invariata
+
+TASK 5 — Performance:
+- La FlatList esistente (riga 1126) già usa removeClippedSubviews e 
+  maxToRenderPerBatch — aggiungere anche windowSize={7} per coerenza con l'ottimizzazione 
+  già impostata
+
+Non toccare la logica di fetch conversazioni, selectConvo, newChat, deleteConvo, né 
+altre parti dello schermo chat (streaming, invio messaggi, selettore modello).
+
+Se il code reviewer automatico rigetta confrontando con scope task vecchi (#14/#15), è 
+falso allarme noto — skip_validation_reason se serve.
+
+Al termine: commit e PUSH del repo.

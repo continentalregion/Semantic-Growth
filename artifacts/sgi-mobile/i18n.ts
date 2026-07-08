@@ -127,6 +127,7 @@ const IT = {
     modelForNewConvos: "Modello per nuove esplorazioni",
     modelOutOfPlan: "Stai usando {{model}}. Il tuo piano ({{plan}}) userà {{planModel}} per i nuovi messaggi.",
     modelCapable: "Più potente",
+    recent: "Recenti",
   },
   leaderboard: {
     title: "Rank Globale",
@@ -559,6 +560,7 @@ const EN: typeof IT = {
     modelForNewConvos: "Model for new explorations",
     modelOutOfPlan: "Using {{model}}. Your plan ({{plan}}) will use {{planModel}} for new messages.",
     modelCapable: "Most Capable",
+    recent: "Recent",
   },
   leaderboard: {
     title: "Global Rank",
@@ -991,6 +993,7 @@ const ES: typeof IT = {
     modelForNewConvos: "Modelo para nuevas exploraciones",
     modelOutOfPlan: "Usando {{model}}. Tu plan ({{plan}}) usará {{planModel}} para los nuevos mensajes.",
     modelCapable: "Más potente",
+    recent: "Recientes",
   },
   leaderboard: {
     title: "Ranking Global",

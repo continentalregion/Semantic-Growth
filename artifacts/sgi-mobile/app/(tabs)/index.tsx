@@ -12,6 +12,7 @@ import {
   AppState,
   Alert,
   Keyboard,
+  useWindowDimensions,
 } from "react-native";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
@@ -25,7 +26,10 @@ import Animated, {
   withDelay,
   Easing,
   FadeIn,
+  runOnJS,
 } from "react-native-reanimated";
+import { Gesture, GestureDetector, Swipeable } from "react-native-gesture-handler";
+import { LogoMark } from "@/components/ui/Logo";
 import Markdown from "react-native-markdown-display";
 import { router } from "expo-router";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
@@ -147,6 +151,68 @@ export default function ChatScreen() {
   const [chatSharing, setChatSharing] = useState(false);
   const [chatModalReady, setChatModalReady] = useState(false);
   const s = makeStyles(colors, insets);
+
+  // ── Conversation drawer (replaces pageSheet Modal) ──────────────────────────
+  const { width: screenWidth } = useWindowDimensions();
+  const drawerWidth = Math.round(screenWidth * 0.82);
+  const drawerX = useSharedValue(-drawerWidth);
+  const backdropOp = useSharedValue(0);
+
+  const closeDrawer = useCallback(() => {
+    setConvoModal(false);
+    drawerX.value = withTiming(-drawerWidth, { duration: 280, easing: Easing.in(Easing.cubic) });
+    backdropOp.value = withTiming(0, { duration: 280 });
+  }, [drawerX, backdropOp, drawerWidth]);
+
+  const openDrawer = useCallback(() => {
+    setConvoModal(true);
+    drawerX.value = withTiming(0, { duration: 280, easing: Easing.out(Easing.cubic) });
+    backdropOp.value = withTiming(0.5, { duration: 280 });
+  }, [drawerX, backdropOp]);
+
+  const drawerAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: drawerX.value }],
+  }));
+  const backdropAnimStyle = useAnimatedStyle(() => ({
+    opacity: backdropOp.value,
+  }));
+
+  const edgeGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      if (e.translationX > 0) {
+        drawerX.value = Math.min(0, -drawerWidth + e.translationX);
+        backdropOp.value = Math.min(0.5, (e.translationX / drawerWidth) * 0.5);
+      }
+    })
+    .onEnd((e) => {
+      if (e.translationX > drawerWidth * 0.3 || e.velocityX > 500) {
+        drawerX.value = withTiming(0, { duration: 240, easing: Easing.out(Easing.cubic) });
+        backdropOp.value = withTiming(0.5, { duration: 240 });
+        runOnJS(setConvoModal)(true);
+      } else {
+        drawerX.value = withTiming(-drawerWidth, { duration: 240, easing: Easing.in(Easing.cubic) });
+        backdropOp.value = withTiming(0, { duration: 240 });
+      }
+    });
+
+  const drawerPanGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      if (e.translationX < 0) {
+        drawerX.value = Math.max(-drawerWidth, e.translationX);
+        backdropOp.value = Math.max(0, 0.5 * (1 + e.translationX / drawerWidth));
+      }
+    })
+    .onEnd((e) => {
+      if (e.translationX < -(drawerWidth * 0.3) || e.velocityX < -500) {
+        drawerX.value = withTiming(-drawerWidth, { duration: 240, easing: Easing.in(Easing.cubic) });
+        backdropOp.value = withTiming(0, { duration: 240 });
+        runOnJS(setConvoModal)(false);
+      } else {
+        drawerX.value = withTiming(0, { duration: 240, easing: Easing.out(Easing.cubic) });
+        backdropOp.value = withTiming(0.5, { duration: 240 });
+      }
+    });
+  // ── End drawer setup ────────────────────────────────────────────────────────
 
   const { data: profile } = useGetMyProfile();
   const { data: conversations, isLoading: convosLoading } = useListOpenaiConversations();
@@ -424,14 +490,14 @@ export default function ChatScreen() {
     skipAutoSelect.current = true;
     setActiveConvoId(null);
     setMessages([]);
-    setConvoModal(false);
+    closeDrawer();
     setSgiDelta(null);
     setErrorMsg(null);
     setRetryContent(null);
     shownShareMilestones.current = new Set();
     assistantTurnRef.current = 0;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+  }, [closeDrawer]);
 
   const handleRetry = useCallback(() => {
     if (!retryContent) return;
@@ -445,11 +511,11 @@ export default function ChatScreen() {
   const selectConvo = useCallback((id: number) => {
     setActiveConvoId(id);
     setMessages([]);
-    setConvoModal(false);
+    closeDrawer();
     shownShareMilestones.current = new Set();
     assistantTurnRef.current = 0;
     Haptics.selectionAsync();
-  }, []);
+  }, [closeDrawer]);
 
   const handleShareChat = useCallback(async () => {
     if (!chatShareRef.current) return;
@@ -474,7 +540,7 @@ export default function ChatScreen() {
 
       <View style={[s.header, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>
         <PressableScale
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setConvoModal(true); }}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); openDrawer(); }}
           style={s.headerBtn}
           haptic={false}
         >
@@ -618,32 +684,7 @@ export default function ChatScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      <Modal visible={convoModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setConvoModal(false)}>
-        <ConvoModal
-          conversations={conversations ?? []}
-          loading={convosLoading}
-          activeId={activeConvoId}
-          onSelect={selectConvo}
-          onNew={newChat}
-          onDelete={async (id) => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            try {
-              await deleteConvo.mutateAsync({ id });
-            } catch (err) {
-              const status = (err as { status?: number } | null)?.status;
-              if (status !== 404) throw err;
-              // 404 = already gone on the server; treat as silent success.
-              // Clean up local state exactly like the auto-selection guard does.
-              invalidatedConvoIds.current.add(id);
-              qc.removeQueries({ queryKey: getGetOpenaiConversationQueryKey(id) });
-            }
-            // Always proceed regardless of whether delete succeeded or was a no-op 404.
-            if (id === activeConvoId) newChat();
-          }}
-          onClose={() => setConvoModal(false)}
-          colors={colors}
-        />
-      </Modal>
+      {/* convo drawer — mounted below, always in tree */}
 
       <Modal visible={modelModal} animationType="fade" transparent onRequestClose={() => setModelModal(false)}>
         <Pressable style={s.overlay} onPress={() => setModelModal(false)}>
@@ -729,6 +770,66 @@ export default function ChatScreen() {
             sgindex.work
           </Text>
         </View>
+      )}
+
+      {/* ── Drawer backdrop — always mounted, opacity animated ────────────────── */}
+      <Animated.View
+        pointerEvents={convoModal ? "auto" : "none"}
+        style={[StyleSheet.absoluteFillObject, { backgroundColor: "#000" }, backdropAnimStyle]}
+      >
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={closeDrawer} />
+      </Animated.View>
+
+      {/* ── Conversation drawer — always mounted, translateX animated ─────────── */}
+      <GestureDetector gesture={drawerPanGesture}>
+        <Animated.View
+          style={[
+            {
+              position: "absolute",
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: drawerWidth,
+              backgroundColor: colors.background,
+              shadowColor: "#000",
+              shadowOffset: { width: 4, height: 0 },
+              shadowOpacity: 0.18,
+              shadowRadius: 16,
+              elevation: 20,
+            },
+            drawerAnimStyle,
+          ]}
+        >
+          <ChatDrawer
+            conversations={conversations ?? []}
+            loading={convosLoading}
+            activeId={activeConvoId}
+            onSelect={selectConvo}
+            onNew={newChat}
+            onDelete={async (id) => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+              try {
+                await deleteConvo.mutateAsync({ id });
+              } catch (err) {
+                const status = (err as { status?: number } | null)?.status;
+                if (status !== 404) throw err;
+                invalidatedConvoIds.current.add(id);
+                qc.removeQueries({ queryKey: getGetOpenaiConversationQueryKey(id) });
+              }
+              if (id === activeConvoId) newChat();
+            }}
+            onClose={closeDrawer}
+            colors={colors}
+            profile={profile}
+          />
+        </Animated.View>
+      </GestureDetector>
+
+      {/* ── Left-edge swipe zone (30px) to open drawer when closed ───────────── */}
+      {!convoModal && (
+        <GestureDetector gesture={edgeGesture}>
+          <View style={{ position: "absolute", left: 0, top: 0, bottom: tabBarHeight, width: 30 }} />
+        </GestureDetector>
       )}
 
       {/* ── Chat milestone share popup (visual UI only — no captureRef here) ── */}
@@ -1064,7 +1165,7 @@ const bubbleStyles = StyleSheet.create({
   cursor: { fontSize: 16 },
 });
 
-function ConvoModal({
+function ChatDrawer({
   conversations,
   loading,
   activeId,
@@ -1073,6 +1174,7 @@ function ConvoModal({
   onDelete,
   onClose,
   colors,
+  profile,
 }: {
   conversations: { id: number; title: string; createdAt: string }[];
   loading: boolean;
@@ -1082,37 +1184,50 @@ function ConvoModal({
   onDelete: (id: number) => void;
   onClose: () => void;
   colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
+  profile?: { plan?: string | null } | null;
 }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const plan = (profile?.plan ?? "free") as string;
+  const planLabel = ({ free: "Free", premium: "Premium", pro: "Pro" } as Record<string, string>)[plan] ?? "Free";
+  const planColor = plan === "pro" ? colors.teal : plan === "premium" ? colors.gold : colors.mutedForeground;
+  const initial = plan[0]?.toUpperCase() ?? "F";
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Header: logo + close */}
       <View style={{
         paddingTop: Platform.OS === "web" ? 67 : insets.top + 16,
         paddingHorizontal: 20,
-        paddingBottom: 12,
+        paddingBottom: 14,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
+        gap: 12,
       }}>
-        <Text style={{ color: colors.foreground, fontSize: 18, fontFamily: "Inter_600SemiBold" }}>
-          {t("chat.conversations")}
-        </Text>
-        <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
-          <PressableScale
-            onPress={onNew}
-            style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.primary + "20", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
-          >
-            <Ionicons name="add" size={16} color={colors.primary} />
-            <Text style={{ color: colors.primary, fontFamily: "Inter_500Medium", fontSize: 13 }}>{t("chat.new")}</Text>
-          </PressableScale>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <LogoMark size={28} />
+            <Text style={{ color: colors.foreground, fontSize: 17, fontFamily: "Inter_700Bold", letterSpacing: -0.3 }}>
+              SGI
+            </Text>
+          </View>
           <PressableScale onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} haptic={false}>
-            <Ionicons name="close" size={24} color={colors.mutedForeground} />
+            <Ionicons name="close" size={22} color={colors.mutedForeground} />
           </PressableScale>
         </View>
+        {/* Section label */}
+        <Text style={{
+          fontSize: 10,
+          fontFamily: "Inter_600SemiBold",
+          color: colors.mutedForeground,
+          textTransform: "uppercase",
+          letterSpacing: 1.4,
+        }}>
+          {t("chat.recent")}
+        </Text>
       </View>
+
+      {/* Conversation list */}
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator color={colors.primary} />
@@ -1129,6 +1244,7 @@ function ConvoModal({
           contentContainerStyle={{ paddingVertical: 8 }}
           removeClippedSubviews
           maxToRenderPerBatch={10}
+          windowSize={7}
           renderItem={({ item }) => (
             <ConvoRow
               item={item}
@@ -1140,6 +1256,49 @@ function ConvoModal({
           )}
         />
       )}
+
+      {/* Footer — always visible */}
+      <View style={{
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+        padding: 16,
+        paddingBottom: Math.max(insets.bottom, 16),
+        gap: 12,
+      }}>
+        {/* New chat — solid primary, high visual weight */}
+        <PressableScale
+          onPress={onNew}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            backgroundColor: colors.primary,
+            paddingVertical: 13,
+            borderRadius: 12,
+          }}
+        >
+          <Ionicons name="add" size={18} color="#fff" />
+          <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 14 }}>{t("chat.new")}</Text>
+        </PressableScale>
+
+        {/* User info row */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={{
+            width: 32, height: 32, borderRadius: 16,
+            backgroundColor: colors.primary + "20",
+            borderWidth: 1, borderColor: colors.primary + "33",
+            alignItems: "center", justifyContent: "center",
+          }}>
+            <Text style={{ color: colors.primary, fontFamily: "Inter_700Bold", fontSize: 13 }}>
+              {initial}
+            </Text>
+          </View>
+          <Text style={{ color: planColor, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
+            {planLabel}
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -1160,47 +1319,53 @@ function ConvoRow({
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
-  return (
-    <Pressable
-      onPress={() => { Haptics.selectionAsync(); onSelect(item.id); }}
-      onPressIn={() => { scale.value = withSpring(0.97, { damping: 18, stiffness: 350 }); }}
-      onPressOut={() => { scale.value = withSpring(1, { damping: 14, stiffness: 220 }); }}
-    >
-      <Animated.View
-        style={[
-          animStyle,
-          {
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 20,
-            paddingVertical: 14,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border + "44",
-          },
-          isActive && { backgroundColor: colors.primary + "10" },
-        ]}
+  const renderRightActions = useCallback(() => (
+    <View style={{ width: 70, justifyContent: "center", alignItems: "stretch" }}>
+      <Pressable
+        onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onDelete(item.id); }}
+        style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.destructive + "22" }}
       >
-        <Ionicons
-          name="chatbubble-outline"
-          size={16}
-          color={isActive ? colors.primary : colors.mutedForeground}
-          style={{ marginRight: 12 }}
-        />
-        <Text
-          style={{ flex: 1, color: colors.foreground, fontFamily: "Inter_400Regular", fontSize: 14 }}
-          numberOfLines={1}
+        <Ionicons name="trash-outline" size={18} color={colors.destructive} />
+      </Pressable>
+    </View>
+  ), [item.id, onDelete, colors.destructive]);
+
+  return (
+    <Swipeable renderRightActions={renderRightActions} overshootRight={false}>
+      <Pressable
+        onPress={() => { Haptics.selectionAsync(); onSelect(item.id); }}
+        onPressIn={() => { scale.value = withSpring(0.97, { damping: 18, stiffness: 350 }); }}
+        onPressOut={() => { scale.value = withSpring(1, { damping: 14, stiffness: 220 }); }}
+      >
+        <Animated.View
+          style={[
+            animStyle,
+            {
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 20,
+              paddingVertical: 14,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border + "44",
+              backgroundColor: isActive ? colors.primary + "10" : colors.background,
+            },
+          ]}
         >
-          {item.title}
-        </Text>
-        <PressableScale
-          onPress={() => onDelete(item.id)}
-          haptic={false}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="trash-outline" size={16} color={colors.destructive + "88"} />
-        </PressableScale>
-      </Animated.View>
-    </Pressable>
+          <Ionicons
+            name="chatbubble-outline"
+            size={16}
+            color={isActive ? colors.primary : colors.mutedForeground}
+            style={{ marginRight: 12 }}
+          />
+          <Text
+            style={{ flex: 1, color: colors.foreground, fontFamily: "Inter_400Regular", fontSize: 14 }}
+            numberOfLines={1}
+          >
+            {item.title}
+          </Text>
+        </Animated.View>
+      </Pressable>
+    </Swipeable>
   );
 }
 
