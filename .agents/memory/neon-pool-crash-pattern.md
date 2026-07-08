@@ -6,10 +6,14 @@ description: How to prevent Neon's compute autosuspend from crashing the Node.js
 # Neon compute autosuspend + pg-pool crash pattern
 
 ## The rule
-Two defences are required together; neither alone is sufficient.
+Two things are required together in `lib/db/src/index.ts`:
 
 1. `idleTimeoutMillis: 60_000` — evict pool connections after 60s of idle
-2. `process.on('uncaughtException', ...)` in `artifacts/api-server/src/index.ts` — intercept 57P01 at process level
+2. `pool.on('error', (err) => { console.error(...) })` — handle pg-pool 'error' events so Node.js does not treat them as unhandled exceptions
+
+`pool.on('error', ...)` (line 30 of `lib/db/src/index.ts`) is a **targeted listener on the specific pool EventEmitter** — it only handles errors emitted by pg-pool when an idle DB client disconnects unexpectedly. This is the correct, scoped fix for this problem.
+
+There is also a `process.on('uncaughtException', ...)` guard in `artifacts/api-server/src/index.ts` that handles 57P01 as a process-level backstop, but that is a **separate, broader mechanism** (it would intercept any unhandled exception in the entire process). It is not the same as the pool handler and should not be confused with it.
 
 ## Why
 
@@ -18,34 +22,33 @@ Neon terminates all direct-connection idle connections when compute autosuspends
 The documented default is 300s, but **this project's actual observed threshold is ~120s**
 (measured from production log timestamps). `idleTimeoutMillis` must be < actual threshold.
 
-### Why `pool.on('error', ...)` alone is insufficient
-pg-pool v3 has two code paths in `idleListener`:
-- **Path A** (client still in `pool._idle`): removes client, calls `pool.emit('error', err, client)` → handler catches it ✓
-- **Path B** (client already removed from `pool._idle`, e.g. when Neon terminates all 5 connections simultaneously): calls `pool.log(...)` — does NOT emit on pool → error propagates as unhandled → Node.js `throw er` → process crash ✗
+### Why `pool.on('error', ...)` is necessary
+When Neon sends FATAL (pg code `57P01`) to an idle pool client, pg-pool emits an `'error'`
+event on the Pool instance. Without a listener, Node.js's EventEmitter re-throws that error
+as an uncaught exception and kills the process — even though pg-pool has already cleaned up
+the dead client internally. The handler only needs to log and return; no manual cleanup needed.
 
-When Neon terminates all 5 idle connections at once, only the FIRST one takes path A; the remaining four may take path B after pool._idle has already been mutated.
+### Why `idleTimeoutMillis: 60s` is also necessary
+With a TTL longer than Neon's autosuspend (~120s observed), the pool holds connections Neon
+has already terminated — causing a continuous crash loop on every autosuspend cycle. Setting
+the TTL to 60s means the pool evicts connections before Neon terminates them, eliminating the
+race condition entirely.
 
-### Why `idleTimeoutMillis: 60s` alone is insufficient
-If a 57P01 arrives anyway (e.g. due to a race at exactly the eviction boundary, or during startup before connections are released back to pool), the process would still crash without the safety net.
+## How to apply (lib/db/src/index.ts)
 
-## How to apply
-
-In `lib/db/src/index.ts`:
 ```ts
-idleTimeoutMillis: 60 * 1000,   // 60s — below Neon's ~120s autosuspend
-pool.on('error', (err) => { console.error('[db-pool] idle client error:', err.message); });
-```
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  idleTimeoutMillis: 60 * 1000,   // 60s — below Neon's ~120s autosuspend on this project
+  max: 5,
+});
 
-In `artifacts/api-server/src/index.ts` (before any imports take effect):
-```ts
-process.on("uncaughtException", (err: any) => {
-  if (err?.code === "57P01") {
-    console.error("[db-pool] 57P01 — pool will reconnect on next query:", err.message);
-    return;  // let process continue; pg-pool already cleaned up the dead client
-  }
-  console.error("[fatal] uncaught exception:", err);
-  process.exit(1);
+// Handle pg-pool 'error' event emitted when an idle client is terminated by Neon
+// (pg code 57P01: "terminating connection due to administrator command").
+// Without this listener, Node.js treats the unhandled EventEmitter error as an
+// uncaught exception and kills the process. pg-pool removes the dead client
+// from the pool automatically; this handler only needs to log and return.
+pool.on('error', (err) => {
+  console.error('[db-pool] idle client error (connection removed from pool):', err.message);
 });
 ```
-
-**Why:** `process.on` must be registered before any async events can fire. esbuild hoists `import` statements, so `process.on` executes after all module initialization — this is fine because 57P01 events are always async (they come over the network socket).
