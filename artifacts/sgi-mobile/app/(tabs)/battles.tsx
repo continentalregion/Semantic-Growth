@@ -470,7 +470,7 @@ function BattlePvpModal({
   useEffect(() => {
     if (!visible) return;
     if (phase !== "waitingOpponent" && phase !== "scoring" && phase !== "waitingResult") return;
-    const id = setInterval(() => loadRef.current(), 4000);
+    const id = setInterval(() => loadRef.current(), 2000);
     return () => clearInterval(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, phase]);
