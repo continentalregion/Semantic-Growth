@@ -196,6 +196,7 @@ function BattlePvpModal({
   const shareCardRef = useRef<View>(null);
   const [shareVisible, setShareVisible] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const hasAutoShared = useRef(false);
 
   const handleShareBattle = async () => {
     if (!shareCardRef.current) return;
@@ -318,12 +319,14 @@ function BattlePvpModal({
     if (!visible || !matchId) return;
     arenaInit.current = false;
     completing.current = false;
+    hasAutoShared.current = false;
     setView(null);
     setLoadError(false);
     setMessages([]);
     setInput("");
     setSecondsLeft(390);
     setKeyboardHeight(0);
+    setShareVisible(false);
     loadRef.current();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, matchId]);
@@ -357,6 +360,15 @@ function BattlePvpModal({
     return () => clearInterval(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, phase]);
+
+  // Auto-open share popup once when the battle result becomes available.
+  // hasAutoShared guards against re-triggering if view refreshes while in result phase.
+  useEffect(() => {
+    if (phase === "result" && !hasAutoShared.current) {
+      hasAutoShared.current = true;
+      setShareVisible(true);
+    }
+  }, [phase]);
 
   // Local countdown for the active arena; auto-complete at zero.
   useEffect(() => {
@@ -640,6 +652,11 @@ function BattlePvpModal({
               backgroundColor: colors.card, borderTopLeftRadius: 22, borderTopRightRadius: 22,
               padding: 20, gap: 14, paddingBottom: Math.max(insets.bottom, 16) + 8,
             }}>
+              <View style={{ alignItems: "flex-end" }}>
+                <Pressable onPress={() => setShareVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Ionicons name="close" size={24} color={colors.mutedForeground} />
+                </Pressable>
+              </View>
               {/* Capture target */}
               <View ref={shareCardRef} style={{
                 backgroundColor: colors.background, borderRadius: 16, padding: 20,

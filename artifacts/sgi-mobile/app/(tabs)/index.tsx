@@ -10,7 +10,10 @@ import {
   Platform,
   Modal,
   AppState,
+  Alert,
 } from "react-native";
+import { captureRef } from "react-native-view-shot";
+import * as Sharing from "expo-sharing";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -128,6 +131,17 @@ export default function ChatScreen() {
   const inputRef = useRef<TextInput>(null);
   const flatListRef = useRef<FlatList<LocalMessage>>(null);
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
+  const shownShareMilestones = useRef<Set<number>>(new Set());
+  const assistantTurnRef = useRef(0);
+  const chatShareRef = useRef<View>(null);
+  const [progressCardShare, setProgressCardShare] = useState<{
+    id: string;
+    deltaPct: number;
+    highlightMetric: string;
+    highlightDeltaPct: number;
+  } | null>(null);
+  const [chatShareVisible, setChatShareVisible] = useState(false);
+  const [chatSharing, setChatSharing] = useState(false);
   const s = makeStyles(colors, insets);
 
   const { data: profile } = useGetMyProfile();
@@ -174,6 +188,9 @@ export default function ChatScreen() {
       content: m.content,
     }));
     setMessages([...mapped].reverse());
+    // Initialize the assistant-turn counter from already-existing DB messages
+    // so milestones count from the total conversation history, not just this session.
+    assistantTurnRef.current = activeConvo.messages.filter(m => m.role === "assistant").length;
   }, [activeConvo?.id, activeConvo?.messages.length]);
 
   useEffect(() => {
@@ -312,6 +329,13 @@ export default function ChatScreen() {
               usage?: { remaining: number };
               streamError?: boolean;
               message?: string;
+              progressCard?: {
+                id: string;
+                deltaPct: number;
+                isPositive: boolean;
+                highlightMetric: string;
+                highlightDeltaPct: number;
+              };
             };
             if (parsed.content) {
               fullContent += parsed.content;
@@ -345,6 +369,21 @@ export default function ChatScreen() {
               qc.invalidateQueries({ queryKey: getGetOpenaiConversationQueryKey(convoId!) });
               qc.invalidateQueries({ queryKey: getGetMyProfileQueryKey() });
               qc.invalidateQueries({ queryKey: getGetSgiHistoryQueryKey() });
+              // Milestone share trigger: fires only when the server sends a positive
+              // progressCard AND the assistant-turn count hits a multiple of 5.
+              // assistantTurnRef is initialized from the DB history on conversation load
+              // so this counts across the full conversation, not just the current session.
+              if (parsed.progressCard?.isPositive) {
+                assistantTurnRef.current += 1;
+                const turn = assistantTurnRef.current;
+                if (turn % 5 === 0 && !shownShareMilestones.current.has(turn)) {
+                  shownShareMilestones.current.add(turn);
+                  setProgressCardShare(parsed.progressCard);
+                  setChatShareVisible(true);
+                }
+              } else {
+                assistantTurnRef.current += 1;
+              }
             }
             if (parsed.streamError) {
               setErrorMsg(parsed.message ?? t("chat.serverError"));
@@ -373,6 +412,8 @@ export default function ChatScreen() {
     setSgiDelta(null);
     setErrorMsg(null);
     setRetryContent(null);
+    shownShareMilestones.current = new Set();
+    assistantTurnRef.current = 0;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
@@ -389,8 +430,24 @@ export default function ChatScreen() {
     setActiveConvoId(id);
     setMessages([]);
     setConvoModal(false);
+    shownShareMilestones.current = new Set();
+    assistantTurnRef.current = 0;
     Haptics.selectionAsync();
   }, []);
+
+  const handleShareChat = useCallback(async () => {
+    if (!chatShareRef.current) return;
+    setChatSharing(true);
+    try {
+      const uri = await captureRef(chatShareRef, { format: "png", quality: 1 });
+      await Sharing.shareAsync(uri, { mimeType: "image/png" });
+    } catch {
+      Alert.alert(t("share.captureError"), "");
+    } finally {
+      setChatSharing(false);
+      setChatShareVisible(false);
+    }
+  }, [t]);
 
   const currentModel = MODELS_ALL.find(m => m.id === selectedModel) ?? MODELS_ALL[0];
 
@@ -582,6 +639,79 @@ export default function ChatScreen() {
             ))}
           </View>
         </Pressable>
+      </Modal>
+
+      {/* ── Chat milestone share popup ── */}
+      <Modal visible={chatShareVisible} transparent animationType="slide" onRequestClose={() => setChatShareVisible(false)}>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.6)" }}>
+          <View style={{
+            backgroundColor: colors.card, borderTopLeftRadius: 22, borderTopRightRadius: 22,
+            padding: 20, gap: 14, paddingBottom: Math.max(insets.bottom, 16) + 8,
+          }}>
+            <View style={{ alignItems: "flex-end" }}>
+              <Pressable onPress={() => setChatShareVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={24} color={colors.mutedForeground} />
+              </Pressable>
+            </View>
+            {/* Capture target */}
+            <View ref={chatShareRef} style={{
+              backgroundColor: colors.background, borderRadius: 16, padding: 20,
+              borderWidth: 1, borderColor: colors.border, gap: 12,
+            }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Ionicons name="trending-up" size={14} color={colors.teal} />
+                <Text style={{ color: colors.teal, fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1.2, textTransform: "uppercase" }}>
+                  SGI Progress
+                </Text>
+              </View>
+              {progressCardShare && (
+                <>
+                  <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}>
+                    <Text style={{ fontSize: 36, fontFamily: "Inter_700Bold", color: colors.teal }}>
+                      +{progressCardShare.deltaPct.toFixed(1)}%
+                    </Text>
+                    <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: colors.mutedForeground }}>
+                      {t("progressCard.growth")}
+                    </Text>
+                  </View>
+                  <View style={{
+                    backgroundColor: colors.teal + "12", borderRadius: 10, padding: 12,
+                    borderWidth: 1, borderColor: colors.teal + "30",
+                  }}>
+                    <Text style={{ fontSize: 11, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 4 }}>
+                      {progressCardShare.highlightMetric}
+                    </Text>
+                    <Text style={{ fontSize: 22, fontFamily: "Inter_700Bold", color: colors.teal }}>
+                      +{progressCardShare.highlightDeltaPct.toFixed(1)}%
+                    </Text>
+                  </View>
+                </>
+              )}
+              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "right" }}>
+                sgindex.work
+              </Text>
+            </View>
+
+            <Pressable
+              style={({ pressed }) => [{
+                backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 14,
+                alignItems: "center", opacity: pressed || chatSharing ? 0.7 : 1,
+              }]}
+              onPress={handleShareChat}
+              disabled={chatSharing}
+            >
+              {chatSharing
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={{ color: "#fff", fontSize: 14, fontFamily: "Inter_700Bold" }}>{t("share.shareResult")}</Text>}
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [{ alignItems: "center", paddingVertical: 10, opacity: pressed ? 0.6 : 1 }]}
+              onPress={() => setChatShareVisible(false)}
+            >
+              <Text style={{ color: colors.mutedForeground, fontSize: 13, fontFamily: "Inter_500Medium" }}>{t("share.close")}</Text>
+            </Pressable>
+          </View>
+        </View>
       </Modal>
     </View>
   );

@@ -426,6 +426,9 @@ const IT = {
     shareBattle: "Condividi il risultato della battaglia",
     close: "Chiudi",
   },
+  progressCard: {
+    growth: "crescita SGI",
+  },
 };
 
 // ─── English ──────────────────────────────────────────────────────────────────
@@ -846,6 +849,9 @@ const EN: typeof IT = {
     shareBattle: "Share the battle result",
     close: "Close",
   },
+  progressCard: {
+    growth: "SGI growth",
+  },
 };
 
 // ─── Spanish ──────────────────────────────────────────────────────────────────
@@ -1265,6 +1271,9 @@ const ES: typeof IT = {
     shareProgress: "Comparte tu progreso SGI",
     shareBattle: "Comparte el resultado de la batalla",
     close: "Cerrar",
+  },
+  progressCard: {
+    growth: "crecimiento SGI",
   },
 };
 

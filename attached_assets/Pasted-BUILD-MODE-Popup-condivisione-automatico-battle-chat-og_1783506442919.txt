@@ -1,0 +1,28 @@
+BUILD MODE — Popup condivisione automatico (battle + chat ogni 5 messaggi)
+
+Non usare subagent né testing monitor (costo token).
+
+Contesto: diagnosi completata. Riuso del meccanismo esistente captureRef + expo-sharing (NON toccare Instagram Stories API, resta deferita). Lavora sui 3 blocchi in ordine, uno alla volta.
+
+BLOCCO 1 — Battle: popup automatico + X
+File: artifacts/sgi-mobile/app/(tabs)/battles.tsx
+
+1. Trova dove phase transisce a "result" e aggiungi lì setShareVisible(true) automatico (oggi il trigger è solo il bottone manuale riga 514-520, che deve restare funzionante anche come fallback/re-apertura manuale).
+2. Nel Modal esistente (righe 637-711), aggiungi un Pressable/TouchableOpacity con icona X in alto a destra della card, onPress={() => setShareVisible(false)}. Non deve interrompere nessun altro stato di battle: chiudere il popup deve solo nascondere il Modal, lasciando l'utente sulla schermata risultati normale.
+
+BLOCCO 2 — Chat: contatore milestone ogni 5 messaggi
+File: artifacts/sgi-mobile/app/(tabs)/index.tsx
+
+1. Aggiungi shownShareMilestones = useRef<Set<number>>(new Set()).
+2. Reset di shownShareMilestones.current a new Set() in selectConvo e in newChat (stesso punto dove si resetta lo state messages).
+3. Trigger: quando parsed.done === true nello stream (fine risposta assistant), controlla messages.length % 5 === 0 && !shownShareMilestones.current.has(messages.length). Se vero, aggiungi messages.length al Set e apri il popup di condivisione (creato nel Blocco 3).
+4. Non triggerare al semplice caricamento di una conversazione esistente da DB con lunghezza già multiplo di 5 — il trigger scatta SOLO su parsed.done del nuovo messaggio, non sul mount/useEffect che rimappa activeConvo.messages.
+
+BLOCCO 3 — Chat: parsing progressCard da SSE + popup con dati reali
+File: artifacts/sgi-mobile/app/(tabs)/index.tsx
+
+1. Nel while(true) di sendMessage, aggiungi il case per il campo progressCard (oggi gestisce solo content, done, sgiDelta, title, usage, streamError — aggiungi progressCard allo stesso switch/if-chain, salvandolo in uno state locale es. lastProgressCard).
+2. Il server manda progressCard solo se isPositive: true (vedi chat.tsx web righe 777-802 per il contratto esatto: deltaPct, highlightMetric, highlightDeltaPct). Se il campo è assente/isPositive false in quel momento, NON aprire il popup di condivisione anche se il contatore di messaggi è a un multiplo di 5 — aspetta il prossimo trigger valido.
+3. Componente popup: replica il pattern Modal inline già usato in battles.tsx (stesso stile: View con ref per captureRef, Sharing.shareAsync, bottone X), non creare un componente condiviso separato. Contenuto card: deltaPct, highlightMetric, highlightDeltaPct da lastProgressCard, branding sgindex.work coerente con le altre card esistenti.
+
+Dopo ogni blocco, conferma cosa hai modificato con file e righe esatte prima di passare al successivo. Non aggiungere librerie nuove, non toccare battle-session.tsx o chat.tsx web.
