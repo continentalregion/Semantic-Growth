@@ -726,6 +726,17 @@ router.get("/battles/matches/:id", async (req, res) => {
 
     // Resolve on read: both done → score; one done + opponent's 390s window lapsed → forfeit.
     const [m] = await db.select().from(battleMatches).where(eq(battleMatches.id, matchId)).limit(1);
+
+    // If this match is still waiting, run the global reconciliation on every poll.
+    // This triggers AI escalation (after WAITING_AI_ESCALATION_MS = 10 min) and
+    // abandoned cleanup (after WAITING_TTL_MS = 30 min) even when only one user
+    // is active and no new POST /battles/matchmake is ever called.
+    // Non-blocking (void): the two filtered SELECT queries are cheap (LIMIT 5/20
+    // on status+timestamp); any LLM call for escalation is already async/void
+    // inside reconcileExpiredMatches(). Only runs for waiting matches — no overhead
+    // on the far more frequent polls of active/scoring/completed matches.
+    if (m && m.status === "waiting") void reconcileExpiredMatches();
+
     if (m && m.status === "active") {
       const e1 = entries.find(e => e.slot === 1);
       const e2 = entries.find(e => e.slot === 2);
