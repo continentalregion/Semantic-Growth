@@ -1,0 +1,19 @@
+PLAN MODE — Solo diagnosi, non modificare codice
+
+Non usare subagent né testing monitor (costo token).
+
+PROBLEMA 1 — Card ancora nera nonostante il fix precedente
+Il fix già applicato e verificato (onShow del Modal + chatModalReady + disabled sul bottone finché non ready) non ha risolto il problema: la storia condivisa risulta ancora completamente nera. Verifica, SENZA modificare nulla:
+
+1. captureRef (react-native-view-shot) ha limitazioni note in ambiente Expo Go (non build nativa standalone) con certe configurazioni di Modal/backgroundColor — verifica se questo è il caso qui, e se sì, se esiste un workaround compatibile con Expo Go o se il problema si risolverà solo con EAS Build nativo (già in programma post-submission Apple).
+2. Verifica se il problema è specifico alla combinazione Modal + View con ref annidati (chatShareRef dentro un Modal con backgroundColor scuro) — a volte view-shot cattura lo sfondo del Modal invece del contenuto se il layer di cattura non è quello giusto nella gerarchia nativa.
+3. Confronta con precisione: la card della battle (stessa identica libreria/pattern) funziona correttamente in produzione? Se sì, quali differenze strutturali specifiche tra il Modal battle e il Modal chat potrebbero spiegare perché uno cattura bene e l'altro no, oltre al timing già corretto.
+4. Verifica se aggiungere collapsable={false} sulla View catturata (necessario su Android per view-shot, spesso dimenticato) è già presente sia in battles.tsx che in index.tsx.
+
+PROBLEMA 2 — Dati disponibili per arricchire la card (non serve corrispondenza visiva col web, solo più contenuto)
+Verifica, SENZA modificare nulla:
+1. Cosa contiene esattamente l'oggetto progressCard inviato dal server via SSE (chat.ts) — tutti i campi disponibili, non solo deltaPct/highlightMetric/highlightDeltaPct già usati.
+2. Se esiste un narrative insight generato (menzionato in memoria: "LLM-generated narrative phrases via Haiku, IT/EN/ES, 160 char max") collegato a questo stesso progressCard, e se viene già inviato via SSE o richiede una chiamata separata.
+3. Cosa mostra la pagina web /progress-card/{id} rispetto a cosa mostra oggi la card mobile — elenca il gap di contenuto.
+
+Riporta entrambe le diagnosi separatamente. Non implementare nulla in questo turno.
