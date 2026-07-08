@@ -1,0 +1,17 @@
+PLAN MODE — Solo diagnosi, non modificare codice
+
+Non usare subagent né testing monitor (costo token).
+
+Bug: la card di condivisione della chat (popup ogni 5 messaggi, componente chatShareRef in index.tsx) produce una storia Instagram completamente vuota/nera quando condivisa — nessun testo, nessun dato SGI visibile. La stessa identica meccanica (captureRef + Sharing.shareAsync) funziona correttamente per la card della battle (battles.tsx), quindi il problema è specifico all'implementazione della chat, non al meccanismo condiviso.
+
+Verifica, SENZA modificare nulla:
+
+1. Timing della capture: handleShareChat (righe ~438-450) chiama captureRef(chatShareRef) — verifica se questo viene chiamato troppo presto rispetto al render effettivo del contenuto. Il Modal ha animationType="slide": se la capture parte prima che l'animazione di apertura sia completata, o prima che React abbia finito di renderizzare i dati dentro <View ref={chatShareRef}>, il risultato è un frame vuoto. Confronta con battles.tsx: ha lo stesso identico setup di animazione/timing, o gestisce diversamente il ritardo tra apertura Modal e possibilità di premere "condividi"?
+
+2. Stato dei dati al momento della capture: progressCardShare (deltaPct, highlightMetric, highlightDeltaPct) è garantito popolato PRIMA che l'utente possa premere il bottone condividi? Verifica se esiste una finestra in cui il Modal è già visibile (quindi il bottone è già cliccabile) ma progressCardShare è ancora null o con valori stantii da un turno precedente.
+
+3. Verifica se chatShareRef (la View catturata) ha effettivamente contenuto visibile in quel momento — controlla se ci sono condizioni di render (es. {progressCardShare && (...)}) che potrebbero risultare in una View vuota se progressCardShare non è ancora settato quando il Modal si apre, anche se poi si popola un istante dopo.
+
+4. Confronta riga per riga la sequenza "apri Modal → utente preme condividi → captureRef" tra battles.tsx (funzionante) e index.tsx (chat, non funzionante) per isolare la differenza esatta.
+
+Riporta la diagnosi con causa esatta e file/righe coinvolte. Non implementare nulla in questo turno.
