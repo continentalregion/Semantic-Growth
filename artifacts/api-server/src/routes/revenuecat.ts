@@ -27,11 +27,12 @@ const ACTIVE_EVENTS = new Set([
 ]);
 
 // ─── RevenueCat event types that signal plan expiry / cancellation ─────────────
+// NOTE: SUBSCRIBER_ALIAS is intentionally excluded — it is a no-op identity
+// event that must NOT trigger a downgrade. It falls through to the else branch.
 const EXPIRED_EVENTS = new Set([
   "CANCELLATION",
   "EXPIRATION",
   "BILLING_ISSUE",
-  "SUBSCRIBER_ALIAS",  // treated as no-op but listed for completeness
 ]);
 
 /**
