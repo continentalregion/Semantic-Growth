@@ -1,0 +1,23 @@
+PLAN MODE — Solo diagnosi, non modificare codice
+
+Non usare subagent né testing monitor (costo token).
+
+Contesto: alle 11:35:02 di oggi (8 luglio 2026), circa 10 minuti dopo il deploy in produzione del fix idleTimeoutMillis: 30 minuti sul pool Postgres, il server ha avuto un crash fatale con questo errore nei log:
+
+error: terminating connection due to administrator command
+severity: 'FATAL'
+at Client3.idleListener (pg-pool@3.13.0)
+at parseErrorMessage (pg-protocol@1.13.0)
+
+Il server è ripartito da solo circa 40 secondi dopo, con i soliti healthcheck failed transitori durante il riavvio (non preoccupanti di per sé).
+
+Ipotesi da verificare: il provider Postgres in uso (Neon, Supabase, o altro — verifica quale) potrebbe avere un timeout lato server per le connessioni idle più corto dei 30 minuti impostati ora lato client nel pool. Se il server DB chiude la connessione prima che il client la consideri scaduta, il client tenta di riusarla e riceve questo errore fatale non gestito.
+
+Verifica, SENZA modificare nulla:
+
+1. Quale provider Postgres è configurato (leggi la connection string / variabili ambiente, senza stamparle in chiaro se contengono credenziali — basta il nome host/provider)
+2. Se il provider ha un timeout documentato per connessioni idle (es. Neon ha un idle timeout di pool più aggressivo su piani free/serverless; verifica se questo progetto usa un piano con questo comportamento)
+3. Se il codice del pool ha un error handler su 'error' event del pool stesso (pg-pool emette un evento 'error' quando una connessione idle nel pool si disconnette inaspettatamente) — se manca, questo potrebbe causare crash del processo Node invece di una gestione pulita (il pool dovrebbe rimuovere la connessione morta e basta, non crashare l'intero server)
+4. Quante volte questo stesso errore ("terminating connection due to administrator command") è comparso nei log storici, prima del fix di oggi — per capire se è un problema preesistente reso più frequente dal nuovo TTL più lungo, o un problema nuovo
+
+Riporta solo la diagnosi con le cause probabili e le opzioni di fix (es. abbassare idleTimeoutMillis a un valore compatibile col provider, aggiungere un error handler sul pool, o entrambi). Non implementare nulla in questo turno.
