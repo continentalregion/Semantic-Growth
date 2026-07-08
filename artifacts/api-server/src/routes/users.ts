@@ -209,14 +209,17 @@ router.get("/users/me/predictions", async (req, res) => {
       avgDailyGrowth = Math.max(-0.5, Math.min(2, (last.score - first.score) / daysDiff));
     }
 
-    const meanReversion = 0.03;
+    const meanReversion = 0.15;
     const targetSgi = 65;
 
-    function project(days: number, growthMultiplier: number): { sgi: number; rank: number } {
+    // Use additive offsets so optimistic > realistic > conservative holds
+    // regardless of whether avgDailyGrowth is positive or negative.
+    function project(days: number, growthOffset: number): { sgi: number; rank: number } {
       let sgi = currentSgi;
+      const dailyGrowth = avgDailyGrowth + growthOffset;
       for (let d = 0; d < days; d++) {
-        const growth = avgDailyGrowth * growthMultiplier - meanReversion * (sgi - targetSgi) * 0.01;
-        sgi = Math.min(100, Math.max(0, sgi + growth));
+        const growth = dailyGrowth - meanReversion * (sgi - targetSgi) * 0.01;
+        sgi = Math.min(100, Math.max(5, sgi + growth));
       }
       const percentile = Math.max(0.1, Math.min(99.9, 50 + (sgi - 50) * 1.5));
       const rank = Math.round(totalUsers * (1 - percentile / 100));
@@ -224,19 +227,19 @@ router.get("/users/me/predictions", async (req, res) => {
     }
 
     const conservative = {
-      ...project(30, 0.5), sgi30d: project(30, 0.5).sgi, rank30d: project(30, 0.5).rank,
-      sgi90d: project(90, 0.5).sgi, rank90d: project(90, 0.5).rank,
-      sgi180d: project(180, 0.5).sgi, rank180d: project(180, 0.5).rank,
+      ...project(30, -0.2), sgi30d: project(30, -0.2).sgi, rank30d: project(30, -0.2).rank,
+      sgi90d: project(90, -0.2).sgi, rank90d: project(90, -0.2).rank,
+      sgi180d: project(180, -0.2).sgi, rank180d: project(180, -0.2).rank,
     };
     const realistic = {
-      sgi30d: project(30, 1).sgi, rank30d: project(30, 1).rank,
-      sgi90d: project(90, 1).sgi, rank90d: project(90, 1).rank,
-      sgi180d: project(180, 1).sgi, rank180d: project(180, 1).rank,
+      sgi30d: project(30, 0).sgi, rank30d: project(30, 0).rank,
+      sgi90d: project(90, 0).sgi, rank90d: project(90, 0).rank,
+      sgi180d: project(180, 0).sgi, rank180d: project(180, 0).rank,
     };
     const optimistic = {
-      sgi30d: project(30, 2).sgi, rank30d: project(30, 2).rank,
-      sgi90d: project(90, 2).sgi, rank90d: project(90, 2).rank,
-      sgi180d: project(180, 2).sgi, rank180d: project(180, 2).rank,
+      sgi30d: project(30, 0.2).sgi, rank30d: project(30, 0.2).rank,
+      sgi90d: project(90, 0.2).sgi, rank90d: project(90, 0.2).rank,
+      sgi180d: project(180, 0.2).sgi, rank180d: project(180, 0.2).rank,
     };
 
     res.json({ conservative, realistic, optimistic });
