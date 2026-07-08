@@ -1,0 +1,69 @@
+Non usare subagent né testing monitor (costo token).
+
+CONTESTO: artifacts/sgi-mobile/app/(tabs)/leaderboard.tsx usa useGetLeaderboard() che 
+restituisce e mostra la lista COMPLETA dei primi 100 utenti con nome — in contrasto con 
+il web (artifacts/sgi-app/src/pages/leaderboard.tsx) che usa SOLO useGetLeaderboardSummary() 
++ useGetMyProfile() (statistiche aggregate + posizione propria), MAI la lista con nomi 
+altrui. Il mobile ha già le stringhe i18n per la privacy (leaderboard.privacyTitle/
+privacyDesc, riga 131 IT / 554 EN / 977 ES) ma non le usa.
+
+TASK 1 — Riscrivere artifacts/sgi-mobile/app/(tabs)/leaderboard.tsx:
+- Sostituire useGetLeaderboard({limit,offset}) con useGetLeaderboardSummary() + 
+  useGetMyProfile() (stessi hook usati da index.tsx/dashboard.tsx per il pattern di 
+  import da @workspace/api-client-react)
+- RIMUOVERE completamente il FlatList di entries con nomi altrui — nessuna lista di 
+  altri utenti va più fetchata né mostrata
+- Mostrare: la propria posizione (globalRank/percentile da profile), le 4 card 
+  statistiche aggregate equivalenti al web (Il tuo SGI, Media Community con 
+  sopra/sotto la media, Utenti Tracciati, Picco Assoluto), le 3 barre soglia 
+  (Top 10%, Top 1%, Picco Assoluto) con progress bar già presente altrove nell'app 
+  mobile per riferimento di stile
+- In fondo, mostrare un box con leaderboard.privacyTitle + leaderboard.privacyDesc 
+  (già tradotti, solo da usare)
+- Riusare i colori/spacing/font già definiti in useColors() come fa il resto dell'app, 
+  non introdurre nuovi stili hardcoded
+
+TASK 2 — Aggiungere le chiavi i18n mancanti in artifacts/sgi-mobile/i18n.ts, dentro il 
+blocco leaderboard: già esistente per ciascuna delle 3 lingue (righe 131 IT, 554 EN, 
+977 ES), stessa formulazione del web:
+
+IT (dopo privacyDesc):
+  yourSgi: "Il tuo SGI", sgiDesc: "indice di crescita semantica",
+  communityAvg: "Media community", aboveAvg: "+{{n}} sopra la media",
+  belowAvg: "{{n}} sotto la media", totalTracked: "Utenti tracciati",
+  inNetwork: "nella rete SGI", peakSgi: "Picco assoluto", peakDesc: "SGI più alto registrato",
+  thresholds: "Soglie di eccellenza", reached: "✓ raggiunto",
+  lacking: "SGI {{threshold}}+ (ti mancano {{gap}})",
+  top1: "Top 1%", top10: "Top 10%", top25: "Top 25%", top50: "Top 50%",
+  growing: "In crescita", position: "Posizione", notRanked: "non ancora classificato",
+  surpassed: "Hai superato il {{pct}}% degli utenti tracciati",
+
+EN (dopo privacyDesc):
+  yourSgi: "Your SGI", sgiDesc: "semantic growth index",
+  communityAvg: "Community Avg", aboveAvg: "+{{n}} above average",
+  belowAvg: "{{n}} below average", totalTracked: "Tracked Users",
+  inNetwork: "in the SGI network", peakSgi: "All-Time Peak", peakDesc: "highest SGI recorded",
+  thresholds: "Excellence Thresholds", reached: "✓ reached",
+  lacking: "SGI {{threshold}}+ ({{gap}} to go)",
+  top1: "Top 1%", top10: "Top 10%", top25: "Top 25%", top50: "Top 50%",
+  growing: "Growing", position: "Position", notRanked: "not yet ranked",
+  surpassed: "You've surpassed {{pct}}% of tracked users",
+
+ES (dopo privacyDesc):
+  yourSgi: "Tu SGI", sgiDesc: "índice de crecimiento semántico",
+  communityAvg: "Media comunidad", aboveAvg: "+{{n}} sobre la media",
+  belowAvg: "{{n}} bajo la media", totalTracked: "Usuarios rastreados",
+  inNetwork: "en la red SGI", peakSgi: "Pico absoluto", peakDesc: "SGI más alto registrado",
+  thresholds: "Umbrales de excelencia", reached: "✓ alcanzado",
+  lacking: "SGI {{threshold}}+ (faltan {{gap}})",
+  top1: "Top 1%", top10: "Top 10%", top25: "Top 25%", top50: "Top 50%",
+  growing: "Creciendo", position: "Posición", notRanked: "aún no clasificado",
+  surpassed: "Has superado al {{pct}}% de los usuarios rastreados",
+
+Non toccare il web (già corretto), non toccare i 1000 utenti finti nel DB (restano, 
+decisione presa), non toccare altri endpoint.
+
+Se il code reviewer automatico rigetta confrontando con scope task vecchi (#14/#15), è 
+falso allarme noto — skip_validation_reason se serve.
+
+Al termine: commit e PUSH del repo.
