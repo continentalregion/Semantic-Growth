@@ -95,19 +95,19 @@ function LanguageSwitcher() {
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1.5 w-full px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-all"
         style={{
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.07)",
-          color: "rgba(144,144,184,0.9)",
+          background: "hsl(var(--sidebar-accent))",
+          border: "1px solid hsl(var(--sidebar-border))",
+          color: "hsl(var(--sidebar-foreground))",
         }}
       >
-        <Languages className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#7c6bff" }} />
+        <Languages className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--sgi-purple)" }} />
         <span className="flex-1 text-left">
           {currentMeta
             ? `${currentMeta.flag} ${currentMeta.name}`
             : `🌐 ${current.toUpperCase()}`}
         </span>
         {loading
-          ? <Loader2 className="w-3 h-3 animate-spin" style={{ color: "#7c6bff" }} />
+          ? <Loader2 className="w-3 h-3 animate-spin" style={{ color: "var(--sgi-purple)" }} />
           : <ChevronDown className="w-3 h-3 opacity-50" />}
       </button>
 
@@ -115,7 +115,7 @@ function LanguageSwitcher() {
       {open && (
         <div
           className="absolute bottom-full mb-2 left-0 w-[210px] rounded-xl overflow-hidden z-50 shadow-2xl"
-          style={{ background: "#0d0f1f", border: "1px solid rgba(255,255,255,0.1)" }}
+          style={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--popover-border))" }}
         >
           {/* Preset languages */}
           <div className="p-1.5">
@@ -126,22 +126,22 @@ function LanguageSwitcher() {
                 <button
                   key={code}
                   onClick={() => switchTo(code)}
-                  className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors hover:bg-white/5"
-                  style={{ color: isCurrent ? "#a89fff" : "rgba(144,144,184,0.8)" }}
+                  className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors hover:bg-black/5"
+                  style={{ color: isCurrent ? "var(--sgi-purple)" : "hsl(var(--popover-foreground))" }}
                 >
                   <span className="text-base">{meta.flag}</span>
                   <span className="flex-1 text-left text-[12px]">{meta.name}</span>
-                  {isCurrent && <span className="text-[10px] text-[#7c6bff]">✓</span>}
+                  {isCurrent && <span className="text-[10px]" style={{ color: "var(--sgi-purple)" }}>✓</span>}
                 </button>
               );
             })}
           </div>
 
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }} />
+          <div style={{ borderTop: "1px solid hsl(var(--popover-border))" }} />
 
           {/* More languages */}
           <div className="p-1.5">
-            <div className="text-[9px] uppercase tracking-widest px-3 py-1" style={{ color: "rgba(74,74,106,1)" }}>
+            <div className="text-[9px] uppercase tracking-widest px-3 py-1" style={{ color: "hsl(var(--muted-foreground))" }}>
               Altre lingue (auto-traduzione AI)
             </div>
             {Object.entries(LANG_META)
@@ -152,20 +152,20 @@ function LanguageSwitcher() {
                   <div key={code} className="flex items-center gap-1 px-1">
                     <button
                       onClick={() => switchTo(code)}
-                      className="flex items-center gap-2 flex-1 px-2 py-1.5 rounded-lg text-sm transition-colors hover:bg-white/5"
-                      style={{ color: isCurrent ? "#a89fff" : "rgba(144,144,184,0.6)" }}
+                      className="flex items-center gap-2 flex-1 px-2 py-1.5 rounded-lg text-sm transition-colors hover:bg-black/5"
+                      style={{ color: isCurrent ? "var(--sgi-purple)" : "hsl(var(--popover-foreground) / 0.75)" }}
                       disabled={loading}
                     >
                       <span className="text-base">{meta.flag}</span>
                       <span className="flex-1 text-left text-[11px]">{meta.name}</span>
-                      {isCurrent && <span className="text-[10px] text-[#7c6bff]">✓</span>}
+                      {isCurrent && <span className="text-[10px]" style={{ color: "var(--sgi-purple)" }}>✓</span>}
                     </button>
                     {isCurrent && (
                       <button
                         onClick={() => handleRefetch(code)}
                         title="Ricarica traduzione"
-                        className="p-1 rounded-md hover:bg-white/5 transition-colors"
-                        style={{ color: "rgba(74,74,106,1)" }}
+                        className="p-1 rounded-md hover:bg-black/5 transition-colors"
+                        style={{ color: "hsl(var(--muted-foreground))" }}
                         disabled={loading}
                       >
                         <RefreshCw className="w-3 h-3" />
@@ -176,11 +176,11 @@ function LanguageSwitcher() {
               })}
           </div>
 
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }} />
+          <div style={{ borderTop: "1px solid hsl(var(--popover-border))" }} />
 
           {/* Custom language input */}
           <div className="p-2">
-            <div className="text-[9px] uppercase tracking-widest px-1 pb-1" style={{ color: "rgba(74,74,106,1)" }}>
+            <div className="text-[9px] uppercase tracking-widest px-1 pb-1" style={{ color: "hsl(var(--muted-foreground))" }}>
               Qualsiasi lingua (codice ISO)
             </div>
             <div className="flex items-center gap-1">
@@ -196,11 +196,11 @@ function LanguageSwitcher() {
                 placeholder="fr, de, ja, ar, hi…"
                 className="flex-1 px-2.5 py-1.5 rounded-lg text-[11px] outline-none"
                 style={{
-                  background: "rgba(255,255,255,0.05)",
+                  background: "hsl(var(--input) / 0.4)",
                   border: status === "error"
-                    ? "1px solid rgba(247,37,133,0.5)"
-                    : "1px solid rgba(255,255,255,0.1)",
-                  color: "#eeeeff",
+                    ? "1px solid var(--sgi-pink)"
+                    : "1px solid hsl(var(--input))",
+                  color: "hsl(var(--popover-foreground))",
                 }}
                 maxLength={5}
               />
@@ -209,9 +209,9 @@ function LanguageSwitcher() {
                 disabled={loading || !input.trim()}
                 className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors"
                 style={{
-                  background: "rgba(124,107,255,0.2)",
-                  border: "1px solid rgba(124,107,255,0.3)",
-                  color: "#a89fff",
+                  background: "var(--sgi-purple-dim)",
+                  border: "1px solid var(--sgi-purple)",
+                  color: "var(--sgi-purple)",
                   opacity: (!input.trim() || loading) ? 0.4 : 1,
                 }}
               >
@@ -221,12 +221,12 @@ function LanguageSwitcher() {
               </button>
             </div>
             {status === "error" && (
-              <p className="text-[10px] mt-1 px-1" style={{ color: "#f72585" }}>
+              <p className="text-[10px] mt-1 px-1" style={{ color: "var(--sgi-pink)" }}>
                 Traduzione fallita. Controlla il codice.
               </p>
             )}
             {status === "ok" && (
-              <p className="text-[10px] mt-1 px-1" style={{ color: "#06d6a0" }}>
+              <p className="text-[10px] mt-1 px-1" style={{ color: "var(--sgi-teal)" }}>
                 ✓ Traduzione completata
               </p>
             )}
@@ -297,7 +297,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside
         className={`fixed md:static inset-y-0 left-0 z-30 w-[214px] flex flex-col border-r flex-shrink-0 transition-transform duration-200 ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
-        style={{ background: "hsl(var(--sidebar))", borderColor: "rgba(255,255,255,0.07)" }}
+        style={{ background: "hsl(var(--sidebar))", borderColor: "hsl(var(--sidebar-border))" }}
       >
         {/* Logo */}
         <div className="px-[18px] pt-[18px] pb-[20px]">
@@ -310,7 +310,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <div key={section.label}>
               <div
                 className="px-[18px] pt-3 pb-[5px] text-[9px] font-medium uppercase tracking-[1px]"
-                style={{ color: "rgba(74,74,106,1)" }}
+                style={{ color: "hsl(var(--muted-foreground))" }}
               >
                 {section.label}
               </div>
@@ -323,35 +323,35 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     onClick={() => setSidebarOpen(false)}
                     className="flex items-center gap-[10px] px-[18px] py-[9px] text-[12.5px] my-[1px] transition-all duration-150 no-underline"
                     style={{
-                      color: active ? "#fff" : "rgba(144,144,184,1)",
-                      borderLeft: active ? "2px solid #7c6bff" : "2px solid transparent",
+                      color: active ? "hsl(var(--sidebar-primary))" : "hsl(var(--muted-foreground))",
+                      borderLeft: active ? "2px solid var(--sgi-purple)" : "2px solid transparent",
                       background: active
-                        ? "linear-gradient(90deg, rgba(124,107,255,0.12), transparent)"
+                        ? "linear-gradient(90deg, var(--sgi-purple-dim), transparent)"
                         : "transparent",
                       fontWeight: active ? 500 : 400,
                     }}
                     onMouseEnter={(e) => {
                       if (!active) {
-                        e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-                        e.currentTarget.style.color = "#eeeeff";
+                        e.currentTarget.style.background = "hsl(var(--sidebar-accent))";
+                        e.currentTarget.style.color = "hsl(var(--sidebar-foreground))";
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!active) {
                         e.currentTarget.style.background = "transparent";
-                        e.currentTarget.style.color = "rgba(144,144,184,1)";
+                        e.currentTarget.style.color = "hsl(var(--muted-foreground))";
                       }
                     }}
                   >
                     <item.icon
                       className="flex-shrink-0"
-                      style={{ width: 15, height: 15, opacity: active ? 1 : 0.7 }}
+                      style={{ width: 15, height: 15, opacity: active ? 1 : 0.85 }}
                     />
                     <span className="flex-1">{item.label}</span>
                     {"badge" in item && item.badge && (
                       <span
                         className="text-[8px] font-bold px-1.5 py-0.5 rounded-full"
-                        style={{ background: "rgba(247,37,133,0.2)", color: "#f72585", border: "1px solid rgba(247,37,133,0.3)" }}
+                        style={{ background: "var(--sgi-pink-dim)", color: "var(--sgi-pink)", border: "1px solid var(--sgi-pink)" }}
                       >
                         {item.badge}
                       </span>
@@ -378,13 +378,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               }}
             >
               <div className="text-[12px] font-semibold text-foreground mb-[3px]">{t("nav.premiumPlan")}</div>
-              <div className="text-[10px] mb-[10px] leading-[1.5]" style={{ color: "rgba(144,144,184,1)" }}>
+              <div className="text-[10px] mb-[10px] leading-[1.5]" style={{ color: "hsl(var(--muted-foreground))" }}>
                 {t("nav.premiumDesc")}
               </div>
               <Link
                 href="/settings"
                 className="block w-full py-2 text-center text-[11px] font-semibold text-white rounded-lg no-underline transition-opacity hover:opacity-85"
-                style={{ background: "linear-gradient(135deg, #7c6bff, #5b4de0)" }}
+                style={{ background: "linear-gradient(135deg, var(--sgi-purple), var(--sgi-teal))" }}
               >
                 {t("nav.upgrade")}
               </Link>
@@ -409,12 +409,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           className="flex items-center justify-between px-4 md:px-6 py-3 flex-shrink-0 z-10"
           style={{
             background: "hsl(var(--sidebar))",
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            borderBottom: "1px solid hsl(var(--sidebar-border))",
           }}
         >
           <div className="flex items-center gap-3">
             <button
-              className="md:hidden p-1.5 rounded-md hover:bg-white/10 transition-colors"
+              className="md:hidden p-1.5 rounded-md hover:bg-black/5 transition-colors"
               onClick={() => setSidebarOpen((o) => !o)}
               aria-label="Toggle menu"
             >
@@ -430,15 +430,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <div
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full"
                 style={{
-                  background: "rgba(255,255,255,0.07)",
-                  border: "1px solid rgba(255,255,255,0.13)",
+                  background: "hsl(var(--sidebar-accent))",
+                  border: "1px solid hsl(var(--sidebar-border))",
                 }}
               >
-                <Zap className="w-3.5 h-3.5" style={{ color: "#7c6bff" }} />
+                <Zap className="w-3.5 h-3.5" style={{ color: "var(--sgi-purple)" }} />
                 <span
                   className="font-display text-[15px] font-bold leading-none"
                   style={{
-                    background: "linear-gradient(135deg, #7c6bff, #06d6a0)",
+                    background: "linear-gradient(135deg, var(--sgi-purple), var(--sgi-teal))",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                     backgroundClip: "text",
@@ -446,13 +446,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 >
                   {sgi.toFixed(1)}
                 </span>
-                <span className="text-[9px] tracking-[0.5px] uppercase" style={{ color: "rgba(74,74,106,1)" }}>
+                <span className="text-[9px] tracking-[0.5px] uppercase" style={{ color: "hsl(var(--muted-foreground))" }}>
                   SGI
                 </span>
                 {(profile?.sgiDailyDelta ?? 0) !== 0 && (
                   <span
                     className="text-[11px] font-semibold"
-                    style={{ color: (profile?.sgiDailyDelta ?? 0) >= 0 ? "#06d6a0" : "#f72585" }}
+                    style={{ color: (profile?.sgiDailyDelta ?? 0) >= 0 ? "var(--sgi-teal)" : "var(--sgi-pink)" }}
                   >
                     {(profile?.sgiDailyDelta ?? 0) > 0 ? "+" : ""}
                     {(profile?.sgiDailyDelta ?? 0).toFixed(1)}
@@ -464,9 +464,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <span
                 className="px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide"
                 style={{
-                  background: "rgba(6,214,160,0.12)",
-                  border: "1px solid rgba(6,214,160,0.25)",
-                  color: "#4eeec0",
+                  background: "var(--sgi-teal-dim)",
+                  border: "1px solid var(--sgi-teal)",
+                  color: "var(--sgi-teal)",
                 }}
               >
                 PREMIUM ✦
@@ -479,7 +479,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           className="absolute inset-0 pointer-events-none"
           style={{
             backgroundImage:
-              "radial-gradient(ellipse at 85% 15%, rgba(124,107,255,0.08) 0%, transparent 55%), radial-gradient(ellipse at 15% 85%, rgba(6,214,160,0.05) 0%, transparent 50%)",
+              "radial-gradient(ellipse at 85% 15%, var(--sgi-purple-dim) 0%, transparent 55%), radial-gradient(ellipse at 15% 85%, var(--sgi-teal-dim) 0%, transparent 50%)",
           }}
         />
 
