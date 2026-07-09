@@ -1017,7 +1017,7 @@ const MessageBubble = React.memo(function MessageBubble({
     },
     strong: {
       fontFamily: c.font.family.semibold as never,
-      color: c.palette.white,
+      color: c.foreground,
       fontWeight: "600" as const,
     },
     em: {
@@ -1027,7 +1027,7 @@ const MessageBubble = React.memo(function MessageBubble({
     heading1: {
       fontSize: c.font.size.lg,
       fontFamily: c.font.family.heading,
-      color: c.palette.white,
+      color: c.foreground,
       marginBottom: c.spacing.sm,
       marginTop: c.spacing.md,
     },
