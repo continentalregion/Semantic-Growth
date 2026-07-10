@@ -2,7 +2,7 @@ import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { db } from "@workspace/db";
-import { users, conversations, messages, sgiSnapshots, gamification, semanticDomains, blockedAttempts, threads, progressCards } from "@workspace/db";
+import { users, conversations, messages, sgiSnapshots, gamification, semanticDomains, blockedAttempts, threads, threadCandidates, progressCards } from "@workspace/db";
 import { eq, desc, and, sql, gte, ilike } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
@@ -730,8 +730,8 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     // Fire-and-forget: auto-generate thread from conversation (every 4 messages, min 6)
     const userMsgCount = history.filter(m => m.role === "user").length;
     if (userMsgCount >= 3 && userMsgCount % 4 === 3) {
-      maybeCreateThreadFromConversation(history, user.clerkId, user.id).catch(e =>
-        console.error("[auto-thread] background error:", e)
+      maybeCreateThreadCandidateFromConversation(history, user.id, convoId).catch(e =>
+        console.error("[thread-candidate] background error:", e)
       );
     }
   } catch (err) {
@@ -745,10 +745,22 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
   }
 });
 
-// ── Auto-thread generation ────────────────────────────────────────────────────
+// ── Auto-thread candidate generation (two-phase, hybrid confirmation) ───────
 // Runs fire-and-forget after every 4th user message (min 3 exchanges).
-// Asks the AI if the conversation contains a specific unresolved question
-// worthy of becoming a public Open Thread. Creates it only if unique.
+//
+// PHASE 1 (worthy-check, unchanged prompt/model from the original single-phase
+// design): asks the AI if the conversation contains a specific unresolved
+// question worthy of becoming a public Open Thread.
+//
+// PHASE 2 (new): if worthy, generates a short one-line AI title (distinct from
+// the full `question`) plus a "why this is interesting" motivation blurb,
+// using the same Haiku client/pattern as progressCardInsight.ts.
+//
+// The result is NEVER written to `threads` directly anymore — it lands in
+// `thread_candidates` with status="pending" and awaits explicit user
+// confirmation (wired to the notification system in the next step). This
+// closes the gap found during the Threads-tab audit: the old version
+// published straight to the public feed with zero human review.
 
 const THREAD_EXTRACT_PROMPT = (msgs: Array<{ role: string; content: string }>) => `
 Analyze this conversation and decide if it contains a specific, deep, unresolved intellectual question
@@ -771,12 +783,30 @@ If NOT worthy (vague, already answered, off-topic), respond with:
 {"worthy": false}
 `.trim();
 
-async function maybeCreateThreadFromConversation(
+const CANDIDATE_TITLE_PROMPT = (question: string, description: string) => `
+You are writing the public-feed title for a candidate discussion thread, shown in a compact list
+alongside its topic domain and an anonymized author handle — no other text is visible at that stage.
+
+QUESTION: "${question}"
+CONTEXT: "${description}"
+
+Write:
+1. A synthetic ONE-LINE title (max 80 chars) — either an open question or a provocative statement that
+   invites a reader to tap in. Must be DIFFERENT from the raw question above, punchier and more concise.
+2. A short motivation blurb (max 200 chars, 1-2 sentences) explaining why this is interesting/unresolved —
+   this is shown on the object page after tap, not in the list.
+
+Respond ONLY with valid JSON (no markdown):
+{"title": "<max 80 chars>", "motivation": "<max 200 chars>"}
+`.trim();
+
+async function maybeCreateThreadCandidateFromConversation(
   history: Array<{ role: string; content: string }>,
-  clerkId: string,
   userId: number,
+  conversationId: number | null,
 ) {
   try {
+    // ── Phase 1: worthy-check ────────────────────────────────────────────────
     const resp = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: THREAD_EXTRACT_PROMPT(history) }],
@@ -793,29 +823,75 @@ async function maybeCreateThreadFromConversation(
     const description: string = (parsed.description ?? "").trim().slice(0, 300);
     const category: string = parsed.category ?? "science";
 
-    // Deduplication: skip if a very similar thread exists (first 40 chars match)
+    // Deduplication against BOTH published threads and other pending
+    // candidates (first 40 chars match) — avoids proposing the same
+    // candidate twice while an earlier one still awaits confirmation.
     const snippet = question.slice(0, 40);
-    const existing = await db.select({ id: threads.id })
+    const [existingThread] = await db.select({ id: threads.id })
       .from(threads)
       .where(ilike(threads.question, `%${snippet}%`))
       .limit(1);
+    const [existingCandidate] = await db.select({ id: threadCandidates.id })
+      .from(threadCandidates)
+      .where(and(ilike(threadCandidates.question, `%${snippet}%`), eq(threadCandidates.status, "pending")))
+      .limit(1);
 
-    if (existing.length > 0) {
-      console.info("[auto-thread] skipped duplicate:", snippet);
+    if (existingThread || existingCandidate) {
+      console.info("[thread-candidate] skipped duplicate:", snippet);
       return;
     }
 
-    await db.insert(threads).values({
+    // ── Phase 2: AI title + motivation blurb (Haiku, same pattern as
+    // progressCardInsight.ts) — best-effort, never blocks candidate creation.
+    let aiTitle: string | null = null;
+    let motivationBlurb: string | null = null;
+    try {
+      const titleResp = await anthropic.messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 150,
+        temperature: 0.6,
+        messages: [{ role: "user", content: CANDIDATE_TITLE_PROMPT(question, description) }],
+      });
+      const block = titleResp.content[0];
+      const text = block && block.type === "text" ? block.text.trim() : "";
+      const parsedTitle = JSON.parse(text);
+      if (parsedTitle.title) aiTitle = String(parsedTitle.title).trim().slice(0, 80);
+      if (parsedTitle.motivation) motivationBlurb = String(parsedTitle.motivation).trim().slice(0, 200);
+    } catch (titleErr) {
+      console.warn("[thread-candidate] title/blurb generation failed, candidate saved without them:", titleErr instanceof Error ? titleErr.message : String(titleErr));
+    }
+
+    // Metrics snapshot for the confirmation UI + future object-page display —
+    // latest snapshot for this user, not re-derived from the conversation text.
+    const [latestSnapshot] = await db.select({
+      conceptualComplexity: sgiSnapshots.conceptualComplexity,
+      semanticVariety: sgiSnapshots.semanticVariety,
+      interdisciplinaryScore: sgiSnapshots.interdisciplinaryScore,
+      reasoningDepth: sgiSnapshots.reasoningDepth,
+      originality: sgiSnapshots.originality,
+      stability: sgiSnapshots.stability,
+      continuity: sgiSnapshots.continuity,
+      revisionSignal: sgiSnapshots.revisionSignal,
+    }).from(sgiSnapshots)
+      .where(eq(sgiSnapshots.userId, userId))
+      .orderBy(desc(sgiSnapshots.timestamp))
+      .limit(1);
+
+    await db.insert(threadCandidates).values({
+      userId,
+      sourceConversationId: conversationId,
       question,
+      aiTitle,
       description: description || null,
       category,
-      createdBy: clerkId,
-      isAutoGenerated: true,
+      motivationBlurb,
+      metricsSnapshot: latestSnapshot ?? null,
+      status: "pending",
     });
 
-    console.info("[auto-thread] created:", question.slice(0, 80));
+    console.info("[thread-candidate] created (pending confirmation):", question.slice(0, 80));
   } catch (err) {
-    console.error("[auto-thread] error:", err);
+    console.error("[thread-candidate] error:", err);
   }
 }
 

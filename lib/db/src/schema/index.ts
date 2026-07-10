@@ -10,6 +10,7 @@ export * from "./recommendations";
 export * from "./semanticDomains";
 export * from "./blockedAttempts";
 export * from "./threads";
+export * from "./threadCandidates";
 export * from "./pvpBattles";
 export * from "./progressCards";
 export * from "./notifications";
