@@ -25,3 +25,5 @@
 - [drizzle-kit push TTY failure in sandbox](drizzle-push-tty-workaround.md) — `drizzle-kit push`/`push --force` fail with a TTY prompt error in this sandbox; apply dev schema changes via direct SQL DDL (executeSql) matching the drizzle schema instead
 - [Claude history caching (deferred)](claude-history-caching-deferred.md) — approved plan to cache convo history w/ 1h extended TTL in chat.ts; queued after Clarity/Clerk verification, not urgent
 - [Neon pool crash pattern](neon-pool-crash-pattern.md) — pool.on('error') alone insufficient; need 60s TTL + process.on('uncaughtException') 57P01 guard; Neon autosuspend ~120s (not 300s default)
+- [lib/db stale dist types](lib-db-stale-dist-types.md) — TS project references resolve @workspace/db via committed lib/db/dist/*.d.ts, NOT live src; schema edits need `tsc --build --force` in lib/db or downstream tsc sees old shape
+- [Thread title field must survive publish pipeline](sgi-thread-title-pipeline.md) — any field needed in list UI must be threaded through EVERY stage (candidate table → confirm insert → list SELECT → client render); auditing only the last stage misses upstream data loss

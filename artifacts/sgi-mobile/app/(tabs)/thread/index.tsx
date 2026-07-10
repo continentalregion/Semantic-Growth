@@ -24,9 +24,15 @@ import { SkeletonBox } from "@/components/ui/SkeletonBox";
 
 const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
 
+function threadTitle(t: { aiTitle?: string | null; question: string }): string {
+  if (t.aiTitle && t.aiTitle.trim().length > 0) return t.aiTitle;
+  return t.question.length > 80 ? `${t.question.slice(0, 80).trim()}…` : t.question;
+}
+
 interface ThreadSummary {
   id: string;
   question: string;
+  aiTitle?: string | null;
   description?: string;
   category: string;
   createdBy: string;
@@ -236,13 +242,8 @@ export default function ThreadsListScreen() {
                           )}
                         </View>
                         <Text style={[st.question, { color: colors.foreground }]} numberOfLines={2}>
-                          {thread.question}
+                          {threadTitle(thread)}
                         </Text>
-                        {thread.description ? (
-                          <Text style={[st.desc, { color: colors.mutedForeground }]} numberOfLines={1}>
-                            {thread.description}
-                          </Text>
-                        ) : null}
                         <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8 }}>
                           <Text style={{ fontSize: 11, color: colors.mutedForeground }}>
                             {thread.totalSessions} {t("threads.sessions")}
@@ -284,7 +285,7 @@ export default function ThreadsListScreen() {
                           </View>
                         </View>
                         <Text style={[st.question, { color: colors.foreground }]} numberOfLines={2}>
-                          {thread.question}
+                          {threadTitle(thread)}
                         </Text>
                         <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 2 }}>
                           {thread.totalSessions} {t("threads.participants")}

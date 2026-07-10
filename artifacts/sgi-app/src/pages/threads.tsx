@@ -18,9 +18,15 @@ const CATEGORY_META: Record<string, { label: string; icon: React.ReactNode; colo
   consciousness:{ label: "Coscienza",  icon: <Network className="w-3.5 h-3.5" />, color: "#7c6bff" },
 };
 
+function threadTitle(t: { aiTitle?: string | null; question: string }): string {
+  if (t.aiTitle && t.aiTitle.trim().length > 0) return t.aiTitle;
+  return t.question.length > 80 ? `${t.question.slice(0, 80).trim()}…` : t.question;
+}
+
 interface ThreadSummary {
   id: string;
   question: string;
+  aiTitle?: string | null;
   description?: string;
   category: string;
   createdBy: string;
@@ -218,8 +224,7 @@ export default function ThreadsPage() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm font-semibold leading-snug mb-1" style={{ color: "#eeeeff" }}>{thread.question}</p>
-                            {thread.description && <p className="text-xs line-clamp-1" style={{ color: "#9090b8" }}>{thread.description}</p>}
+                            <p className="text-sm font-semibold leading-snug mb-1" style={{ color: "#eeeeff" }}>{threadTitle(thread)}</p>
                           </div>
                           <div className="flex items-center gap-4 flex-shrink-0">
                             <div className="text-right">
@@ -267,7 +272,7 @@ export default function ThreadsPage() {
                                 <Trophy className="w-3 h-3" /> {t("threads.completedBadge")}
                               </span>
                             </div>
-                            <p className="text-sm font-semibold leading-snug mb-1" style={{ color: "#c8c8dd" }}>{thread.question}</p>
+                            <p className="text-sm font-semibold leading-snug mb-1" style={{ color: "#c8c8dd" }}>{threadTitle(thread)}</p>
                             <p className="text-xs" style={{ color: "#9090b8" }}>{thread.totalSessions} {t("threads.participants")}</p>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">

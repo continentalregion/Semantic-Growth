@@ -121,6 +121,7 @@ router.get("/threads", async (req, res) => {
       return {
         id: t.id,
         question: t.question,
+        aiTitle: t.aiTitle,
         description: t.description,
         category: t.category,
         createdBy: t.createdBy,

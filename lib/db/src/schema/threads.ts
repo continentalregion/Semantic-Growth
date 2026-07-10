@@ -16,6 +16,7 @@ export interface SessionMessage {
 export const threads = pgTable("threads", {
   id: uuid("id").primaryKey().defaultRandom(),
   question: text("question").notNull(),
+  aiTitle: text("ai_title"),
   description: text("description"),
   category: text("category").default("philosophy"),
   createdBy: text("created_by").notNull(),

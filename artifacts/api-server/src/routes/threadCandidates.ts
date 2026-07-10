@@ -99,6 +99,7 @@ router.post("/thread-candidates/:id/confirm", async (req, res) => {
 
     const [thread] = await db.insert(threads).values({
       question: candidate.question,
+      aiTitle: candidate.aiTitle,
       description: candidate.description,
       category: candidate.category ?? "philosophy",
       createdBy: clerkId,
