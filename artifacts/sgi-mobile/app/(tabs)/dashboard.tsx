@@ -888,6 +888,45 @@ export default function DashboardScreen() {
               />
             </>
           )}
+
+          <Pressable
+            onPress={() => router.push("/(tabs)/explore" as never)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 14,
+              padding: 16,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.card,
+            }}
+            testID="dashboard-explore-card"
+          >
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.primary + "30",
+                backgroundColor: colors.primary + "18",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name="compass-outline" size={22} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ color: colors.foreground, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>
+                {t("nav.explore")}
+              </Text>
+              <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12 }} numberOfLines={1}>
+                {t("explore.hubSubtitle")}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+          </Pressable>
         </ScrollView>
       )}
     </AnimatedScreen>

@@ -86,14 +86,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="thread"
         options={{
-          title: t("nav.explore"),
+          title: t("nav.threads"),
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="square.grid.2x2" tintColor={color} size={22} />
+              <SymbolView name="bubble.left.and.text.bubble.right" tintColor={color} size={22} />
             ) : (
-              <Ionicons name="compass-outline" size={22} color={color} />
+              <Ionicons name="help-circle-outline" size={22} color={color} />
             ),
         }}
       />
@@ -113,7 +113,7 @@ export default function TabLayout() {
       {/* ── Hidden routes (still routable, not shown in tab bar) ── */}
       <Tabs.Screen name="leaderboard" options={{ href: null }} />
       <Tabs.Screen name="recommendations" options={{ href: null }} />
-      <Tabs.Screen name="thread/[id]" options={{ href: null }} />
+      <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
 }
