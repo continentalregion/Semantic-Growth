@@ -4,8 +4,29 @@ import { db } from "@workspace/db";
 import { notifications } from "@workspace/db";
 import { eq, and, desc, isNull, sql } from "drizzle-orm";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
+import { runNotificationSweep } from "../lib/notificationSweep";
 
 const router = Router();
+
+// Internal cron entry point — invoked by an external scheduler (not user-facing).
+// Guarded by a shared secret header rather than Clerk auth, since the caller
+// is a scheduler, not a logged-in user. Runs the full sweep (battle-result +
+// streak-risk notifications; also drains any pending battle reconciliation).
+router.post("/internal/notifications/sweep", async (req, res) => {
+  try {
+    const provided = req.header("x-internal-cron-secret");
+    const expected = process.env.INTERNAL_CRON_SECRET;
+    if (!expected || !provided || provided !== expected) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const result = await runNotificationSweep();
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error("[notifications] sweep error", err);
+    res.status(500).json({ error: "Internal error" });
+  }
+});
 
 const PAGE_SIZE = 20;
 

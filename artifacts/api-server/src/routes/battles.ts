@@ -382,9 +382,14 @@ async function resolveForfeit(match: BattleMatch, winnerEntry: BattleEntry, lose
   }
 }
 
-// Lightweight expiry reconciliation, run on read/matchmake (no background jobs).
-async function reconcileExpiredMatches(): Promise<void> {
+// Lightweight expiry reconciliation, run on read/matchmake — ALSO reused by the
+// notifications cron sweep (see lib/notificationSweep.ts). Safe to call from
+// multiple places concurrently: resolveMatch/resolveForfeit both claim the
+// match atomically (UPDATE ... WHERE status='active') before doing any work,
+// so an overlapping caller here just no-ops on already-claimed matches.
+export async function reconcileExpiredMatches(): Promise<number> {
   const now = new Date();
+  let processed = 0;
   try {
     // Waiting matches older than WAITING_AI_ESCALATION_MS → auto-escalate to vs-AI.
     // Fired non-blocking (void) so the LLM call never delays the matchmake request.
@@ -393,6 +398,7 @@ async function reconcileExpiredMatches(): Promise<void> {
       .from(battleMatches)
       .where(and(eq(battleMatches.status, "waiting"), lt(battleMatches.createdAt, escalationCutoff)))
       .limit(5);
+    processed += toEscalate.length;
     for (const m of toEscalate) {
       void (async () => {
         try {
@@ -430,6 +436,7 @@ async function reconcileExpiredMatches(): Promise<void> {
     // Lone "waiting" matches past their TTL → abandoned (fallback if escalation failed).
     const staleWaiting = await db.select().from(battleMatches)
       .where(and(eq(battleMatches.status, "waiting"), lt(battleMatches.expiresAt, now))).limit(20);
+    processed += staleWaiting.length;
     for (const m of staleWaiting) {
       await db.update(battleEntries).set({ status: "forfeit" })
         .where(and(eq(battleEntries.matchId, m.id), inArray(battleEntries.status, ["matched", "in_progress"])));
@@ -440,6 +447,7 @@ async function reconcileExpiredMatches(): Promise<void> {
     // Active matches past their deadline → resolve by forfeit or abandon.
     const staleActive = await db.select().from(battleMatches)
       .where(and(eq(battleMatches.status, "active"), lt(battleMatches.expiresAt, now))).limit(20);
+    processed += staleActive.length;
     for (const m of staleActive) {
       const entries = await db.select().from(battleEntries).where(eq(battleEntries.matchId, m.id));
       const e1 = entries.find(e => e.slot === 1);
@@ -471,6 +479,7 @@ async function reconcileExpiredMatches(): Promise<void> {
       WHERE m.status = 'active'
       LIMIT 50
     `);
+    processed += lapsed.rows?.length ?? 0;
     for (const row of (lapsed.rows ?? []) as Array<{ id: string }>) {
       const [m] = await db.select().from(battleMatches).where(eq(battleMatches.id, row.id)).limit(1);
       if (!m || m.status !== "active") continue;
@@ -486,7 +495,12 @@ async function reconcileExpiredMatches(): Promise<void> {
     }
   } catch (err) {
     console.error("[battles] reconcileExpiredMatches error", err);
+    // Re-throw so the notifications cron sweep can detect a failed pass and
+    // avoid advancing its watermark; read-path callers below already run
+    // inside route handlers with their own try/catch, so this is safe.
+    throw err;
   }
+  return processed;
 }
 
 // ─── Match view: what a given player is allowed to see ────────────────────────
@@ -734,7 +748,7 @@ router.get("/battles/matches/:id", async (req, res) => {
     // on status+timestamp); any LLM call for escalation is already async/void
     // inside reconcileExpiredMatches(). Only runs for waiting matches — no overhead
     // on the far more frequent polls of active/scoring/completed matches.
-    if (m && m.status === "waiting") void reconcileExpiredMatches();
+    if (m && m.status === "waiting") reconcileExpiredMatches().catch(() => {});
 
     if (m && m.status === "active") {
       const e1 = entries.find(e => e.slot === 1);
