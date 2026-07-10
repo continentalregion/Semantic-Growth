@@ -1,0 +1,51 @@
+Non usare subagent né testing monitor (costo token).
+
+RICHIESTA: Solo piano architetturale (diagnosi), NON scrivere 
+codice in questa sessione.
+
+Voglio aggiungere un sistema di notifiche a SGI (repo 
+continentalregion/Semantic-Growth): notifiche push (Expo Push 
+Notifications) + centro notifiche in-app persistente. Questo è 
+un nuovo modulo che riusa motori esistenti, non li sostituisce.
+
+Analizza e proponi:
+
+1. SCHEMA DATI
+   - Nuova tabella `notifications` (Drizzle): user_id, type, 
+     title_key/body_key (i18n, non testo hardcoded), payload jsonb, 
+     deep_link, read_at, created_at, push_sent_at
+   - Verifica compatibilità con schema esistente (sgiSnapshots, 
+     badge tables, battle tables)
+
+2. TRIGGER — riusare hook su eventi ESISTENTI, non duplicare logica:
+   - Digest settimanale: cron che richiama lo stesso motore Haiku 
+     già usato per le recommendations dinamiche (9 call-sites — 
+     verifica se la migrazione OpenAI→Haiku è stata completata, 
+     ricordo che risultava pendente)
+   - Badge guadagnato: hook sull'assegnazione badge esistente
+   - Risultato battle: hook su completamento battle esistente
+   - NUOVO: streak a rischio — utente inattivo da N giorni 
+     (proponi soglia ragionevole, es. 3-4 giorni)
+
+3. DELIVERY PUSH
+   - Expo Push Notifications (expo-notifications) — nessun 
+     servizio esterno
+   - Endpoint che processa notifications con push_sent_at IS NULL, 
+     invia, aggiorna timestamp
+   - Gestione permessi (richiesta al momento giusto, non 
+     nell'onboarding iniziale — stesso principio già usato per 
+     wearable su 19 Sessions)
+
+4. UI CENTRO NOTIFICHE (mobile + web parità, come da regola 
+   esistente su SGI)
+   - Icona campanella in header con badge conteggio non lette
+   - Lista cronologica, tap → deep link, mark as read
+   - Verifica pattern skeleton/error state già usato altrove 
+     nell'app (parità mobile/web già stabilita)
+
+5. RATE LIMITING / FREQUENCY CAPPING
+   - Proponi limiti ragionevoli per non over-notificare (es. max 
+     1 digest/settimana, max N notifiche/giorno totali)
+
+Non scrivere codice, non fare build. Alla fine: ordine di sviluppo 
+consigliato, rischi tecnici, stima tempo/complessità per area.
