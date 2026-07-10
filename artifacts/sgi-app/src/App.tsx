@@ -34,6 +34,7 @@ import ProgressCardPage from "@/pages/progress-card";
 import BattlesPage from "@/pages/battles";
 import GuestBattlePage from "@/pages/guest-battle";
 import AdminPage from "@/pages/admin";
+import NotificationsPage from "@/pages/notifications";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import Terms from "@/pages/terms";
 import { CookieBanner } from "@/components/CookieBanner";
@@ -406,6 +407,7 @@ function ClerkProviderWithRoutes() {
           <Route path="/recommendations" component={() => <ProtectedRoute component={Recommendations} />} />
           <Route path="/gamification" component={() => <ProtectedRoute component={Gamification} />} />
           <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
+          <Route path="/notifications" component={() => <ProtectedRoute component={NotificationsPage} />} />
           <Route path="/battles" component={() => <ProtectedRoute component={BattlesPage} />} />
           <Route path="/battles/:matchId" component={() => <ProtectedRoute component={BattleSessionPage} />} />
           <Route path="/threads" component={() => <ProtectedRoute component={ThreadsPage} />} />

@@ -384,7 +384,11 @@ export default function DashboardScreen() {
         >
           <Ionicons name="notifications-outline" size={22} color={colors.foreground} />
           {unreadCount > 0 && (
-            <View style={[st.bellDot, { backgroundColor: colors.destructive }]} />
+            <View style={[st.bellDot, { backgroundColor: colors.destructive }]}>
+              <Text style={st.bellDotText} numberOfLines={1}>
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </Text>
+            </View>
           )}
         </Pressable>
         <View
@@ -916,11 +920,20 @@ const st = StyleSheet.create({
   },
   bellDot: {
     position: "absolute",
-    top: 3,
-    right: 3,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: 1,
+    right: 1,
+    minWidth: 15,
+    height: 15,
+    borderRadius: 8,
+    paddingHorizontal: 3,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bellDotText: {
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontFamily: "Inter_700Bold",
+    lineHeight: 11,
   },
   card: {
     borderRadius: 14,

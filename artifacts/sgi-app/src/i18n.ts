@@ -14,6 +14,38 @@ const IT = {
     upgrade: "Upgrade ✦",
     threads: "Thread Aperti",
     battles: "Feed Battaglie",
+    notifications: "Notifiche",
+  },
+  notifications: {
+    title: "Notifiche",
+    empty: "Nessuna notifica per ora",
+    emptyDesc: "Ti avviseremo qui per badge, risultati delle battaglie e altro.",
+    markAllRead: "Segna tutte come lette",
+    justNow: "adesso",
+    badge: {
+      title: "Nuovo badge!",
+      body: "Hai ottenuto il badge \"{{badgeKey}}\"",
+    },
+    battleResult: {
+      title: {
+        win: "Hai vinto la battaglia!",
+        loss: "Battaglia persa",
+        tie: "Battaglia in parità",
+      },
+      body: {
+        win: "Hai vinto la battaglia su \"{{theme}}\"",
+        loss: "Hai perso la battaglia su \"{{theme}}\"",
+        tie: "La battaglia su \"{{theme}}\" è finita in parità",
+      },
+    },
+    streakRisk: {
+      title: "Il tuo streak è a rischio",
+      body: "Non hai ancora giocato oggi: torna per non perdere la tua serie",
+    },
+    digest: {
+      title: "Il tuo riepilogo",
+      body: "Ecco il tuo riepilogo periodico",
+    },
   },
   home: {
     signIn: "Accedi", initConnection: "Inizia",
@@ -540,6 +572,38 @@ const EN = {
     upgrade: "Upgrade ✦",
     threads: "Open Threads",
     battles: "Battles Feed",
+    notifications: "Notifications",
+  },
+  notifications: {
+    title: "Notifications",
+    empty: "No notifications yet",
+    emptyDesc: "We'll let you know here about badges, battle results, and more.",
+    markAllRead: "Mark all as read",
+    justNow: "just now",
+    badge: {
+      title: "New badge!",
+      body: "You earned the \"{{badgeKey}}\" badge",
+    },
+    battleResult: {
+      title: {
+        win: "You won the battle!",
+        loss: "Battle lost",
+        tie: "Battle tied",
+      },
+      body: {
+        win: "You won the battle on \"{{theme}}\"",
+        loss: "You lost the battle on \"{{theme}}\"",
+        tie: "The battle on \"{{theme}}\" ended in a tie",
+      },
+    },
+    streakRisk: {
+      title: "Your streak is at risk",
+      body: "You haven't played today yet: come back to keep your streak alive",
+    },
+    digest: {
+      title: "Your recap",
+      body: "Here's your periodic recap",
+    },
   },
   home: {
     signIn: "Sign In", initConnection: "Get started",
@@ -1065,6 +1129,38 @@ const ES = {
     upgrade: "Mejorar ✦",
     threads: "Hilos Abiertos",
     battles: "Feed de Batallas",
+    notifications: "Notificaciones",
+  },
+  notifications: {
+    title: "Notificaciones",
+    empty: "Todavía no hay notificaciones",
+    emptyDesc: "Te avisaremos aquí sobre insignias, resultados de batallas y más.",
+    markAllRead: "Marcar todas como leídas",
+    justNow: "ahora mismo",
+    badge: {
+      title: "¡Nueva insignia!",
+      body: "Obtuviste la insignia \"{{badgeKey}}\"",
+    },
+    battleResult: {
+      title: {
+        win: "¡Ganaste la batalla!",
+        loss: "Batalla perdida",
+        tie: "Batalla empatada",
+      },
+      body: {
+        win: "Ganaste la batalla sobre \"{{theme}}\"",
+        loss: "Perdiste la batalla sobre \"{{theme}}\"",
+        tie: "La batalla sobre \"{{theme}}\" terminó en empate",
+      },
+    },
+    streakRisk: {
+      title: "Tu racha está en riesgo",
+      body: "Aún no has jugado hoy: vuelve para no perder tu racha",
+    },
+    digest: {
+      title: "Tu resumen",
+      body: "Aquí está tu resumen periódico",
+    },
   },
   home: {
     signIn: "Iniciar sesión", initConnection: "Empieza ahora",

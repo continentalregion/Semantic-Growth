@@ -1,15 +1,39 @@
 import { Link, useLocation } from "wouter";
 import { useClerk, useUser } from "@clerk/react";
-import { useGetMyProfile } from "@workspace/api-client-react";
+import { useGetMyProfile, useGetNotificationsUnreadCount } from "@workspace/api-client-react";
 import { useTranslation } from "react-i18next";
 import { useState, useRef, useEffect } from "react";
 import { loadLanguage, clearLangCache } from "../i18n";
 import {
   Activity, MessageSquare, Trophy, Network, User,
   LineChart, Lightbulb, Settings, LogOut, Zap, Gamepad2,
-  Languages, Loader2, RefreshCw, ChevronDown, Swords, Flame, ShieldCheck, Menu, X,
+  Languages, Loader2, RefreshCw, ChevronDown, Swords, Flame, ShieldCheck, Menu, X, Bell,
 } from "lucide-react";
 import { Logo } from "./Logo";
+
+function NotificationBell() {
+  const [, navigate] = useLocation();
+  const { data } = useGetNotificationsUnreadCount();
+  const unreadCount = data?.unreadCount ?? 0;
+
+  return (
+    <button
+      onClick={() => navigate("/notifications")}
+      className="relative flex items-center justify-center w-8 h-8 rounded-full transition-colors hover:bg-black/5"
+      aria-label="Notifications"
+    >
+      <Bell className="w-[17px] h-[17px] text-foreground" />
+      {unreadCount > 0 && (
+        <span
+          className="absolute top-0.5 right-0.5 min-w-[15px] h-[15px] px-[3px] rounded-full flex items-center justify-center text-[9px] font-bold leading-none text-white"
+          style={{ background: "var(--sgi-pink)" }}
+        >
+          {unreadCount > 99 ? "99+" : unreadCount}
+        </span>
+      )}
+    </button>
+  );
+}
 
 const ADMIN_EMAILS = ["francescoullo1@gmail.com"];
 
@@ -426,6 +450,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
+            <NotificationBell />
             {sgi !== null && (
               <div
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full"
