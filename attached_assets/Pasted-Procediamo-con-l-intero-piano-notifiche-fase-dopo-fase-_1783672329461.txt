@@ -1,0 +1,56 @@
+Procediamo con l'intero piano notifiche, fase dopo fase, senza 
+pause lunghe tra una e l'altra — ma fermati e aspetta mia 
+conferma alla fine di OGNI fase prima di iniziare la successiva, 
+specialmente prima della Fase B (tocca battle resolution esistente 
+in produzione).
+
+Non usare subagent né testing monitor (costo token).
+
+FASE A — Schema + API core + badge hook (rischio basso):
+1. Tabella notifications (schema già proposto: id, userId, type, 
+   titleKey, bodyKey, bodyParams jsonb, payload jsonb, deepLink, 
+   readAt, pushSentAt, createdAt)
+2. Tabella push_tokens separata (multi-device), non colonna su users
+3. Estrai awardBadge() come funzione condivisa da gamification.ts, 
+   che fa INSERT badge + scrive la notifica nello stesso posto
+4. API: GET /api/notifications (paginata), GET /api/notifications/
+   unread-count, PATCH /api/notifications/:id/read
+5. Typecheck pulito, push su GitHub
+
+FASE B — Cron sweep + battle resolution forzata (rischio medio-alto, 
+MASSIMA CAUTELA — tocca logica esistente):
+1. Prima di scrivere codice: spiegami esattamente come intendi 
+   forzare resolveMatch()/resolveForfeit() dal cron senza alterare 
+   il comportamento quando invece viene chiamata on-read da un 
+   utente reale — voglio vedere la strategia prima dell'implementazione
+2. Endpoint POST /api/internal/notifications/digest (usa 
+   generateRecommendations.ts esistente, già su Haiku)
+3. Streak a rischio: leggi bene la logica di reset streak esistente 
+   prima di implementare la soglia (non assumere, verifica dal codice)
+4. Cron orchestratore unico (digest + streak + battle-sweep + 
+   push-sweep), pensato per essere estendibile a futuri job, non 
+   solo per questo caso
+5. Typecheck pulito, push su GitHub — fermati qui per mia verifica
+
+FASE C — Push mobile (rischio medio, richiede EAS dev client):
+1. Verifica: SGI mobile oggi gira su Expo Go puro o ha già dev 
+   client configurato? Se è ancora Expo Go puro, segnalamelo prima 
+   di procedere — è una transizione architetturale, non solo 
+   aggiungere una libreria
+2. expo-notifications, registrazione token, gating permesso 
+   (dopo 2°-3° utilizzo significativo, non al primo avvio)
+3. Integrazione con push-sweep della Fase B
+4. Push su GitHub — fermati per verifica (non testabile in 
+   preview, come già sappiamo da 19 Sessions)
+
+FASE D — UI centro notifiche mobile + web (rischio basso):
+1. Icona campana + badge conteggio, stesso pattern skeleton/error 
+   già usato altrove nell'app (dashboard.tsx, leaderboard.tsx)
+2. Lista notifiche, tap → mark-read + deep link
+3. Parità mobile/web come da regola esistente
+4. Typecheck pulito, push finale
+
+Nota separata, NON parte di questo modulo: la migrazione OpenAI→
+Haiku ha 13 call-site pendenti (non 9 come pensavo), lista già 
+identificata. Non toccarli in questo lavoro — li affronteremo come 
+task a sé dopo le notifiche.

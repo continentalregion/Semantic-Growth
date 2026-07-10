@@ -17,6 +17,7 @@ import { openai } from "@workspace/integrations-openai-ai-server";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { anonHandle } from "../lib/anonHandle";
+import { awardBadge } from "../lib/awardBadge";
 import {
   evaluatePvpBattle,
   type PvpAnswerScore,
@@ -248,11 +249,7 @@ async function awardVictorBadge(clerkId: string): Promise<void> {
   if (clerkId === AI_PLAYER_ID) return; // AI player has no DB user
   const user = await getOrCreateUser(clerkId);
   if (!user) return;
-  const existing = await db.select({ id: badges.id }).from(badges)
-    .where(and(eq(badges.userId, user.id), eq(badges.badgeKey, "battle_victor"))).limit(1);
-  if (existing.length === 0) {
-    await db.insert(badges).values({ userId: user.id, badgeKey: "battle_victor" });
-  }
+  await awardBadge(user.id, "battle_victor");
 }
 
 // Persist the final outcome (entries + match) atomically, then award XP/badges.

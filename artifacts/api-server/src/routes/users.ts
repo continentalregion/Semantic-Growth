@@ -7,6 +7,7 @@ import { SyncUserBody } from "@workspace/api-zod";
 import { computeLevel, xpToNextLevel as xpToNext, levelProgress as lvlProgress, BADGE_DEFINITIONS, computeMacroDimensions } from "../lib/sgiScoring";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { generateRecommendations } from "../lib/generateRecommendations";
+import { awardBadge } from "../lib/awardBadge";
 
 const router = Router();
 
@@ -441,8 +442,10 @@ export async function checkAndAwardBadges(userId: number, dims: { interdisciplin
   }
 
   for (const key of toAward) {
-    await db.insert(badges).values({ userId, badgeKey: key }).onConflictDoNothing();
-    await db.update(gamification).set({ xp: sql`${gamification.xp} + 500` }).where(eq(gamification.userId, userId));
+    const granted = await awardBadge(userId, key);
+    if (granted) {
+      await db.update(gamification).set({ xp: sql`${gamification.xp} + 500` }).where(eq(gamification.userId, userId));
+    }
   }
 }
 

@@ -13,6 +13,7 @@ import adminRouter from "./admin";
 import authRouter from "./auth";
 import billingRouter from "./billing";
 import revenuecatRouter from "./revenuecat";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(guestBattlesRouter);
 router.use(adminRouter);
 router.use(billingRouter);
 router.use(revenuecatRouter);
+router.use(notificationsRouter);
 
 export default router;
