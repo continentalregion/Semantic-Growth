@@ -22,6 +22,8 @@ tags:
     description: Personalized growth recommendations
   - name: openai
     description: OpenAI AI chat operations
+  - name: notifications
+    description: In-app notification center
 paths:
   /healthz:
     get:
@@ -443,6 +445,62 @@ paths:
               schema:
                 $ref: "#/components/schemas/BillingRedirect"
 
+  /notifications:
+    get:
+      operationId: getNotifications
+      tags: [notifications]
+      summary: Paginated notification history for the current user
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Notification page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPage"
+
+  /notifications/unread-count:
+    get:
+      operationId: getNotificationsUnreadCount
+      tags: [notifications]
+      summary: Count of unread notifications for the current user
+      responses:
+        "200":
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationUnreadCount"
+
+  /notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark a notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required:
+                  - ok
+
 components:
   schemas:
     HealthStatus:
@@ -501,6 +559,65 @@ components:
           type: ["string", "null"]
       required:
         - url
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [digest, badge, battle_result, streak_risk]
+        titleKey:
+          type: string
+        bodyKey:
+          type: string
+        bodyParams:
+          type: object
+          additionalProperties: true
+        payload:
+          type: object
+          additionalProperties: true
+        deepLink:
+          type: ["string", "null"]
+        read:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - type
+        - titleKey
+        - bodyKey
+        - bodyParams
+        - payload
+        - deepLink
+        - read
+        - createdAt
+
+    NotificationPage:
+      type: object
+      properties:
+        notifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+      required:
+        - notifications
+        - page
+        - pageSize
+
+    NotificationUnreadCount:
+      type: object
+      properties:
+        unreadCount:
+          type: integer
+      required:
+        - unreadCount
 
     UserProfile:
       type: object

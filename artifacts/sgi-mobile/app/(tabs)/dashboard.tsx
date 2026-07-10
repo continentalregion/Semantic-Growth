@@ -30,11 +30,13 @@ import Svg, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import {
   useGetMyProfile,
   useGetSgiHistory,
   useGetPredictions,
   useGetSemanticMap,
+  useGetNotificationsUnreadCount,
 } from "@workspace/api-client-react";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
@@ -303,6 +305,9 @@ export default function DashboardScreen() {
     isError: historyError,
   } = useGetSgiHistory({ days: 30 });
 
+  const { data: unreadData } = useGetNotificationsUnreadCount();
+  const unreadCount = unreadData?.unreadCount ?? 0;
+
   const isPremiumOrPro = profile?.plan === "premium" || profile?.plan === "pro";
 
   const { data: predictions } = useGetPredictions({
@@ -372,6 +377,16 @@ export default function DashboardScreen() {
       >
         <LogoMark size={22} />
         <Text style={[st.headerTitle, { color: colors.foreground }]}>{t("nav.dashboard")}</Text>
+        <Pressable
+          onPress={() => router.push("/notifications")}
+          style={st.bellBtn}
+          testID="notifications-bell-btn"
+        >
+          <Ionicons name="notifications-outline" size={22} color={colors.foreground} />
+          {unreadCount > 0 && (
+            <View style={[st.bellDot, { backgroundColor: colors.destructive }]} />
+          )}
+        </Pressable>
         <View
           style={[
             st.planChip,
@@ -894,6 +909,18 @@ const st = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
+  },
+  bellBtn: {
+    padding: 4,
+    marginRight: 4,
+  },
+  bellDot: {
+    position: "absolute",
+    top: 3,
+    right: 3,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   card: {
     borderRadius: 14,

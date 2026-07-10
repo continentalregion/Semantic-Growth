@@ -48,6 +48,43 @@ export interface BillingRedirect {
   url: string | null;
 }
 
+export type NotificationType = typeof NotificationType[keyof typeof NotificationType];
+
+
+export const NotificationType = {
+  digest: 'digest',
+  badge: 'badge',
+  battle_result: 'battle_result',
+  streak_risk: 'streak_risk',
+} as const;
+
+export type NotificationBodyParams = { [key: string]: unknown };
+
+export type NotificationPayload = { [key: string]: unknown };
+
+export interface Notification {
+  id: number;
+  type: NotificationType;
+  titleKey: string;
+  bodyKey: string;
+  bodyParams: NotificationBodyParams;
+  payload: NotificationPayload;
+  /** @nullable */
+  deepLink: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface NotificationPage {
+  notifications: Notification[];
+  page: number;
+  pageSize: number;
+}
+
+export interface NotificationUnreadCount {
+  unreadCount: number;
+}
+
 export type UserProfilePlan = typeof UserProfilePlan[keyof typeof UserProfilePlan];
 
 
@@ -258,5 +295,13 @@ days?: number;
 export type GetLeaderboardParams = {
 limit?: number;
 offset?: number;
+};
+
+export type GetNotificationsParams = {
+page?: number;
+};
+
+export type MarkNotificationRead200 = {
+  ok: boolean;
 };
 

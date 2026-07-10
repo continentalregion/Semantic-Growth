@@ -432,3 +432,47 @@ export const CreateBillingPortalResponse = zod.object({
 })
 
 
+/**
+ * @summary Paginated notification history for the current user
+ */
+export const GetNotificationsQueryParams = zod.object({
+  "page": zod.coerce.number().optional()
+})
+
+export const GetNotificationsResponse = zod.object({
+  "notifications": zod.array(zod.object({
+  "id": zod.number(),
+  "type": zod.enum(['digest', 'badge', 'battle_result', 'streak_risk']),
+  "titleKey": zod.string(),
+  "bodyKey": zod.string(),
+  "bodyParams": zod.record(zod.string(), zod.unknown()),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "deepLink": zod.string().nullable(),
+  "read": zod.boolean(),
+  "createdAt": zod.string()
+})),
+  "page": zod.number(),
+  "pageSize": zod.number()
+})
+
+
+/**
+ * @summary Count of unread notifications for the current user
+ */
+export const GetNotificationsUnreadCountResponse = zod.object({
+  "unreadCount": zod.number()
+})
+
+
+/**
+ * @summary Mark a notification as read
+ */
+export const MarkNotificationReadParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const MarkNotificationReadResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
