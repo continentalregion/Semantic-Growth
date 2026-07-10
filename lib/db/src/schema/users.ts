@@ -7,8 +7,13 @@ export const users = pgTable("users", {
   clerkId: text("clerk_id").notNull().unique(),
   email: text("email").notNull(),
   plan: text("plan").notNull().default("free"),
+  // "stripe" | "iap" | "manual" — manual is used for reviewer/admin-granted plans
+  // that bypass Stripe/RevenueCat entirely (see reconcileStripePlanForUser).
   planSource: text("plan_source").notNull().default("stripe"),
   stripeCustomerId: text("stripe_customer_id").unique(),
+  // Only set when planSource = "manual". Informational for now (not enforced by
+  // a sweep job) — lets us track when a manually-granted plan should be revisited.
+  manualExpiresAt: timestamp("manual_expires_at", { withTimezone: true }),
   sgiScore: real("sgi_score").notNull().default(0),
   globalRank: integer("global_rank"),
   monthlyMessagesUsed: integer("monthly_messages_used").notNull().default(0),

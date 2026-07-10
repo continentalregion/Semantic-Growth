@@ -6,12 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { UserProfilePlan } from './userProfilePlan';
+import type { UserProfilePlanSource } from './userProfilePlanSource';
 
 export interface UserProfile {
   id: number;
   clerkId: string;
   email: string;
   plan: UserProfilePlan;
+  planSource?: UserProfilePlanSource;
   sgiScore: number;
   /** @nullable */
   sgiDailyDelta: number | null;

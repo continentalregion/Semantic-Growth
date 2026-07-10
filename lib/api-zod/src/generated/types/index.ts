@@ -53,4 +53,5 @@ export * from './threadCandidateStatus';
 export * from './updateThreadCandidateBody';
 export * from './userProfile';
 export * from './userProfilePlan';
+export * from './userProfilePlanSource';
 export * from './userSync';

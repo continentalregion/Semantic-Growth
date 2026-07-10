@@ -17,8 +17,15 @@ const PLAN_RANK: Record<string, number> = { free: 0, premium: 1, pro: 2 };
  * Apple/Google IAP lifecycle is managed exclusively via the RevenueCat webhook
  * (POST /webhooks/revenuecat). This prevents Stripe from accidentally
  * downgrading a user who paid via IAP.
+ *
+ * Manual precedence: if planSource = "manual", the plan was granted directly
+ * (e.g. app-store reviewer accounts) and must never be touched by Stripe.
  */
 export async function reconcileStripePlanForUser(user: DbUser): Promise<DbUser> {
+  // Manually-granted plans are never reconciled against Stripe, regardless of
+  // whether a stripeCustomerId happens to be set.
+  if (user.planSource === "manual") return user;
+
   if (!user.stripeCustomerId) return user;
 
   // Do not override plans managed by Apple/Google IAP.

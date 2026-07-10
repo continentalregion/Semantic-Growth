@@ -47,6 +47,7 @@ export default function Settings() {
   const plan = profile?.plan ?? "free";
   const isPremium = plan === "premium";
   const isPro     = plan === "pro";
+  const isManualPlan = profile?.planSource === "manual";
 
   // The base URL Stripe returns the user to (strip any existing query params).
   const returnUrl =
@@ -288,16 +289,22 @@ export default function Settings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">{t("settings.proActiveDesc")}</p>
-            <Button
-              variant="outline"
-              className="gap-2"
-              data-testid="button-manage-subscription"
-              disabled={portal.isPending}
-              onClick={openPortal}
-            >
-              {portal.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-              {t("settings.manageBtn")}
-            </Button>
+            {isManualPlan ? (
+              <Badge variant="outline" className="gap-2 py-1.5 px-3 w-fit" data-testid="badge-manual-plan">
+                <Crown className="w-4 h-4" /> Piano Pro
+              </Badge>
+            ) : (
+              <Button
+                variant="outline"
+                className="gap-2"
+                data-testid="button-manage-subscription"
+                disabled={portal.isPending}
+                onClick={openPortal}
+              >
+                {portal.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                {t("settings.manageBtn")}
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -312,16 +319,22 @@ export default function Settings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">{t("settings.premiumActiveDesc")}</p>
-            <Button
-              variant="outline"
-              className="gap-2"
-              data-testid="button-manage-subscription"
-              disabled={portal.isPending}
-              onClick={openPortal}
-            >
-              {portal.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-              {t("settings.manageBtn")}
-            </Button>
+            {isManualPlan ? (
+              <Badge variant="outline" className="gap-2 py-1.5 px-3 w-fit" data-testid="badge-manual-plan">
+                <Star className="w-4 h-4" /> Piano Pro
+              </Badge>
+            ) : (
+              <Button
+                variant="outline"
+                className="gap-2"
+                data-testid="button-manage-subscription"
+                disabled={portal.isPending}
+                onClick={openPortal}
+              >
+                {portal.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                {t("settings.manageBtn")}
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}

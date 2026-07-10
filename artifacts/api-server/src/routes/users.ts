@@ -332,6 +332,7 @@ async function buildUserProfile(userId: number) {
     clerkId: user.clerkId,
     email: user.email,
     plan: user.plan,
+    planSource: user.planSource,
     sgiScore: Math.round(user.sgiScore * 10) / 10,
     sgiDailyDelta,
     sgiWeeklyDelta,

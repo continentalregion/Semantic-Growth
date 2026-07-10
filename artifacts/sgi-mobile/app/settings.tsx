@@ -163,20 +163,33 @@ export default function SettingsScreen() {
               <Ionicons name="chevron-forward" size={16} color={colors.primary} />
             </Pressable>
           )}
-          {(profile?.plan === "premium" || profile?.plan === "pro") && (
-            <Pressable
-              style={({ pressed }) => [
-                styles.legalRow,
-                { borderColor: colors.border, opacity: pressed ? 0.75 : 1 },
-              ]}
-              onPress={() => router.push("/upgrade")}
-            >
-              <Text style={[styles.legalLabel, { color: colors.foreground }]}>
-                Gestisci piano
-              </Text>
-              <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
-            </Pressable>
-          )}
+          {(profile?.plan === "premium" || profile?.plan === "pro") &&
+            (profile?.planSource === "manual" ? (
+              <View
+                style={[
+                  styles.legalRow,
+                  { borderColor: colors.border, opacity: 1 },
+                ]}
+              >
+                <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
+                <Text style={[styles.legalLabel, { color: colors.foreground }]}>
+                  Piano Pro
+                </Text>
+              </View>
+            ) : (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.legalRow,
+                  { borderColor: colors.border, opacity: pressed ? 0.75 : 1 },
+                ]}
+                onPress={() => router.push("/upgrade")}
+              >
+                <Text style={[styles.legalLabel, { color: colors.foreground }]}>
+                  Gestisci piano
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
+              </Pressable>
+            ))}
         </View>
 
         {/* Legal section */}

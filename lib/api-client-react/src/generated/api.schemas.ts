@@ -126,11 +126,21 @@ export const UserProfilePlan = {
   pro: 'pro',
 } as const;
 
+export type UserProfilePlanSource = typeof UserProfilePlanSource[keyof typeof UserProfilePlanSource];
+
+
+export const UserProfilePlanSource = {
+  stripe: 'stripe',
+  iap: 'iap',
+  manual: 'manual',
+} as const;
+
 export interface UserProfile {
   id: number;
   clerkId: string;
   email: string;
   plan: UserProfilePlan;
+  planSource?: UserProfilePlanSource;
   sgiScore: number;
   /** @nullable */
   sgiDailyDelta: number | null;

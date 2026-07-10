@@ -760,6 +760,9 @@ components:
         plan:
           type: string
           enum: [free, premium, pro]
+        planSource:
+          type: string
+          enum: [stripe, iap, manual]
         sgiScore:
           type: number
         sgiDailyDelta:
