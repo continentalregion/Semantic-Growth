@@ -10,13 +10,14 @@ import {
   type Notification,
 } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, BellOff, Award, Swords, Flame, Sparkles, Bell } from "lucide-react";
+import { ChevronLeft, BellOff, Award, Swords, Flame, Sparkles, Bell, MessageCircleQuestion } from "lucide-react";
 
 const TYPE_ICON: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
   badge: Award,
   battle_result: Swords,
   streak_risk: Flame,
   digest: Sparkles,
+  thread_candidate: MessageCircleQuestion,
 };
 
 const TYPE_COLOR: Record<string, string> = {
@@ -24,6 +25,7 @@ const TYPE_COLOR: Record<string, string> = {
   battle_result: "var(--sgi-pink)",
   streak_risk: "var(--sgi-pink)",
   digest: "var(--sgi-purple)",
+  thread_candidate: "var(--sgi-teal, #06d6a0)",
 };
 
 function timeAgo(iso: string, t: (k: string, opts?: any) => string): string {

@@ -1,7 +1,7 @@
 import { db } from "@workspace/db";
 import { notifications } from "@workspace/db";
 
-export type NotificationType = "digest" | "badge" | "battle_result" | "streak_risk";
+export type NotificationType = "digest" | "badge" | "battle_result" | "streak_risk" | "thread_candidate";
 
 export async function createNotification(params: {
   userId: number;

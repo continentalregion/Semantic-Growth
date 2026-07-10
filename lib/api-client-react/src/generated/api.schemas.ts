@@ -56,6 +56,7 @@ export const NotificationType = {
   badge: 'badge',
   battle_result: 'battle_result',
   streak_risk: 'streak_risk',
+  thread_candidate: 'thread_candidate',
 } as const;
 
 export type NotificationBodyParams = { [key: string]: unknown };
@@ -83,6 +84,37 @@ export interface NotificationPage {
 
 export interface NotificationUnreadCount {
   unreadCount: number;
+}
+
+/**
+ * @nullable
+ */
+export type ThreadCandidateMetricsSnapshot = { [key: string]: unknown } | null;
+
+export type ThreadCandidateStatus = typeof ThreadCandidateStatus[keyof typeof ThreadCandidateStatus];
+
+
+export const ThreadCandidateStatus = {
+  pending: 'pending',
+  confirmed: 'confirmed',
+  discarded: 'discarded',
+} as const;
+
+export interface ThreadCandidate {
+  id: string;
+  question: string;
+  /** @nullable */
+  aiTitle: string | null;
+  /** @nullable */
+  description: string | null;
+  /** @nullable */
+  category: string | null;
+  /** @nullable */
+  motivationBlurb: string | null;
+  /** @nullable */
+  metricsSnapshot: ThreadCandidateMetricsSnapshot;
+  status: ThreadCandidateStatus;
+  createdAt: string;
 }
 
 export type UserProfilePlan = typeof UserProfilePlan[keyof typeof UserProfilePlan];
@@ -299,6 +331,20 @@ offset?: number;
 
 export type GetNotificationsParams = {
 page?: number;
+};
+
+export type UpdateThreadCandidateBody = {
+  question?: string;
+  description?: string;
+  category?: string;
+};
+
+export type ConfirmThreadCandidate200 = {
+  threadId: string;
+};
+
+export type DiscardThreadCandidate200 = {
+  ok: boolean;
 };
 
 export type MarkNotificationRead200 = {

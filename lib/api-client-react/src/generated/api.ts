@@ -25,6 +25,8 @@ import type {
   BillingPlan,
   BillingPortalInput,
   BillingRedirect,
+  ConfirmThreadCandidate200,
+  DiscardThreadCandidate200,
   DomainStrengths,
   GamificationProfile,
   GetLeaderboardParams,
@@ -45,6 +47,8 @@ import type {
   Recommendation,
   SemanticMap,
   SgiSnapshot,
+  ThreadCandidate,
+  UpdateThreadCandidateBody,
   UserProfile,
   UserSync
 } from './api.schemas';
@@ -1983,6 +1987,295 @@ export function useGetNotificationsUnreadCount<TData = Awaited<ReturnType<typeof
 
 
 
+
+export const getGetThreadCandidatesUrl = () => {
+
+
+
+
+  return `/api/thread-candidates`
+}
+
+/**
+ * @summary Current user's pending AI-proposed thread candidates
+ */
+export const getThreadCandidates = async ( options?: RequestInit): Promise<ThreadCandidate[]> => {
+
+  return customFetch<ThreadCandidate[]>(getGetThreadCandidatesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetThreadCandidatesQueryKey = () => {
+    return [
+    `/api/thread-candidates`
+    ] as const;
+    }
+
+
+export const getGetThreadCandidatesQueryOptions = <TData = Awaited<ReturnType<typeof getThreadCandidates>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getThreadCandidates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetThreadCandidatesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getThreadCandidates>>> = ({ signal }) => getThreadCandidates({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getThreadCandidates>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetThreadCandidatesQueryResult = NonNullable<Awaited<ReturnType<typeof getThreadCandidates>>>
+export type GetThreadCandidatesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Current user's pending AI-proposed thread candidates
+ */
+
+export function useGetThreadCandidates<TData = Awaited<ReturnType<typeof getThreadCandidates>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getThreadCandidates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetThreadCandidatesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateThreadCandidateUrl = (id: string,) => {
+
+
+
+
+  return `/api/thread-candidates/${id}`
+}
+
+/**
+ * @summary Edit a pending candidate before confirming it
+ */
+export const updateThreadCandidate = async (id: string,
+    updateThreadCandidateBody: UpdateThreadCandidateBody, options?: RequestInit): Promise<ThreadCandidate> => {
+
+  return customFetch<ThreadCandidate>(getUpdateThreadCandidateUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateThreadCandidateBody,)
+  }
+);}
+
+
+
+
+export const getUpdateThreadCandidateMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateThreadCandidate>>, TError,{id: string;data: BodyType<UpdateThreadCandidateBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateThreadCandidate>>, TError,{id: string;data: BodyType<UpdateThreadCandidateBody>}, TContext> => {
+
+const mutationKey = ['updateThreadCandidate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateThreadCandidate>>, {id: string;data: BodyType<UpdateThreadCandidateBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateThreadCandidate(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateThreadCandidateMutationResult = NonNullable<Awaited<ReturnType<typeof updateThreadCandidate>>>
+    export type UpdateThreadCandidateMutationBody = BodyType<UpdateThreadCandidateBody>
+    export type UpdateThreadCandidateMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Edit a pending candidate before confirming it
+ */
+export const useUpdateThreadCandidate = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateThreadCandidate>>, TError,{id: string;data: BodyType<UpdateThreadCandidateBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateThreadCandidate>>,
+        TError,
+        {id: string;data: BodyType<UpdateThreadCandidateBody>},
+        TContext
+      > => {
+      return useMutation(getUpdateThreadCandidateMutationOptions(options));
+    }
+
+export const getConfirmThreadCandidateUrl = (id: string,) => {
+
+
+
+
+  return `/api/thread-candidates/${id}/confirm`
+}
+
+/**
+ * @summary Publish a pending candidate into the public threads feed
+ */
+export const confirmThreadCandidate = async (id: string, options?: RequestInit): Promise<ConfirmThreadCandidate200> => {
+
+  return customFetch<ConfirmThreadCandidate200>(getConfirmThreadCandidateUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getConfirmThreadCandidateMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmThreadCandidate>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmThreadCandidate>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['confirmThreadCandidate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmThreadCandidate>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  confirmThreadCandidate(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmThreadCandidateMutationResult = NonNullable<Awaited<ReturnType<typeof confirmThreadCandidate>>>
+
+    export type ConfirmThreadCandidateMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Publish a pending candidate into the public threads feed
+ */
+export const useConfirmThreadCandidate = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmThreadCandidate>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmThreadCandidate>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getConfirmThreadCandidateMutationOptions(options));
+    }
+
+export const getDiscardThreadCandidateUrl = (id: string,) => {
+
+
+
+
+  return `/api/thread-candidates/${id}/discard`
+}
+
+/**
+ * @summary Discard a pending candidate — it will never be published
+ */
+export const discardThreadCandidate = async (id: string, options?: RequestInit): Promise<DiscardThreadCandidate200> => {
+
+  return customFetch<DiscardThreadCandidate200>(getDiscardThreadCandidateUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getDiscardThreadCandidateMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof discardThreadCandidate>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof discardThreadCandidate>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['discardThreadCandidate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof discardThreadCandidate>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  discardThreadCandidate(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DiscardThreadCandidateMutationResult = NonNullable<Awaited<ReturnType<typeof discardThreadCandidate>>>
+
+    export type DiscardThreadCandidateMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Discard a pending candidate — it will never be published
+ */
+export const useDiscardThreadCandidate = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof discardThreadCandidate>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof discardThreadCandidate>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDiscardThreadCandidateMutationOptions(options));
+    }
 
 export const getMarkNotificationReadUrl = (id: number,) => {
 

@@ -14,4 +14,5 @@ export const NotificationType = {
   badge: 'badge',
   battle_result: 'battle_result',
   streak_risk: 'streak_risk',
+  thread_candidate: 'thread_candidate',
 } as const;

@@ -442,7 +442,7 @@ export const GetNotificationsQueryParams = zod.object({
 export const GetNotificationsResponse = zod.object({
   "notifications": zod.array(zod.object({
   "id": zod.number(),
-  "type": zod.enum(['digest', 'badge', 'battle_result', 'streak_risk']),
+  "type": zod.enum(['digest', 'badge', 'battle_result', 'streak_risk', 'thread_candidate']),
   "titleKey": zod.string(),
   "bodyKey": zod.string(),
   "bodyParams": zod.record(zod.string(), zod.unknown()),
@@ -461,6 +461,73 @@ export const GetNotificationsResponse = zod.object({
  */
 export const GetNotificationsUnreadCountResponse = zod.object({
   "unreadCount": zod.number()
+})
+
+
+/**
+ * @summary Current user's pending AI-proposed thread candidates
+ */
+export const GetThreadCandidatesResponseItem = zod.object({
+  "id": zod.string(),
+  "question": zod.string(),
+  "aiTitle": zod.string().nullable(),
+  "description": zod.string().nullable(),
+  "category": zod.string().nullable(),
+  "motivationBlurb": zod.string().nullable(),
+  "metricsSnapshot": zod.record(zod.string(), zod.unknown()).nullable(),
+  "status": zod.enum(['pending', 'confirmed', 'discarded']),
+  "createdAt": zod.string()
+})
+export const GetThreadCandidatesResponse = zod.array(GetThreadCandidatesResponseItem)
+
+
+/**
+ * @summary Edit a pending candidate before confirming it
+ */
+export const UpdateThreadCandidateParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdateThreadCandidateBody = zod.object({
+  "question": zod.string().optional(),
+  "description": zod.string().optional(),
+  "category": zod.string().optional()
+})
+
+export const UpdateThreadCandidateResponse = zod.object({
+  "id": zod.string(),
+  "question": zod.string(),
+  "aiTitle": zod.string().nullable(),
+  "description": zod.string().nullable(),
+  "category": zod.string().nullable(),
+  "motivationBlurb": zod.string().nullable(),
+  "metricsSnapshot": zod.record(zod.string(), zod.unknown()).nullable(),
+  "status": zod.enum(['pending', 'confirmed', 'discarded']),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Publish a pending candidate into the public threads feed
+ */
+export const ConfirmThreadCandidateParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ConfirmThreadCandidateResponse = zod.object({
+  "threadId": zod.string()
+})
+
+
+/**
+ * @summary Discard a pending candidate — it will never be published
+ */
+export const DiscardThreadCandidateParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DiscardThreadCandidateResponse = zod.object({
+  "ok": zod.boolean()
 })
 
 

@@ -11,6 +11,7 @@ import { computeProgressCard } from "../lib/progressCard";
 import { generateProgressInsight } from "../lib/progressCardInsight";
 import { updateLeaderboardRank, checkAndAwardBadges } from "./users";
 import { updateMissionProgress } from "./gamification";
+import { createNotification } from "../lib/notifications";
 import {
   MONTHLY_LIMITS,
   MODEL_COST_CENTS_PER_1K,
@@ -877,7 +878,7 @@ async function maybeCreateThreadCandidateFromConversation(
       .orderBy(desc(sgiSnapshots.timestamp))
       .limit(1);
 
-    await db.insert(threadCandidates).values({
+    const [candidate] = await db.insert(threadCandidates).values({
       userId,
       sourceConversationId: conversationId,
       question,
@@ -887,6 +888,17 @@ async function maybeCreateThreadCandidateFromConversation(
       motivationBlurb,
       metricsSnapshot: latestSnapshot ?? null,
       status: "pending",
+    }).returning();
+
+    await createNotification({
+      userId,
+      type: "thread_candidate",
+      titleKey: "notifications.threadCandidate.title",
+      bodyKey: "notifications.threadCandidate.body",
+      bodyParams: { title: aiTitle ?? question.slice(0, 60) },
+      payload: { candidateId: candidate.id },
+      deepLink: `/thread-candidates/${candidate.id}`,
+      dedupeKey: `thread_candidate:${userId}:${conversationId}`,
     });
 
     console.info("[thread-candidate] created (pending confirmation):", question.slice(0, 80));

@@ -29,6 +29,7 @@ const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   battle_result: "flash",
   streak_risk: "flame",
   digest: "sparkles",
+  thread_candidate: "help-circle",
 };
 
 function timeAgo(iso: string, t: any): string {
@@ -59,7 +60,9 @@ function NotificationRow({
       ? colors.pink
       : item.type === "badge"
         ? colors.gold
-        : colors.primary;
+        : item.type === "thread_candidate"
+          ? colors.teal
+          : colors.primary;
 
   return (
     <Pressable

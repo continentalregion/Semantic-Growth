@@ -56,6 +56,10 @@ const IT = {
       title: "Il tuo riepilogo",
       body: "Ecco il tuo riepilogo periodico",
     },
+    threadCandidate: {
+      title: "Nuovo Thread suggerito",
+      body: "L'AI ha notato una domanda interessante nella tua chat: \"{{title}}\"",
+    },
   },
   dashboard: {
     title: "Telemetria Hub",
@@ -323,6 +327,20 @@ const IT = {
     noThreads: "Nessun thread ancora — sii il primo a creare una domanda aperta.",
     successCreate: "Thread creato!",
     errorLoad: "Errore nel caricamento dei thread",
+    candidate: {
+      title: "Thread Suggeriti dall'AI",
+      subtitle: "L'AI ha notato queste domande nelle tue chat. Confermale per pubblicarle nel feed pubblico, modificale o scartale.",
+      empty: "Nessun thread suggerito al momento.",
+      motivationLabel: "Perché questa domanda?",
+      confirmBtn: "Conferma e pubblica",
+      edit: "Modifica",
+      discard: "Scarta",
+      save: "Salva",
+      cancel: "Annulla",
+      confirmedToast: "Thread pubblicato!",
+      discardedToast: "Suggerimento scartato",
+      savedToast: "Modifiche salvate",
+    },
   },
   battles: {
     title: "Feed Battaglie",
@@ -520,6 +538,10 @@ const EN: typeof IT = {
     digest: {
       title: "Your recap",
       body: "Here's your periodic recap",
+    },
+    threadCandidate: {
+      title: "New suggested Thread",
+      body: "The AI noticed an interesting question in your chat: \"{{title}}\"",
     },
   },
   dashboard: {
@@ -788,6 +810,20 @@ const EN: typeof IT = {
     noThreads: "No threads yet — be the first to create an open question.",
     successCreate: "Thread created!",
     errorLoad: "Error loading threads",
+    candidate: {
+      title: "AI-Suggested Threads",
+      subtitle: "The AI noticed these questions in your chats. Confirm them to publish to the public feed, edit them, or discard.",
+      empty: "No suggested threads right now.",
+      motivationLabel: "Why this question?",
+      confirmBtn: "Confirm and publish",
+      edit: "Edit",
+      discard: "Discard",
+      save: "Save",
+      cancel: "Cancel",
+      confirmedToast: "Thread published!",
+      discardedToast: "Suggestion discarded",
+      savedToast: "Changes saved",
+    },
   },
   battles: {
     title: "Battles Feed",
@@ -985,6 +1021,10 @@ const ES: typeof IT = {
     digest: {
       title: "Tu resumen",
       body: "Aquí está tu resumen periódico",
+    },
+    threadCandidate: {
+      title: "Nuevo Hilo sugerido",
+      body: "La IA notó una pregunta interesante en tu chat: \"{{title}}\"",
     },
   },
   dashboard: {
@@ -1253,6 +1293,20 @@ const ES: typeof IT = {
     noThreads: "Sin hilos aún — sé el primero en crear una pregunta abierta.",
     successCreate: "¡Hilo creado!",
     errorLoad: "Error al cargar los hilos",
+    candidate: {
+      title: "Hilos Sugeridos por la IA",
+      subtitle: "La IA notó estas preguntas en tus chats. Confírmalas para publicarlas en el feed público, edítalas o descártalas.",
+      empty: "No hay hilos sugeridos por ahora.",
+      motivationLabel: "¿Por qué esta pregunta?",
+      confirmBtn: "Confirmar y publicar",
+      edit: "Editar",
+      discard: "Descartar",
+      save: "Guardar",
+      cancel: "Cancelar",
+      confirmedToast: "¡Hilo publicado!",
+      discardedToast: "Sugerencia descartada",
+      savedToast: "Cambios guardados",
+    },
   },
   battles: {
     title: "Feed de Batallas",

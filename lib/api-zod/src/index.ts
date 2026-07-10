@@ -8,3 +8,4 @@ export * from "./generated/types";
 // re-export takes precedence over star exports and resolves the conflict; we
 // keep the zod schema since that is this package's purpose.
 export { GetUserSgiHistoryParams } from "./generated/api";
+export { UpdateThreadCandidateBody } from "./generated/api";

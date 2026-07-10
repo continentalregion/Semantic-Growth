@@ -477,6 +477,101 @@ paths:
               schema:
                 $ref: "#/components/schemas/NotificationUnreadCount"
 
+  /thread-candidates:
+    get:
+      operationId: getThreadCandidates
+      tags: [threadCandidates]
+      summary: Current user's pending AI-proposed thread candidates
+      responses:
+        "200":
+          description: List of pending candidates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ThreadCandidate"
+
+  /thread-candidates/{id}:
+    patch:
+      operationId: updateThreadCandidate
+      tags: [threadCandidates]
+      summary: Edit a pending candidate before confirming it
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                description:
+                  type: string
+                category:
+                  type: string
+      responses:
+        "200":
+          description: Updated candidate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ThreadCandidate"
+
+  /thread-candidates/{id}/confirm:
+    post:
+      operationId: confirmThreadCandidate
+      tags: [threadCandidates]
+      summary: Publish a pending candidate into the public threads feed
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Published thread id
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  threadId:
+                    type: string
+                required:
+                  - threadId
+
+  /thread-candidates/{id}/discard:
+    post:
+      operationId: discardThreadCandidate
+      tags: [threadCandidates]
+      summary: Discard a pending candidate — it will never be published
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Discarded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required:
+                  - ok
+
   /notifications/{id}/read:
     patch:
       operationId: markNotificationRead
@@ -567,7 +662,7 @@ components:
           type: integer
         type:
           type: string
-          enum: [digest, badge, battle_result, streak_risk]
+          enum: [digest, badge, battle_result, streak_risk, thread_candidate]
         titleKey:
           type: string
         bodyKey:
@@ -618,6 +713,40 @@ components:
           type: integer
       required:
         - unreadCount
+
+    ThreadCandidate:
+      type: object
+      properties:
+        id:
+          type: string
+        question:
+          type: string
+        aiTitle:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        motivationBlurb:
+          type: ["string", "null"]
+        metricsSnapshot:
+          type: ["object", "null"]
+          additionalProperties: true
+        status:
+          type: string
+          enum: [pending, confirmed, discarded]
+        createdAt:
+          type: string
+      required:
+        - id
+        - question
+        - aiTitle
+        - description
+        - category
+        - motivationBlurb
+        - metricsSnapshot
+        - status
+        - createdAt
 
     UserProfile:
       type: object
