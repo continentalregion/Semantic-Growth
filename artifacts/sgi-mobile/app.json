@@ -18,7 +18,9 @@
       "bundleIdentifier": "com.sgi.mobile"
     },
     "android": {
-      "backgroundColor": "#08090f"
+      "backgroundColor": "#08090f",
+      "package": "work.trantads.sgi",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/images/icon.png"
