@@ -81,6 +81,9 @@ export default function LoginScreen() {
   const { signIn, isLoaded: signInLoaded, setActive } = useSignIn() as {
     signIn: {
       create: (params: { identifier: string; password: string }) => Promise<{ status: string; createdSessionId: string | null }>;
+      supportedFirstFactors: Array<{ strategy: string; emailAddressId?: string }> | null;
+      prepareFirstFactor: (params: { strategy: string; emailAddressId?: string }) => Promise<void>;
+      attemptFirstFactor: (params: { strategy: string; code: string }) => Promise<{ status: string; createdSessionId: string | null }>;
     } | undefined;
     isLoaded: boolean;
     setActive: (params: { session: string | null }) => Promise<void>;
@@ -144,6 +147,7 @@ export default function LoginScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [code, setCode] = useState("");
   const [pendingVerification, setPendingVerification] = useState(false);
+  const [pendingSignInOtp, setPendingSignInOtp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -222,6 +226,20 @@ export default function LoginScreen() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         haptic(Haptics.NotificationFeedbackType.Success);
+      } else if (result.status === "needs_first_factor") {
+        const emailFactor = signIn.supportedFirstFactors?.find(
+          (f) => f.strategy === "email_code"
+        );
+        if (!emailFactor?.emailAddressId) {
+          setFieldErrors({ general: "Verifica richiesta ma nessun metodo disponibile. Riprova." });
+          haptic(Haptics.NotificationFeedbackType.Error);
+          return;
+        }
+        await signIn.prepareFirstFactor({
+          strategy: "email_code",
+          emailAddressId: emailFactor.emailAddressId,
+        });
+        setPendingSignInOtp(true);
       } else if ((result as { status: string }).status === "needs_client_trust") {
         // Expo Go non può stabilire il trust del client Clerk (nessun native module).
         // Fallback BFF: il backend verifica email/password tramite Clerk Admin API
@@ -262,6 +280,29 @@ export default function LoginScreen() {
         return;
       }
       setErrors(clerkErrs, err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifySignInOtp() {
+    if (!signInLoaded || !signIn) {
+      setFieldErrors({ general: "Autenticazione non pronta. Attendi un momento e riprova." });
+      return;
+    }
+    clearErrors();
+    setLoading(true);
+    try {
+      const result = await signIn.attemptFirstFactor({ strategy: "email_code", code });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        haptic(Haptics.NotificationFeedbackType.Success);
+      } else {
+        setFieldErrors({ code: "Verifica non completata. Riprova." });
+        haptic(Haptics.NotificationFeedbackType.Error);
+      }
+    } catch (err: unknown) {
+      setErrors(extractClerkErrors(err));
     } finally {
       setLoading(false);
     }
@@ -329,7 +370,42 @@ export default function LoginScreen() {
             <Text style={s.subtitle}>Analisi semantica della tua intelligenza</Text>
           </View>
 
-          {pendingVerification ? (
+          {pendingSignInOtp ? (
+            <View style={s.card}>
+              <Text style={s.cardTitle}>Verifica dispositivo</Text>
+              <Text style={s.cardHint}>
+                Inserisci il codice inviato a {email} per accedere da questo dispositivo.
+              </Text>
+              <View style={[s.inputWrap, hasCodeError && s.inputWrapError]}>
+                <TextInput
+                  style={s.input}
+                  placeholder="Codice a 6 cifre"
+                  placeholderTextColor={colors.mutedForeground}
+                  value={code}
+                  onChangeText={(v) => { setCode(v); if (fieldErrors.code) setFieldErrors((p) => ({ ...p, code: undefined })); }}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  textAlign="center"
+                  returnKeyType="done"
+                  onSubmitEditing={handleVerifySignInOtp}
+                />
+              </View>
+              {fieldErrors.code ? <Text style={s.errorText}>{fieldErrors.code}</Text> : null}
+              {fieldErrors.general ? <Text style={s.errorText}>{fieldErrors.general}</Text> : null}
+              <PressableScale
+                style={[s.btn, (loading || code.length < 6) && s.btnDisabled]}
+                onPress={handleVerifySignInOtp}
+                disabled={loading || code.length < 6}
+                haptic={false}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={s.btnText}>Verifica</Text>
+                )}
+              </PressableScale>
+            </View>
+          ) : pendingVerification ? (
             <View style={s.card}>
               <Text style={s.cardTitle}>Verifica email</Text>
               <Text style={s.cardHint}>
