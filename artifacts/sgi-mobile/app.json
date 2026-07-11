@@ -3,6 +3,7 @@
     "name": "SGI",
     "slug": "sgi-mobile",
     "version": "1.0.0",
+      "owner": "trantads-work",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "sgi-mobile",
@@ -35,9 +36,14 @@
       "expo-font",
       "expo-web-browser"
     ],
-    "experiments": {
+   "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "63a9dbf8-d306-407a-98df-621210629478"
+      }
     }
   }
 }
