@@ -28,6 +28,7 @@ import {
 } from "../config/pricing";
 import { currentMonthKey, resetAllMonthlyCountersIfNeeded, type MonthlyCountersUser } from "../lib/monthlyReset.js";
 import { getGlobalBudgetCapCents } from "../lib/dynamicBudget.js";
+import { maybeExtractInferredFacts } from "../lib/extractInferredFacts";
 
 // o4-mini rimosso: era in ALLOWED_MODELS.pro ma assente dal selettore UI —
 // incoerenza chiusa rimuovendo la voce server-side (Opzione A).
@@ -743,6 +744,9 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
         console.error("[thread-candidate] background error:", e)
       );
     }
+
+    // Fire-and-forget: extract AI-inferred facts from conversation
+    maybeExtractInferredFacts(history, user.id, convoId).catch(() => {});
   } catch (err) {
     console.error(err);
     if (!res.headersSent) {

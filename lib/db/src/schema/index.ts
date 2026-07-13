@@ -18,3 +18,4 @@ export * from "./pushTokens";
 export * from "./jobRuns";
 export * from "./domainEvents";
 export * from "./userDeclaredFacts";
+export * from "./aiInferredFacts";

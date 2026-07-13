@@ -2,7 +2,7 @@ import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { z } from "zod/v4";
 import { db } from "@workspace/db";
-import { users, sgiSnapshots, leaderboardEntries, gamification, badges, missions, recommendations, semanticDomains, conversations, messages, threads, blockedAttempts, userDeclaredFacts } from "@workspace/db";
+import { users, sgiSnapshots, leaderboardEntries, gamification, badges, missions, recommendations, semanticDomains, conversations, messages, threads, blockedAttempts, userDeclaredFacts, aiInferredFacts } from "@workspace/db";
 import { eq, desc, gte, and, asc, sql, inArray } from "drizzle-orm";
 import { SyncUserBody } from "@workspace/api-zod";
 import { computeLevel, xpToNextLevel as xpToNext, levelProgress as lvlProgress, BADGE_DEFINITIONS, computeMacroDimensions } from "../lib/sgiScoring";
@@ -675,6 +675,87 @@ router.delete("/users/me/context-file/facts/:factId", async (req, res) => {
   if (result.rowCount === 0) { res.status(404).json({ error: "Not found" }); return; }
   res.status(204).end();
 });
+
+// ─── Context File — AI inferred facts (Pro only) ─────────────────────────────
+
+router.get("/users/me/context-file/inferred-facts", async (req, res) => {
+  const clerkId = getAuth(req).userId;
+  if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const user = await getOrCreateUser(clerkId);
+  if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
+  if (user.plan !== "pro") { res.status(403).json({ error: "Pro required", code: "PRO_REQUIRED" }); return; }
+
+  const facts = await db
+    .select({
+      id:               aiInferredFacts.id,
+      fact:             aiInferredFacts.fact,
+      persistenceLevel: aiInferredFacts.persistenceLevel,
+      status:           aiInferredFacts.status,
+      lastReinforcedAt: aiInferredFacts.lastReinforcedAt,
+    })
+    .from(aiInferredFacts)
+    .where(and(
+      eq(aiInferredFacts.userId, user.id),
+      inArray(aiInferredFacts.status, ["active", "stale"]),
+    ))
+    .orderBy(desc(aiInferredFacts.lastReinforcedAt));
+
+  res.json(facts);
+});
+
+router.delete("/users/me/context-file/inferred-facts/:factId", async (req, res) => {
+  const clerkId = getAuth(req).userId;
+  if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const user = await getOrCreateUser(clerkId);
+  if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
+  if (user.plan !== "pro") { res.status(403).json({ error: "Pro required", code: "PRO_REQUIRED" }); return; }
+
+  const factId = parseInt(req.params.factId!, 10);
+  if (isNaN(factId)) { res.status(400).json({ error: "Invalid factId" }); return; }
+
+  const result = await db
+    .update(aiInferredFacts)
+    .set({ status: "archived", updatedAt: new Date() })
+    .where(and(eq(aiInferredFacts.id, factId), eq(aiInferredFacts.userId, user.id)));
+
+  if (result.rowCount === 0) { res.status(404).json({ error: "Not found" }); return; }
+  res.status(204).end();
+});
+
+router.post("/users/me/context-file/inferred-facts/:factId/promote", async (req, res) => {
+  const clerkId = getAuth(req).userId;
+  if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const user = await getOrCreateUser(clerkId);
+  if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
+  if (user.plan !== "pro") { res.status(403).json({ error: "Pro required", code: "PRO_REQUIRED" }); return; }
+
+  const factId = parseInt(req.params.factId!, 10);
+  if (isNaN(factId)) { res.status(400).json({ error: "Invalid factId" }); return; }
+
+  const [inferred] = await db
+    .select({ id: aiInferredFacts.id, fact: aiInferredFacts.fact })
+    .from(aiInferredFacts)
+    .where(and(eq(aiInferredFacts.id, factId), eq(aiInferredFacts.userId, user.id)))
+    .limit(1);
+
+  if (!inferred) { res.status(404).json({ error: "Not found" }); return; }
+
+  const [declared] = await db.transaction(async (tx) => {
+    const [inserted] = await tx
+      .insert(userDeclaredFacts)
+      .values({ userId: user.id, fact: inferred.fact, isActive: true })
+      .returning({ id: userDeclaredFacts.id, fact: userDeclaredFacts.fact, declaredAt: userDeclaredFacts.declaredAt });
+    await tx
+      .update(aiInferredFacts)
+      .set({ status: "archived", updatedAt: new Date() })
+      .where(eq(aiInferredFacts.id, factId));
+    return [inserted];
+  });
+
+  res.status(201).json(declared);
+});
+
+// ─── Context File — domain dominance ─────────────────────────────────────────
 
 router.get("/users/me/context-file/domains", async (req, res) => {
   const clerkId = getAuth(req).userId;

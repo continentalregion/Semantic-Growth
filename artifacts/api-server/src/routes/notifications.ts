@@ -5,6 +5,7 @@ import { notifications } from "@workspace/db";
 import { eq, and, desc, isNull, sql } from "drizzle-orm";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { runNotificationSweep } from "../lib/notificationSweep";
+import { runFactDecayJob } from "../lib/factDecayJob";
 
 const router = Router();
 
@@ -21,7 +22,8 @@ router.post("/internal/notifications/sweep", async (req, res) => {
       return;
     }
     const result = await runNotificationSweep();
-    res.json({ ok: true, ...result });
+    const decayResult = await runFactDecayJob();
+    res.json({ ok: true, ...result, factDecay: decayResult });
   } catch (err) {
     console.error("[notifications] sweep error", err);
     res.status(500).json({ error: "Internal error" });
