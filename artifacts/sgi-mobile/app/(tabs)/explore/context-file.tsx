@@ -1,13 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   ScrollView,
   Pressable,
   StyleSheet,
+  TextInput,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/expo";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -315,26 +318,82 @@ function DomainsSection({
   );
 }
 
-// ─── Section: Declared Facts (A) — read-only in Step 1 ───────────────────────
+// ─── Section: Declared Facts (A) — editable (Step 2) ────────────────────────
+
+const MAX_FACT_LEN = 200;
+const MAX_FACTS = 20;
 
 function DeclaredFactsSection({
   data,
   isLoading,
+  onAdd,
+  onDelete,
+  addPending,
+  deletingId,
   colors,
 }: {
   data: DeclaredFact[] | undefined;
   isLoading: boolean;
+  onAdd: (text: string) => void;
+  onDelete: (id: number) => void;
+  addPending: boolean;
+  deletingId: number | null;
   colors: ReturnType<typeof useColors>;
 }) {
+  const [input, setInput] = useState("");
+  const count = input.length;
+  const atLimit = (data?.length ?? 0) >= MAX_FACTS;
+  const canAdd = input.trim().length > 0 && count <= MAX_FACT_LEN && !atLimit && !addPending;
+
+  function handleAdd() {
+    if (!canAdd) return;
+    onAdd(input.trim());
+    setInput("");
+  }
+
   return (
     <View style={[st.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={st.sectionHeader}>
         <Ionicons name="person-outline" size={16} color={palette.primary} />
         <Text style={[st.sectionTitle, { color: colors.foreground }]}>Fatti dichiarati</Text>
         {data && (
-          <Text style={[st.sectionCount, { color: colors.mutedForeground }]}>{data.length}/10</Text>
+          <Text style={[st.sectionCount, { color: colors.mutedForeground }]}>{data.length}/{MAX_FACTS}</Text>
         )}
       </View>
+
+      {/* Input row */}
+      <View style={[st.addRow, { borderColor: colors.border, backgroundColor: colors.muted }]}>
+        <TextInput
+          style={[st.addInput, { color: colors.foreground }]}
+          placeholder="Aggiungi un fatto su di te…"
+          placeholderTextColor={colors.mutedForeground}
+          value={input}
+          onChangeText={setInput}
+          maxLength={MAX_FACT_LEN + 10}
+          editable={!atLimit && !addPending}
+          returnKeyType="done"
+          onSubmitEditing={handleAdd}
+          multiline={false}
+        />
+        <Text style={[st.charCount, { color: count > MAX_FACT_LEN ? "#e05c3a" : colors.mutedForeground }]}>
+          {count}/{MAX_FACT_LEN}
+        </Text>
+        <Pressable
+          onPress={handleAdd}
+          disabled={!canAdd}
+          style={[st.addBtn, { backgroundColor: canAdd ? palette.primary : palette.primary + "55" }]}
+        >
+          {addPending
+            ? <ActivityIndicator size="small" color="#fff" />
+            : <Ionicons name="add" size={18} color="#fff" />}
+        </Pressable>
+      </View>
+
+      {atLimit && (
+        <Text style={[st.limitText, { color: colors.mutedForeground }]}>
+          Hai raggiunto il limite di {MAX_FACTS} fatti
+        </Text>
+      )}
 
       {isLoading && !data ? (
         <View style={{ gap: 6 }}>
@@ -348,12 +407,27 @@ function DeclaredFactsSection({
         </Text>
       ) : (
         <View style={{ gap: 6 }}>
-          {data.map(fact => (
-            <View key={fact.id} style={[st.factRow, { backgroundColor: colors.muted, borderColor: colors.border }]}>
-              <Ionicons name="checkmark-circle-outline" size={15} color={palette.primary} style={{ marginTop: 1 }} />
-              <Text style={[st.factText, { color: colors.foreground }]}>{fact.fact}</Text>
-            </View>
-          ))}
+          {data.map(fact => {
+            const isDeleting = deletingId === fact.id;
+            return (
+              <View
+                key={fact.id}
+                style={[st.factRow, { backgroundColor: colors.muted, borderColor: colors.border, opacity: isDeleting ? 0.45 : 1 }]}
+              >
+                <Ionicons name="checkmark-circle-outline" size={15} color={palette.primary} style={{ marginTop: 1 }} />
+                <Text style={[st.factText, { color: colors.foreground }]}>{fact.fact}</Text>
+                <Pressable
+                  onPress={() => { if (!isDeleting) onDelete(fact.id); }}
+                  hitSlop={8}
+                  disabled={isDeleting}
+                >
+                  {isDeleting
+                    ? <ActivityIndicator size="small" color={colors.mutedForeground} />
+                    : <Ionicons name="trash-outline" size={16} color={colors.mutedForeground} />}
+                </Pressable>
+              </View>
+            );
+          })}
         </View>
       )}
     </View>
@@ -432,6 +506,7 @@ export default function ContextFileScreen() {
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const { triggerPurchase } = usePurchase();
+  const queryClient = useQueryClient();
 
   const { data: profile, isLoading: profileLoading } = useGetMyProfile();
   const isPro = profile?.plan === "pro";
@@ -449,7 +524,7 @@ export default function ContextFileScreen() {
     queryKey: ["context-file-facts"],
     queryFn: () => authFetch<DeclaredFact[]>("/api/users/me/context-file/facts"),
     enabled: isPro,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
@@ -484,6 +559,50 @@ export default function ContextFileScreen() {
     enabled: isPro,
     staleTime: 0,
     retry: 1,
+  });
+
+  const addFact = useMutation({
+    mutationFn: async (text: string) => {
+      const token = await getToken();
+      const r = await fetch(`${BASE}/api/users/me/context-file/facts`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ fact: text }),
+      });
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({})) as Record<string, unknown>;
+        throw new Error((body.error as string | undefined) ?? `Errore ${r.status}`);
+      }
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["context-file-facts"] });
+    },
+    onError: (err: Error) => {
+      Alert.alert("Errore", err.message || "Impossibile aggiungere il fatto. Riprova.");
+    },
+  });
+
+  const deleteFact = useMutation({
+    mutationFn: async (factId: number) => {
+      const token = await getToken();
+      const r = await fetch(`${BASE}/api/users/me/context-file/facts/${factId}`, {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!r.ok && r.status !== 204) {
+        throw new Error(`Errore ${r.status}`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["context-file-facts"] });
+    },
+    onError: (err: Error) => {
+      Alert.alert("Errore", err.message || "Impossibile eliminare il fatto. Riprova.");
+    },
   });
 
   const header = (
@@ -547,6 +666,10 @@ export default function ContextFileScreen() {
         <DeclaredFactsSection
           data={facts}
           isLoading={factsLoading}
+          onAdd={(text) => addFact.mutate(text)}
+          onDelete={(id) => deleteFact.mutate(id)}
+          addPending={addFact.isPending}
+          deletingId={deleteFact.isPending ? (deleteFact.variables as number) : null}
           colors={colors}
         />
         <InferredFactsSection
@@ -672,6 +795,32 @@ const st = StyleSheet.create({
     marginTop: 4,
     marginLeft: 2,
   },
+
+  addRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingLeft: 10,
+    paddingRight: 6,
+    paddingVertical: 6,
+    gap: 6,
+  },
+  addInput: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    paddingVertical: 4,
+  },
+  charCount: { fontSize: 10, fontFamily: "Inter_400Regular", minWidth: 36, textAlign: "right" },
+  addBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  limitText: { fontSize: 12, fontFamily: "Inter_400Regular", textAlign: "center" },
 
   emptyText: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19 },
 
