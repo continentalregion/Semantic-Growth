@@ -47,4 +47,3 @@ channel = "stable-25_05"
 
 [userenv.shared]
 PUBLIC_WEBHOOK_DOMAIN = "sgindex.work"
-INTERNAL_CRON_SECRET = "178d48ae6a0872c16c32ca637a87b042be9d885ce6b2b2e2dddbaf02eb744c22"
