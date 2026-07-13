@@ -297,6 +297,8 @@ export default function ChatScreen() {
         if (activeConvoId) {
           qc.invalidateQueries({ queryKey: getGetOpenaiConversationQueryKey(activeConvoId) });
         }
+        qc.invalidateQueries({ queryKey: getListOpenaiConversationsQueryKey() });
+        qc.invalidateQueries({ queryKey: ["threads"] });
       }
     });
     return () => sub.remove();
