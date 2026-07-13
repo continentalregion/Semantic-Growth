@@ -2,7 +2,8 @@ import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { users, sgiSnapshots, leaderboardEntries, gamification, badges, missions, recommendations, semanticDomains, conversations, messages, threads, blockedAttempts, userDeclaredFacts, aiInferredFacts } from "@workspace/db";
+import { users, sgiSnapshots, leaderboardEntries, gamification, badges, missions, recommendations, semanticDomains, conversations, messages, threads, blockedAttempts, userDeclaredFacts, aiInferredFacts, contextFileNarratives, narrativeGenerationLog } from "@workspace/db";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { eq, desc, gte, and, asc, sql, inArray } from "drizzle-orm";
 import { SyncUserBody } from "@workspace/api-zod";
 import { computeLevel, xpToNextLevel as xpToNext, levelProgress as lvlProgress, BADGE_DEFINITIONS, computeMacroDimensions } from "../lib/sgiScoring";
@@ -607,6 +608,77 @@ router.delete("/users/me", async (req, res) => {
   }
 });
 
+// ─── Context File — shared helpers (reused by endpoints + narrative) ─────────
+
+async function getActiveDeclaredFacts(userId: number) {
+  return db
+    .select()
+    .from(userDeclaredFacts)
+    .where(and(eq(userDeclaredFacts.userId, userId), eq(userDeclaredFacts.isActive, true)))
+    .orderBy(desc(userDeclaredFacts.declaredAt));
+}
+
+async function getActiveInferredFacts(userId: number) {
+  return db
+    .select({
+      id:               aiInferredFacts.id,
+      fact:             aiInferredFacts.fact,
+      persistenceLevel: aiInferredFacts.persistenceLevel,
+      status:           aiInferredFacts.status,
+      lastReinforcedAt: aiInferredFacts.lastReinforcedAt,
+    })
+    .from(aiInferredFacts)
+    .where(and(
+      eq(aiInferredFacts.userId, userId),
+      inArray(aiInferredFacts.status, ["active", "stale"]),
+    ))
+    .orderBy(desc(aiInferredFacts.lastReinforcedAt));
+}
+
+async function getDomainDominance(userId: number) {
+  const result = await db.execute(sql`
+    SELECT domain, created_at
+    FROM domain_events
+    WHERE user_id = ${userId}
+      AND created_at >= NOW() - INTERVAL '42 days'
+    ORDER BY created_at DESC
+  `);
+
+  const rows = result.rows as { domain: string; created_at: string }[];
+  const now = Date.now();
+
+  function computeCategory(windowDays: number, thresholdPct: number) {
+    const cutoff = now - windowDays * 24 * 60 * 60 * 1000;
+    const subset = rows.filter(r => new Date(r.created_at).getTime() >= cutoff);
+    const counts = new Map<string, number>();
+    for (const r of subset) counts.set(r.domain, (counts.get(r.domain) ?? 0) + 1);
+    const total = subset.length;
+    const distribution = Array.from(counts.entries())
+      .map(([domain, mentions]) => ({ domain, pct: total > 0 ? Math.round((mentions / total) * 1000) / 10 : 0 }))
+      .sort((a, b) => b.pct - a.pct);
+    const top = distribution[0];
+    const dominant = top && top.pct >= thresholdPct
+      ? { domain: top.domain, pct: top.pct, window_days: windowDays, threshold: thresholdPct }
+      : null;
+    return { dominant, distribution };
+  }
+
+  const lavoro = computeCategory(42, 60);
+  const studio = computeCategory(21, 45);
+  const hobby  = computeCategory(14, 30);
+
+  return {
+    lavoro:  lavoro.dominant,
+    studio:  studio.dominant,
+    hobby:   hobby.dominant,
+    distribution: {
+      lavoro: lavoro.distribution,
+      studio: studio.distribution,
+      hobby:  hobby.distribution,
+    },
+  };
+}
+
 // ─── Context File — declared facts (Pro only) ────────────────────────────────
 
 const declaredFactBodySchema = z.object({
@@ -620,12 +692,7 @@ router.get("/users/me/context-file/facts", async (req, res) => {
   if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
   if (user.plan !== "pro") { res.status(403).json({ error: "Pro required", code: "PRO_REQUIRED" }); return; }
 
-  const facts = await db
-    .select()
-    .from(userDeclaredFacts)
-    .where(and(eq(userDeclaredFacts.userId, user.id), eq(userDeclaredFacts.isActive, true)))
-    .orderBy(desc(userDeclaredFacts.declaredAt));
-
+  const facts = await getActiveDeclaredFacts(user.id);
   res.json(facts);
 });
 
@@ -685,21 +752,7 @@ router.get("/users/me/context-file/inferred-facts", async (req, res) => {
   if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
   if (user.plan !== "pro") { res.status(403).json({ error: "Pro required", code: "PRO_REQUIRED" }); return; }
 
-  const facts = await db
-    .select({
-      id:               aiInferredFacts.id,
-      fact:             aiInferredFacts.fact,
-      persistenceLevel: aiInferredFacts.persistenceLevel,
-      status:           aiInferredFacts.status,
-      lastReinforcedAt: aiInferredFacts.lastReinforcedAt,
-    })
-    .from(aiInferredFacts)
-    .where(and(
-      eq(aiInferredFacts.userId, user.id),
-      inArray(aiInferredFacts.status, ["active", "stale"]),
-    ))
-    .orderBy(desc(aiInferredFacts.lastReinforcedAt));
-
+  const facts = await getActiveInferredFacts(user.id);
   res.json(facts);
 });
 
@@ -764,47 +817,7 @@ router.get("/users/me/context-file/domains", async (req, res) => {
   if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
   if (user.plan !== "pro") { res.status(403).json({ error: "Pro required", code: "PRO_REQUIRED" }); return; }
 
-  const result = await db.execute(sql`
-    SELECT domain, created_at
-    FROM domain_events
-    WHERE user_id = ${user.id}
-      AND created_at >= NOW() - INTERVAL '42 days'
-    ORDER BY created_at DESC
-  `);
-
-  const rows = result.rows as { domain: string; created_at: string }[];
-  const now = Date.now();
-
-  function computeCategory(windowDays: number, thresholdPct: number) {
-    const cutoff = now - windowDays * 24 * 60 * 60 * 1000;
-    const subset = rows.filter(r => new Date(r.created_at).getTime() >= cutoff);
-    const counts = new Map<string, number>();
-    for (const r of subset) counts.set(r.domain, (counts.get(r.domain) ?? 0) + 1);
-    const total = subset.length;
-    const distribution = Array.from(counts.entries())
-      .map(([domain, mentions]) => ({ domain, pct: total > 0 ? Math.round((mentions / total) * 1000) / 10 : 0 }))
-      .sort((a, b) => b.pct - a.pct);
-    const top = distribution[0];
-    const dominant = top && top.pct >= thresholdPct
-      ? { domain: top.domain, pct: top.pct, window_days: windowDays, threshold: thresholdPct }
-      : null;
-    return { dominant, distribution };
-  }
-
-  const lavoro = computeCategory(42, 60);
-  const studio = computeCategory(21, 45);
-  const hobby  = computeCategory(14, 30);
-
-  res.json({
-    lavoro:  lavoro.dominant,
-    studio:  studio.dominant,
-    hobby:   hobby.dominant,
-    distribution: {
-      lavoro: lavoro.distribution,
-      studio: studio.distribution,
-      hobby:  hobby.distribution,
-    },
-  });
+  res.json(await getDomainDominance(user.id));
 });
 
 // ─── Context File — public summary / Component B (Pro only) ─────────────────
@@ -848,6 +861,153 @@ router.get("/users/me/context-file/public-summary", async (req, res) => {
     xp,
     streakDays,
   });
+});
+
+// ─── Context File — AI narrative (Pro only) ──────────────────────────────────
+
+const NARRATIVE_CACHE_MS = 10 * 60 * 1000; // 10 minutes
+const NARRATIVE_TIMEOUT_MS = 8_000;
+
+function buildNarrativePrompt(
+  declaredFacts: { fact: string }[],
+  profile: Awaited<ReturnType<typeof buildUserProfile>> & { xp: number; streakDays: number; topDimension: string | null; level: number },
+  domains: Awaited<ReturnType<typeof getDomainDominance>>,
+  inferredFacts: { fact: string; status: string; persistenceLevel: string }[],
+): string {
+  const parts: string[] = [];
+
+  parts.push(`You write a short personal narrative (4-8 sentences, plain text, no markdown) for a user of SGI — an app that measures how a person's language and argumentation evolve. This is their Context File: a living portrait of who they are intellectually.`);
+
+  parts.push(`\nUSER DATA:`);
+
+  if (declaredFacts.length > 0) {
+    parts.push(`\n[A — Self-declared facts]\n${declaredFacts.map(f => `- ${f.fact}`).join("\n")}`);
+  }
+
+  parts.push(`\n[B — SGI Profile & Progress]`);
+  parts.push(`Score: ${profile.sgiScore?.toFixed(1) ?? "n/a"} | Level: ${profile.level} | XP: ${profile.xp}`);
+  parts.push(`Global rank: ${profile.globalRank ?? "unranked"} of ${profile.totalUsers} | Percentile: ${profile.percentile != null ? profile.percentile + "%" : "n/a"}`);
+  if (profile.topDimension) parts.push(`Strongest dimension: ${profile.topDimension}`);
+  if (profile.streakDays > 0) parts.push(`Current streak: ${profile.streakDays} days`);
+
+  const dominantAreas = [domains.lavoro, domains.studio, domains.hobby].filter(Boolean);
+  if (dominantAreas.length > 0) {
+    parts.push(`\n[C — Contextual areas (recent activity)]\n${dominantAreas.map(d => `- ${d!.domain} (${d!.pct}% over last ${d!.window_days}d)`).join("\n")}`);
+  }
+
+  if (inferredFacts.length > 0) {
+    const capped = [
+      ...inferredFacts.filter(f => f.status === "active").slice(0, 15),
+      ...inferredFacts.filter(f => f.status === "stale").slice(0, 5),
+    ];
+    parts.push(`\n[D — AI-inferred facts]\n${capped.map(f => `- ${f.fact} (${f.persistenceLevel})`).join("\n")}`);
+  }
+
+  parts.push(`\nWRITE the narrative in Italian. Speak directly to the user ("tu"). Synthesize all available components into a single flowing portrait — who they are, what they care about, how their thinking shows up. Be specific, not generic. Never mention neuroscience or the brain. No emojis, no headers, no lists — pure prose only. Output ONLY the narrative text.`);
+
+  return parts.join("\n");
+}
+
+router.get("/users/me/context-file/narrative", async (req, res) => {
+  const clerkId = getAuth(req).userId;
+  if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const user = await getOrCreateUser(clerkId);
+  if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
+  if (user.plan !== "pro") { res.status(403).json({ error: "Pro required", code: "PRO_REQUIRED" }); return; }
+
+  try {
+    // 1. Check cache
+    const [cached] = await db
+      .select()
+      .from(contextFileNarratives)
+      .where(and(
+        eq(contextFileNarratives.userId, user.id),
+        sql`${contextFileNarratives.expiresAt} > NOW()`,
+      ))
+      .limit(1);
+
+    if (cached) {
+      res.json({ narrative: cached.generatedText, cached: true, generatedAt: cached.generatedAt });
+      return;
+    }
+
+    // 2. Aggregate all 4 components in parallel
+    const [declaredFacts, profile, domains, inferredFacts, [gam]] = await Promise.all([
+      getActiveDeclaredFacts(user.id),
+      buildUserProfile(user.id),
+      getDomainDominance(user.id),
+      getActiveInferredFacts(user.id),
+      db.select({ xp: gamification.xp, streak: gamification.streak })
+        .from(gamification)
+        .where(eq(gamification.userId, user.id))
+        .limit(1),
+    ]);
+
+    const xp = gam?.xp ?? 0;
+    const streakDays = gam?.streak ?? 0;
+    const md = profile.macroDimensions;
+    const topDimension = (Object.entries(md) as [string, number][])
+      .sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+    const fullProfile = { ...profile, xp, streakDays, topDimension, level: computeLevel(xp) };
+
+    // 3. Placeholder for empty users (no meaningful data yet)
+    const hasScore = profile.sgiScore != null && profile.sgiScore > 0;
+    const hasDeclared = declaredFacts.length > 0;
+    const hasDomains = domains.lavoro != null || domains.studio != null || domains.hobby != null;
+    const hasInferred = inferredFacts.length > 0;
+
+    if (!hasScore && !hasDeclared && !hasDomains && !hasInferred) {
+      const placeholder = "Il tuo Context File è ancora vuoto. Inizia a conversare con SGI e aggiungi qualche fatto su di te: la narrativa si costruirà man mano che il sistema impara a conoscerti.";
+      res.json({ narrative: placeholder, cached: false, generatedAt: new Date() });
+      return;
+    }
+
+    // 4. Build prompt and call Haiku
+    const prompt = buildNarrativePrompt(declaredFacts, fullProfile, domains, inferredFacts);
+    const inputTokensEst = Math.ceil(prompt.length / 4); // rough char→token estimate
+
+    const call = anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 400,
+      temperature: 0.7,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const timeoutGuard = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("narrative timeout")), NARRATIVE_TIMEOUT_MS),
+    );
+
+    const response = await Promise.race([call, timeoutGuard]);
+    const block = response.content[0];
+    const narrativeText = block && block.type === "text" ? block.text.trim() : "";
+
+    if (!narrativeText) {
+      res.status(502).json({ error: "Empty response from AI model" });
+      return;
+    }
+
+    // 5. UPSERT cache
+    const now = new Date();
+    const expiresAt = new Date(Date.now() + NARRATIVE_CACHE_MS);
+    await db
+      .insert(contextFileNarratives)
+      .values({ userId: user.id, generatedText: narrativeText, generatedAt: now, expiresAt })
+      .onConflictDoUpdate({
+        target: contextFileNarratives.userId,
+        set: { generatedText: narrativeText, generatedAt: now, expiresAt },
+      });
+
+    // 6. Log generation (awaited — pricing data must not be lost)
+    await db
+      .insert(narrativeGenerationLog)
+      .values({ userId: user.id, generatedAt: now, inputTokensEst });
+
+    res.json({ narrative: narrativeText, cached: false, generatedAt: now });
+  } catch (err) {
+    console.error("[narrative] generation failed:", err instanceof Error ? err.message : String(err));
+    res.status(502).json({ error: "Failed to generate narrative" });
+  }
 });
 
 export default router;

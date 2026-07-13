@@ -19,3 +19,5 @@ export * from "./jobRuns";
 export * from "./domainEvents";
 export * from "./userDeclaredFacts";
 export * from "./aiInferredFacts";
+export * from "./contextFileNarratives";
+export * from "./narrativeGenerationLog";
