@@ -16,6 +16,7 @@ import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { usePurchase } from "@/hooks/usePurchase";
+import { useOfferings } from "@/hooks/useOfferings";
 import { useGetMyProfile } from "@workspace/api-client-react";
 
 // ─── Plan data (values from artifacts/api-server/src/config/pricing.ts) ──────
@@ -87,8 +88,15 @@ export default function UpgradeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { triggerPurchase, isPurchasing } = usePurchase();
+  const { premiumPrice, proPrice } = useOfferings();
   const { data: profile } = useGetMyProfile();
   const currentPlan = profile?.plan ?? "free";
+
+  const storePrices: Record<string, string | null> = {
+    free: null,
+    premium: premiumPrice,
+    pro: proPrice,
+  };
 
   return (
     <AnimatedScreen style={{ backgroundColor: colors.background }}>
@@ -158,7 +166,7 @@ export default function UpgradeScreen() {
                 </View>
                 <View style={st.priceRow}>
                   <Text style={[st.price, { color: colors.foreground }]}>
-                    {plan.price}
+                    {storePrices[plan.id] ?? plan.price}
                   </Text>
                   <Text style={[st.period, { color: colors.mutedForeground }]}>
                     {plan.period}
@@ -189,7 +197,9 @@ export default function UpgradeScreen() {
                   {isPurchasing ? (
                     <ActivityIndicator color="#fff" size="small" />
                   ) : (
-                    <Text style={st.ctaText}>{plan.cta}</Text>
+                    <Text style={st.ctaText}>
+                      {`Upgrade a ${plan.name} — ${storePrices[plan.id] ?? plan.price}`}
+                    </Text>
                   )}
                 </Pressable>
               )}
