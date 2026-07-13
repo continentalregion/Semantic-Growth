@@ -19,6 +19,9 @@ export const sgiSnapshots = pgTable("sgi_snapshots", {
   stability: real("stability").notNull().default(0),
   continuity: real("continuity").notNull().default(0),
   revisionSignal: real("revision_signal").notNull().default(0),
+  abstractionLevel: real("abstraction_level").notNull().default(0),
+  lexicalRichness: real("lexical_richness").notNull().default(0),
+  informationDensity: real("information_density").notNull().default(0),
   // Weighted raw score (computeRawScore output, pre-EMA) for THIS message only.
   // Nullable, additive — lets the progress-card feature aggregate via plain SQL,
   // no LLM re-scoring and no re-derivation from the EMA-smoothed `score` above.

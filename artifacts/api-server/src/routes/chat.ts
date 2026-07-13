@@ -526,6 +526,9 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       stability: scoreResult.dimensions.stability,
       continuity: scoreResult.dimensions.continuity,
       revisionSignal: scoreResult.dimensions.revisionSignal,
+      abstractionLevel: scoreResult.dimensions.abstractionLevel,
+      lexicalRichness: scoreResult.dimensions.lexicalRichness,
+      informationDensity: scoreResult.dimensions.informationDensity,
     }).returning({ id: sgiSnapshots.id });
 
     // Every 5 scored messages WITHIN this conversation, compute an early/late

@@ -320,10 +320,10 @@ async function buildUserProfile(userId: number) {
         originality:            latestSnap.originality,
         stability:              latestSnap.stability,
         continuity:             latestSnap.continuity,
-        abstractionLevel:       0,
-        lexicalRichness:        0,
-        informationDensity:     0,
-        revisionSignal:         (latestSnap as any).revisionSignal ?? 0,
+        abstractionLevel:       latestSnap.abstractionLevel,
+        lexicalRichness:        latestSnap.lexicalRichness,
+        informationDensity:     latestSnap.informationDensity,
+        revisionSignal:         latestSnap.revisionSignal,
       })
     : { profondita: 0, connettivita: 0, precisione: 0, revisione: 0 };
 
