@@ -1,7 +1,8 @@
 import { getAuth } from "@clerk/express";
 import { Router } from "express";
+import { z } from "zod/v4";
 import { db } from "@workspace/db";
-import { users, sgiSnapshots, leaderboardEntries, gamification, badges, missions, recommendations, semanticDomains, conversations, messages, threads, blockedAttempts } from "@workspace/db";
+import { users, sgiSnapshots, leaderboardEntries, gamification, badges, missions, recommendations, semanticDomains, conversations, messages, threads, blockedAttempts, userDeclaredFacts } from "@workspace/db";
 import { eq, desc, gte, and, asc, sql, inArray } from "drizzle-orm";
 import { SyncUserBody } from "@workspace/api-zod";
 import { computeLevel, xpToNextLevel as xpToNext, levelProgress as lvlProgress, BADGE_DEFINITIONS, computeMacroDimensions } from "../lib/sgiScoring";
@@ -604,6 +605,75 @@ router.delete("/users/me", async (req, res) => {
     console.error("[DELETE /users/me]", err);
     res.status(500).json({ error: "Failed to delete account" });
   }
+});
+
+// ─── Context File — declared facts (Pro only) ────────────────────────────────
+
+const declaredFactBodySchema = z.object({
+  fact: z.string().min(1).max(200),
+});
+
+router.get("/users/me/context-file/facts", async (req, res) => {
+  const clerkId = getAuth(req).userId;
+  if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const user = await getOrCreateUser(clerkId);
+  if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
+  if (user.plan !== "pro") { res.status(403).json({ error: "Pro required", code: "PRO_REQUIRED" }); return; }
+
+  const facts = await db
+    .select()
+    .from(userDeclaredFacts)
+    .where(and(eq(userDeclaredFacts.userId, user.id), eq(userDeclaredFacts.isActive, true)))
+    .orderBy(desc(userDeclaredFacts.declaredAt));
+
+  res.json(facts);
+});
+
+router.post("/users/me/context-file/facts", async (req, res) => {
+  const clerkId = getAuth(req).userId;
+  if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const user = await getOrCreateUser(clerkId);
+  if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
+  if (user.plan !== "pro") { res.status(403).json({ error: "Pro required", code: "PRO_REQUIRED" }); return; }
+
+  const parsed = declaredFactBodySchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid body", details: parsed.error.issues }); return; }
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(userDeclaredFacts)
+    .where(and(eq(userDeclaredFacts.userId, user.id), eq(userDeclaredFacts.isActive, true)));
+
+  if (Number(count) >= 10) {
+    res.status(422).json({ error: "Limit reached", code: "FACTS_LIMIT_REACHED", max: 10 });
+    return;
+  }
+
+  const [inserted] = await db
+    .insert(userDeclaredFacts)
+    .values({ userId: user.id, fact: parsed.data.fact })
+    .returning({ id: userDeclaredFacts.id, fact: userDeclaredFacts.fact, declaredAt: userDeclaredFacts.declaredAt });
+
+  res.status(201).json(inserted);
+});
+
+router.delete("/users/me/context-file/facts/:factId", async (req, res) => {
+  const clerkId = getAuth(req).userId;
+  if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const user = await getOrCreateUser(clerkId);
+  if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
+  if (user.plan !== "pro") { res.status(403).json({ error: "Pro required", code: "PRO_REQUIRED" }); return; }
+
+  const factId = parseInt(req.params.factId!, 10);
+  if (isNaN(factId)) { res.status(400).json({ error: "Invalid factId" }); return; }
+
+  const result = await db
+    .update(userDeclaredFacts)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(and(eq(userDeclaredFacts.id, factId), eq(userDeclaredFacts.userId, user.id), eq(userDeclaredFacts.isActive, true)));
+
+  if (result.rowCount === 0) { res.status(404).json({ error: "Not found" }); return; }
+  res.status(204).end();
 });
 
 export default router;

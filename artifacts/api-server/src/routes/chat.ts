@@ -2,7 +2,7 @@ import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { db } from "@workspace/db";
-import { users, conversations, messages, sgiSnapshots, gamification, semanticDomains, blockedAttempts, threads, threadCandidates, progressCards } from "@workspace/db";
+import { users, conversations, messages, sgiSnapshots, gamification, semanticDomains, blockedAttempts, threads, threadCandidates, progressCards, domainEvents } from "@workspace/db";
 import { eq, desc, and, sql, gte, ilike } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
@@ -632,6 +632,11 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
           messageCount: sql`${semanticDomains.messageCount} + 1`,
           updatedAt: new Date(),
         },
+      });
+      await db.insert(domainEvents).values({
+        userId: user.id,
+        domain,
+        conversationId: convoId,
       });
     }
 
