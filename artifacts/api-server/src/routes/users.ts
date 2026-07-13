@@ -676,4 +676,54 @@ router.delete("/users/me/context-file/facts/:factId", async (req, res) => {
   res.status(204).end();
 });
 
+router.get("/users/me/context-file/domains", async (req, res) => {
+  const clerkId = getAuth(req).userId;
+  if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const user = await getOrCreateUser(clerkId);
+  if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
+  if (user.plan !== "pro") { res.status(403).json({ error: "Pro required", code: "PRO_REQUIRED" }); return; }
+
+  const result = await db.execute(sql`
+    SELECT domain, created_at
+    FROM domain_events
+    WHERE user_id = ${user.id}
+      AND created_at >= NOW() - INTERVAL '42 days'
+    ORDER BY created_at DESC
+  `);
+
+  const rows = result.rows as { domain: string; created_at: string }[];
+  const now = Date.now();
+
+  function computeCategory(windowDays: number, thresholdPct: number) {
+    const cutoff = now - windowDays * 24 * 60 * 60 * 1000;
+    const subset = rows.filter(r => new Date(r.created_at).getTime() >= cutoff);
+    const counts = new Map<string, number>();
+    for (const r of subset) counts.set(r.domain, (counts.get(r.domain) ?? 0) + 1);
+    const total = subset.length;
+    const distribution = Array.from(counts.entries())
+      .map(([domain, mentions]) => ({ domain, pct: total > 0 ? Math.round((mentions / total) * 1000) / 10 : 0 }))
+      .sort((a, b) => b.pct - a.pct);
+    const top = distribution[0];
+    const dominant = top && top.pct >= thresholdPct
+      ? { domain: top.domain, pct: top.pct, window_days: windowDays, threshold: thresholdPct }
+      : null;
+    return { dominant, distribution };
+  }
+
+  const lavoro = computeCategory(42, 60);
+  const studio = computeCategory(21, 45);
+  const hobby  = computeCategory(14, 30);
+
+  res.json({
+    lavoro:  lavoro.dominant,
+    studio:  studio.dominant,
+    hobby:   hobby.dominant,
+    distribution: {
+      lavoro: lavoro.distribution,
+      studio: studio.distribution,
+      hobby:  hobby.distribution,
+    },
+  });
+});
+
 export default router;
