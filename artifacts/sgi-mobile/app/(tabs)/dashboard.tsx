@@ -927,6 +927,45 @@ export default function DashboardScreen() {
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
           </Pressable>
+
+          <Pressable
+            onPress={() => router.push("/(tabs)/explore/context-file" as never)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 14,
+              padding: 16,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.card,
+            }}
+            testID="dashboard-context-file-card"
+          >
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.primary + "30",
+                backgroundColor: colors.primary + "18",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name="person-circle-outline" size={22} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ color: colors.foreground, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>
+                Il tuo Context File
+              </Text>
+              <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12 }} numberOfLines={1}>
+                Ritratto AI del tuo profilo intellettuale
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+          </Pressable>
         </ScrollView>
       )}
     </AnimatedScreen>
