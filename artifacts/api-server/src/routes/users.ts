@@ -807,4 +807,47 @@ router.get("/users/me/context-file/domains", async (req, res) => {
   });
 });
 
+// ─── Context File — public summary / Component B (Pro only) ─────────────────
+
+router.get("/users/me/context-file/public-summary", async (req, res) => {
+  const clerkId = getAuth(req).userId;
+  if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const user = await getOrCreateUser(clerkId);
+  if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
+  if (user.plan !== "pro") { res.status(403).json({ error: "Pro required", code: "PRO_REQUIRED" }); return; }
+
+  const [profile, [gam]] = await Promise.all([
+    buildUserProfile(user.id),
+    db.select({ xp: gamification.xp, streak: gamification.streak })
+      .from(gamification)
+      .where(eq(gamification.userId, user.id))
+      .limit(1),
+  ]);
+
+  const xp = gam?.xp ?? 0;
+  const streakDays = gam?.streak ?? 0;
+
+  const md = profile.macroDimensions;
+  const topDimension = (Object.entries(md) as [string, number][])
+    .sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+  res.json({
+    sgiScore:     profile.sgiScore,
+    sgiTrend: {
+      daily:   profile.sgiDailyDelta   ?? null,
+      weekly:  profile.sgiWeeklyDelta  ?? null,
+      monthly: profile.sgiMonthlyDelta ?? null,
+    },
+    globalRank:    profile.globalRank,
+    totalUsers:    profile.totalUsers,
+    percentile:    profile.percentile,
+    rankChange30d: profile.rankChange30d ?? null,
+    macroDimensions: md,
+    topDimension,
+    level:      computeLevel(xp),
+    xp,
+    streakDays,
+  });
+});
+
 export default router;
