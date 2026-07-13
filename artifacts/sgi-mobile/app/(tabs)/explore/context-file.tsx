@@ -321,7 +321,7 @@ function DomainsSection({
 // ─── Section: Declared Facts (A) — editable (Step 2) ────────────────────────
 
 const MAX_FACT_LEN = 200;
-const MAX_FACTS = 20;
+const MAX_FACTS = 10;
 
 function DeclaredFactsSection({
   data,
@@ -574,6 +574,9 @@ export default function ContextFileScreen() {
       });
       if (!r.ok) {
         const body = await r.json().catch(() => ({})) as Record<string, unknown>;
+        if (r.status === 422 && (body.code as string | undefined) === "FACTS_LIMIT_REACHED") {
+          throw new Error("Hai raggiunto il limite di 10 fatti");
+        }
         throw new Error((body.error as string | undefined) ?? `Errore ${r.status}`);
       }
       return r.json();
