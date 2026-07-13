@@ -1,6 +1,6 @@
 import { getAuth } from "@clerk/express";
 import { Router } from "express";
-import { z } from "zod/v4";
+import { z } from "zod";
 import { db } from "@workspace/db";
 import { users, sgiSnapshots, leaderboardEntries, gamification, badges, missions, recommendations, semanticDomains, conversations, messages, threads, blockedAttempts, userDeclaredFacts, aiInferredFacts } from "@workspace/db";
 import { eq, desc, gte, and, asc, sql, inArray } from "drizzle-orm";
