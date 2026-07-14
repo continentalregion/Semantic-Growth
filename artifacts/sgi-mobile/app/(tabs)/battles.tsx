@@ -29,6 +29,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { fetch } from "expo/fetch";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
+import { useGetMyProfile } from "@workspace/api-client-react";
+import { usePurchase } from "@/hooks/usePurchase";
 
 const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
 const MIN_CHARS = 10;
@@ -870,6 +872,11 @@ export default function BattlesScreen() {
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const { getToken } = useAuth();
+  const { data: profile } = useGetMyProfile();
+  const { triggerPurchase } = usePurchase();
+  const battlesUsed = profile?.monthlyBattlesUsed ?? 0;
+  const battlesLimit = profile?.monthlyBattlesLimit ?? 8;
+  const battlesNearLimit = battlesUsed >= battlesLimit;
   // Stable ref — prevents loadData from being recreated on every Clerk token
   // refresh, which would fire the initial useEffect again and cause a freeze
   // (setLoading(true) → AnimatedScreen remount/re-animation) mid-matchmaking.
@@ -928,7 +935,25 @@ export default function BattlesScreen() {
         headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
         body: JSON.stringify({ lang: i18n.language }),
       });
-      if (!r.ok) throw new Error();
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({})) as { code?: string; used?: number; limit?: number; plan?: string };
+        if (body.code === "BATTLE_LIMIT_REACHED") {
+          const buttons: { text: string; onPress?: () => void }[] = [{ text: "OK" }];
+          if (body.plan === "free") {
+            buttons.unshift({ text: t("battles.upgradeToPremium"), onPress: () => triggerPurchase("premium") });
+          } else if (body.plan === "premium") {
+            buttons.unshift({ text: t("battles.upgradeToPro"), onPress: () => triggerPurchase("pro") });
+          }
+          Alert.alert(
+            t("battles.limitReachedTitle"),
+            t("battles.limitReachedMsg", { used: body.used, limit: body.limit, plan: body.plan }),
+            buttons,
+          );
+        } else {
+          Alert.alert(t("battles.errorTitle"), t("battles.matchmakeError"));
+        }
+        return;
+      }
       const view = await r.json() as MatchView;
       setModalMatchId(view.matchId);
       setModalVisible(true);
@@ -990,6 +1015,12 @@ export default function BattlesScreen() {
           : <Ionicons name="flash" size={16} color={palette.white} />}
         <Text style={styles.matchmakeText}>{matchmaking ? t("battles.matchmaking") : t("battles.findOpponent")}</Text>
       </Pressable>
+
+      {profile && (
+        <Text style={[styles.battleCounter, { color: battlesNearLimit ? palette.warning : colors.mutedForeground }]}>
+          {battlesUsed}/{battlesLimit} {t("battles.battlesThisMonth")}
+        </Text>
+      )}
 
       <View style={[styles.tabRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
         {(["mine", "public"] as const).map(tabKey => (
@@ -1189,8 +1220,9 @@ const styles = StyleSheet.create({
   headerRow: { marginBottom: 12, flexDirection: "row", alignItems: "center" },
   headerTitle: { fontSize: 22, fontFamily: "Inter_700Bold" },
   headerSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
-  matchmakeBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, paddingVertical: 13, marginBottom: 12 },
+  matchmakeBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, paddingVertical: 13, marginBottom: 8 },
   matchmakeText: { color: palette.white, fontSize: 14, fontFamily: "Inter_700Bold" },
+  battleCounter: { fontSize: 12, fontFamily: "Inter_400Regular", textAlign: "center", marginBottom: 10 },
   tabRow: { flexDirection: "row", borderRadius: 10, borderWidth: 1, padding: 4, gap: 4 },
   tabBtn: { flex: 1, borderRadius: 8, paddingVertical: 8, alignItems: "center" },
   tabBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
