@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useTranslation } from "react-i18next";
@@ -922,6 +923,17 @@ export default function BattlesScreen() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadData(); }, []);
+
+  // Reload silently every time the tab comes back into focus (e.g. after
+  // router.push from thread/[id].tsx). Skip the very first focus event
+  // because the useEffect above already handles the initial mount fetch.
+  const hasMountedRef = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasMountedRef.current) { hasMountedRef.current = true; return; }
+      loadData(true);
+    }, [loadData]),
+  );
 
   const onRefresh = useCallback(() => { setRefreshing(true); loadData(true); }, [loadData]);
 
