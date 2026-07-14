@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import {
   battleMatches,
   battleEntries,
+  threads,
   gamification,
   badges,
   type SessionMessage,
@@ -565,6 +566,19 @@ async function buildMatchView(clerkId: string, matchId: string) {
   };
 }
 
+// ─── Thread→Battle category normalisation ────────────────────────────────────
+// Thread categories that don't exist in CATEGORY_META are mapped to the closest
+// Battle category. Categories already present in both taxonomies map to themselves.
+export const THREAD_TO_BATTLE_CATEGORY: Record<string, string> = {
+  philosophy:    "philosophy",
+  science:       "science",
+  technology:    "technology",
+  ethics:        "philosophy",
+  society:       "politics",
+  knowledge:     "philosophy",
+  consciousness: "philosophy",
+};
+
 // ─── POST /battles/matchmake — automatic, race-safe pairing ──────────────────
 // Three-phase flow keeps the LLM theme-generation call OUTSIDE any DB transaction:
 //   Phase 1: optimistic read — resume existing open match (no lock, instant).
@@ -644,28 +658,46 @@ router.post("/battles/matchmake", async (req, res) => {
       return;
     }
 
-    // ── Phase 3: nobody waiting → generate unique theme via LLM, open new match ─
-    // generateBattleTheme reads this user's battle history, calls gpt-4o-mini with
-    // a 2s timeout, and falls back to pickThemeFor(seenThemes) on any failure.
+    // ── Phase 3: nobody waiting → determine theme, open new match ───────────────
+    // When a threadId is supplied the theme comes directly from the thread (no LLM,
+    // no budget charge). Without threadId the existing LLM/static-pool logic runs
+    // unchanged. themeSource is surfaced to the frontend so it can optionally show
+    // a badge/tooltip (same transparency pattern as the BUDGET_EXHAUSTED flow).
+    const rawThreadId = typeof req.body?.threadId === "string" ? req.body.threadId.trim() : null;
     const lang = typeof req.body?.lang === "string" ? req.body.lang.slice(0, 10) : "it";
     let picked: { theme: string; category: string };
-    // themeSource is surfaced to the frontend so it *can* optionally show a
-    // non-alarming "standard theme" badge/tooltip when the LLM pool wasn't
-    // used — same transparency pattern as the guest BUDGET_EXHAUSTED flow,
-    // but non-blocking: matchmaking must never fail just because the budget
-    // guardrail kicked in.
-    let themeSource: "generated" | "static" = "generated";
-    if (await isBattleBudgetOk()) {
-      picked = await generateBattleTheme(clerkId, lang);
-      void chargeBattleBudget(COST_BATTLE_THEME_CENTS);
+    let themeSource: "generated" | "static" | "thread" = "generated";
+    let resolvedThreadId: string | null = null;
+
+    if (rawThreadId) {
+      const [thread] = await db.select({ id: threads.id, question: threads.question, category: threads.category })
+        .from(threads)
+        .where(eq(threads.id, rawThreadId))
+        .limit(1);
+      if (!thread) {
+        res.status(404).json({ error: "Thread not found", code: "THREAD_NOT_FOUND" });
+        return;
+      }
+      picked = {
+        theme: thread.question,
+        category: THREAD_TO_BATTLE_CATEGORY[thread.category ?? "philosophy"] ?? "philosophy",
+      };
+      themeSource = "thread";
+      resolvedThreadId = thread.id;
     } else {
-      console.warn("[battles] budget exhausted — using static theme pool for matchmake");
-      picked = pickThemeFor([]); // skip LLM call entirely; static pool is sufficient
-      themeSource = "static";
+      if (await isBattleBudgetOk()) {
+        picked = await generateBattleTheme(clerkId, lang);
+        void chargeBattleBudget(COST_BATTLE_THEME_CENTS);
+      } else {
+        console.warn("[battles] budget exhausted — using static theme pool for matchmake");
+        picked = pickThemeFor([]); // skip LLM call entirely; static pool is sufficient
+        themeSource = "static";
+      }
     }
 
     const [created] = await db.insert(battleMatches).values({
       theme: picked.theme, category: picked.category, status: "waiting",
+      threadId: resolvedThreadId,
       expiresAt: new Date(Date.now() + WAITING_TTL_MS),
     }).returning({ id: battleMatches.id });
 
