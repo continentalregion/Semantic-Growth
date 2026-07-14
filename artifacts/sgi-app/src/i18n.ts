@@ -300,7 +300,7 @@ const IT = {
   },
   threads: {
     title: "Thread Aperti",
-    subtitle: "Domande intellettuali irrisolte. Sfida un altro utente in 4 minuti di ragionamento con l'AI.",
+    subtitle: "Domande intellettuali irrisolte. Sfida un altro utente in 6:30 minuti di ragionamento con l'AI.",
     filterAll: "Tutti",
     createBtn: "+ Nuovo Thread",
     aiGenerated: "estratto da chat",
@@ -875,7 +875,7 @@ const EN = {
   },
   threads: {
     title: "Open Threads",
-    subtitle: "Unresolved intellectual questions. Challenge another user to 4 minutes of AI-powered reasoning.",
+    subtitle: "Unresolved intellectual questions. Challenge another user to 6:30 minutes of AI-powered reasoning.",
     filterAll: "All",
     createBtn: "+ New Thread",
     aiGenerated: "extracted from chat",
@@ -1451,7 +1451,7 @@ const ES = {
   },
   threads: {
     title: "Hilos Abiertos",
-    subtitle: "Preguntas intelectuales irresueltas. Desafía a otro usuario a 4 minutos de razonamiento con IA.",
+    subtitle: "Preguntas intelectuales irresueltas. Desafía a otro usuario a 6:30 minutos de razonamiento con IA.",
     filterAll: "Todos",
     createBtn: "+ Nuevo Hilo",
     aiGenerated: "extraído de chat",
