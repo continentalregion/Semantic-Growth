@@ -7,6 +7,7 @@ import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { eq, desc, gte, and, asc, sql, inArray } from "drizzle-orm";
 import { SyncUserBody } from "@workspace/api-zod";
 import { computeLevel, xpToNextLevel as xpToNext, levelProgress as lvlProgress, BADGE_DEFINITIONS, computeMacroDimensions } from "../lib/sgiScoring";
+import { MONTHLY_BATTLE_LIMITS } from "../config/pricing.js";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { generateRecommendations } from "../lib/generateRecommendations";
 import { awardBadge } from "../lib/awardBadge";
@@ -344,6 +345,9 @@ async function buildUserProfile(userId: number) {
     percentile,
     rankChange30d,
     macroDimensions,
+    monthlyBattlesUsed: user.monthlyBattlesUsed,
+    monthlyBattlesLimit: MONTHLY_BATTLE_LIMITS[user.plan] ?? MONTHLY_BATTLE_LIMITS.free!,
+    monthlyResetDate: user.monthlyResetDate ?? null,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };
