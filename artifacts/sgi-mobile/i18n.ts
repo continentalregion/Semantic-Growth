@@ -494,6 +494,8 @@ const IT = {
     completed: "Completata",
     inProgress: "In corso",
     viewThread: "Vedi Thread →",
+    startPvpBattle: "Sfida un utente su questo tema",
+    startPvpBattleDesc: "Avvia una battaglia PvP con questo argomento",
   },
   share: {
     shareCard: "Condividi card",
@@ -994,6 +996,8 @@ const EN: typeof IT = {
     completed: "Completed",
     inProgress: "In progress",
     viewThread: "See Thread →",
+    startPvpBattle: "Challenge a user on this topic",
+    startPvpBattleDesc: "Start a PvP battle on this topic",
   },
   share: {
     shareCard: "Share card",
@@ -1494,6 +1498,8 @@ const ES: typeof IT = {
     completed: "Completada",
     inProgress: "En progreso",
     viewThread: "Ver Hilo →",
+    startPvpBattle: "Desafía a un usuario sobre este tema",
+    startPvpBattleDesc: "Inicia una batalla PvP con este tema",
   },
   share: {
     shareCard: "Compartir tarjeta",

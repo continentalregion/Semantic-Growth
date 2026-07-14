@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { View, Text, ScrollView, Pressable, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@clerk/expo";
@@ -10,6 +10,7 @@ import { fetch } from "expo/fetch";
 import { useColors } from "@/hooks/useColors";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
+import { usePurchase } from "@/hooks/usePurchase";
 
 const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
 
@@ -41,9 +42,12 @@ interface ThreadDetail {
 export default function ThreadDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getToken } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { triggerPurchase } = usePurchase();
+
+  const [pvpLoading, setPvpLoading] = useState(false);
 
   const { data: thread, isLoading, isError, refetch } = useQuery({
     queryKey: ["thread", id],
@@ -57,6 +61,47 @@ export default function ThreadDetailScreen() {
     },
     enabled: !!id,
   });
+
+  async function startPvpBattle() {
+    if (pvpLoading || !thread) return;
+    setPvpLoading(true);
+    try {
+      const token = await getToken();
+      const r = await fetch(`${BASE}/api/battles/matchmake`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token ?? ""}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ threadId: thread.id, lang: i18n.language }),
+      });
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({})) as {
+          code?: string; used?: number; limit?: number; plan?: string;
+        };
+        if (body.code === "THREAD_NOT_FOUND") {
+          Alert.alert(t("battles.errorTitle"), "Thread non trovato");
+        } else if (body.code === "BATTLE_LIMIT_REACHED") {
+          const buttons: { text: string; onPress?: () => void }[] = [{ text: "OK" }];
+          if (body.plan === "free") {
+            buttons.unshift({ text: t("battles.upgradeToPremium"), onPress: () => triggerPurchase("premium") });
+          } else if (body.plan === "premium") {
+            buttons.unshift({ text: t("battles.upgradeToPro"), onPress: () => triggerPurchase("pro") });
+          }
+          Alert.alert(
+            t("battles.limitReachedTitle"),
+            t("battles.limitReachedMsg", { used: body.used, limit: body.limit, plan: body.plan }),
+            buttons,
+          );
+        } else {
+          Alert.alert(t("battles.errorTitle"), t("battles.matchmakeError"));
+        }
+        return;
+      }
+      router.push("/(tabs)/battles");
+    } catch {
+      Alert.alert(t("battles.errorTitle"), t("battles.matchmakeError"));
+    } finally {
+      setPvpLoading(false);
+    }
+  }
 
   const hasData = !!thread;
   const isCriticalError = !hasData && isError;
@@ -166,7 +211,7 @@ export default function ThreadDetailScreen() {
           </View>
         </View>
 
-        {/* Battle Card CTA */}
+        {/* Battle Card CTA (legacy — User-vs-AI result card, invariato) */}
         {!!thread.battleCardId && (
           <Pressable
             style={({ pressed }) => [
@@ -189,6 +234,31 @@ export default function ThreadDetailScreen() {
             <Ionicons name="chevron-forward" size={16} color={colors.gold} />
           </Pressable>
         )}
+
+        {/* Start PvP Battle CTA */}
+        <Pressable
+          style={({ pressed }) => [
+            st.card,
+            { flexDirection: "row", alignItems: "center", gap: 12,
+              backgroundColor: colors.primary + "12", borderColor: colors.primary + "40",
+              opacity: pressed || pvpLoading ? 0.75 : 1 },
+          ]}
+          onPress={startPvpBattle}
+          disabled={pvpLoading}
+        >
+          {pvpLoading
+            ? <ActivityIndicator size="small" color={colors.primary} style={{ width: 20 }} />
+            : <Ionicons name="flash" size={20} color={colors.primary} />}
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.primary, fontSize: 13, fontFamily: "Inter_600SemiBold" }}>
+              {t("thread.startPvpBattle")}
+            </Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 }}>
+              {t("thread.startPvpBattleDesc")}
+            </Text>
+          </View>
+          {!pvpLoading && <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />}
+        </Pressable>
 
         {/* Knowledge Base */}
         {(thread.knowledgeBase?.length ?? 0) > 0 && (
