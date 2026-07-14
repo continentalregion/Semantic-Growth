@@ -25,6 +25,7 @@ const IT = {
     disconnect: "Disconnetti",
     explore: "Esplora",
     notifications: "Notifiche",
+    contextFile: "Contesto AI",
   },
   notifications: {
     title: "Notifiche",
@@ -475,6 +476,10 @@ const IT = {
     growthDesc: "Il piano personalizzato per migliorare il tuo SGI",
     progressDesc: "Badge, livelli XP e traguardi raggiunti",
     comingSoon: "In arrivo",
+    sectionArena: "Arena",
+    sectionInsight: "Insight",
+    sectionIdentity: "Identità",
+    contextFileDesc: "Il tuo ritratto AI — fatti, interessi e narrativa semantica",
   },
   thread: {
     title: "Thread",
@@ -520,6 +525,7 @@ const EN: typeof IT = {
     disconnect: "Sign Out",
     explore: "Explore",
     notifications: "Notifications",
+    contextFile: "AI Context",
   },
   notifications: {
     title: "Notifications",
@@ -970,6 +976,10 @@ const EN: typeof IT = {
     growthDesc: "Your personalized plan to improve your SGI",
     progressDesc: "Badges, XP levels, and achievements unlocked",
     comingSoon: "Coming soon",
+    sectionArena: "Arena",
+    sectionInsight: "Insight",
+    sectionIdentity: "Identity",
+    contextFileDesc: "Your AI portrait — facts, interests and semantic narrative",
   },
   thread: {
     title: "Thread",
@@ -1015,6 +1025,7 @@ const ES: typeof IT = {
     disconnect: "Salir",
     explore: "Explorar",
     notifications: "Notificaciones",
+    contextFile: "Contexto AI",
   },
   notifications: {
     title: "Notificaciones",
@@ -1465,6 +1476,10 @@ const ES: typeof IT = {
     growthDesc: "Tu plan personalizado para mejorar tu SGI",
     progressDesc: "Insignias, niveles XP y logros desbloqueados",
     comingSoon: "Próximamente",
+    sectionArena: "Arena",
+    sectionInsight: "Insight",
+    sectionIdentity: "Identidad",
+    contextFileDesc: "Tu retrato AI — hechos, intereses y narrativa semántica",
   },
   thread: {
     title: "Hilo",

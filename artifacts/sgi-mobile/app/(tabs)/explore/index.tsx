@@ -12,6 +12,7 @@ import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 const ADMIN_EMAILS = ["francescoullo1@gmail.com"];
 
 type TileColor = "gold" | "teal" | "primary" | "pink";
+type TileSection = "arena" | "insight" | "identity";
 
 const TILES: {
   route: string;
@@ -19,20 +20,15 @@ const TILES: {
   titleKey: string;
   descKey: string;
   color: TileColor;
+  section: TileSection;
 }[] = [
   {
-    route: "/(tabs)/explore/rank",
+    route: "/(tabs)/leaderboard",
     icon: "trophy-outline",
     titleKey: "nav.rank",
     descKey: "explore.rankDesc",
     color: "gold",
-  },
-  {
-    route: "/(tabs)/explore/map",
-    icon: "globe-outline",
-    titleKey: "nav.map",
-    descKey: "explore.mapDesc",
-    color: "teal",
+    section: "arena",
   },
   {
     route: "/(tabs)/explore/predictions",
@@ -40,13 +36,15 @@ const TILES: {
     titleKey: "nav.predictions",
     descKey: "explore.predictionsDesc",
     color: "primary",
+    section: "insight",
   },
   {
-    route: "/(tabs)/explore/growth",
+    route: "/(tabs)/recommendations",
     icon: "trending-up-outline",
     titleKey: "nav.growthPath",
     descKey: "explore.growthDesc",
     color: "pink",
+    section: "insight",
   },
   {
     route: "/(tabs)/explore/progress",
@@ -54,8 +52,42 @@ const TILES: {
     titleKey: "nav.progress",
     descKey: "explore.progressDesc",
     color: "teal",
+    section: "insight",
+  },
+  {
+    route: "/(tabs)/explore/map",
+    icon: "globe-outline",
+    titleKey: "nav.map",
+    descKey: "explore.mapDesc",
+    color: "teal",
+    section: "insight",
+  },
+  {
+    route: "/(tabs)/explore/context-file",
+    icon: "person-circle-outline",
+    titleKey: "nav.contextFile",
+    descKey: "explore.contextFileDesc",
+    color: "primary",
+    section: "identity",
   },
 ];
+
+const SECTIONS: { key: TileSection; labelKey: string }[] = [
+  { key: "arena", labelKey: "explore.sectionArena" },
+  { key: "insight", labelKey: "explore.sectionInsight" },
+  { key: "identity", labelKey: "explore.sectionIdentity" },
+];
+
+function SectionHeader({ title }: { title: string }) {
+  const colors = useColors();
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={[styles.sectionHeaderText, { color: colors.mutedForeground }]}>
+        {title.toUpperCase()}
+      </Text>
+    </View>
+  );
+}
 
 export default function ExploreHubScreen() {
   const { t } = useTranslation();
@@ -90,55 +122,63 @@ export default function ExploreHubScreen() {
           padding: colors.spacing.lg,
           paddingBottom:
             (Platform.OS === "web" ? 34 : tabBarHeight) + colors.spacing.xl,
-          gap: colors.spacing.md,
+          gap: colors.spacing.lg,
         }}
         showsVerticalScrollIndicator={false}
       >
-        {TILES.map((tile) => {
-          const tileColor: string =
-            (colors as Record<string, unknown>)[tile.color] as string ??
-            colors.primary;
+        {SECTIONS.map(({ key, labelKey }) => {
+          const sectionTiles = TILES.filter((tile) => tile.section === key);
           return (
-            <Pressable
-              key={tile.route}
-              style={({ pressed }) => [
-                styles.tile,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  opacity: pressed ? 0.72 : 1,
-                },
-              ]}
-              onPress={() => router.push(tile.route as never)}
-            >
-              <View
-                style={[
-                  styles.tileIcon,
-                  {
-                    backgroundColor: tileColor + "18",
-                    borderColor: tileColor + "30",
-                  },
-                ]}
-              >
-                <Ionicons name={tile.icon} size={24} color={tileColor} />
-              </View>
-              <View style={styles.tileText}>
-                <Text style={[styles.tileTitle, { color: colors.foreground }]}>
-                  {t(tile.titleKey)}
-                </Text>
-                <Text
-                  style={[styles.tileDesc, { color: colors.mutedForeground }]}
-                  numberOfLines={2}
-                >
-                  {t(tile.descKey)}
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={colors.mutedForeground}
-              />
-            </Pressable>
+            <View key={key} style={{ gap: colors.spacing.md }}>
+              <SectionHeader title={t(labelKey)} />
+              {sectionTiles.map((tile) => {
+                const tileColor: string =
+                  (colors as Record<string, unknown>)[tile.color] as string ??
+                  colors.primary;
+                return (
+                  <Pressable
+                    key={tile.route}
+                    style={({ pressed }) => [
+                      styles.tile,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        opacity: pressed ? 0.72 : 1,
+                      },
+                    ]}
+                    onPress={() => router.push(tile.route as never)}
+                  >
+                    <View
+                      style={[
+                        styles.tileIcon,
+                        {
+                          backgroundColor: tileColor + "18",
+                          borderColor: tileColor + "30",
+                        },
+                      ]}
+                    >
+                      <Ionicons name={tile.icon} size={24} color={tileColor} />
+                    </View>
+                    <View style={styles.tileText}>
+                      <Text style={[styles.tileTitle, { color: colors.foreground }]}>
+                        {t(tile.titleKey)}
+                      </Text>
+                      <Text
+                        style={[styles.tileDesc, { color: colors.mutedForeground }]}
+                        numberOfLines={2}
+                      >
+                        {t(tile.descKey)}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={18}
+                      color={colors.mutedForeground}
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
           );
         })}
 
@@ -197,6 +237,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 20, fontFamily: "Inter_700Bold" },
   headerSub: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  sectionHeader: { marginBottom: 2 },
+  sectionHeaderText: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.8 },
   tile: {
     borderRadius: 14,
     borderWidth: 1,
