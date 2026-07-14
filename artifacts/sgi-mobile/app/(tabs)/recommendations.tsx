@@ -125,8 +125,11 @@ export default function RecommendationsScreen() {
   const tabBarHeight = useBottomTabBarHeight();
 
   const { data: profile } = useGetMyProfile();
+  const isPremiumOrPro = profile?.plan === "premium" || profile?.plan === "pro";
 
-  const { data: recs, isLoading, refetch, isRefetching } = useGetMyRecommendations();
+  const { data: recs, isLoading, refetch, isRefetching } = useGetMyRecommendations({
+    query: { enabled: isPremiumOrPro },
+  });
 
   return (
     <AnimatedScreen style={{ backgroundColor: colors.background }}>
