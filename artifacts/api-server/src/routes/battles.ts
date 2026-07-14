@@ -595,17 +595,26 @@ router.post("/battles/matchmake", async (req, res) => {
 
     await reconcileExpiredMatches();
 
+    // Parse threadId early: when present, Phase 1 + Phase 2 are skipped so the
+    // battle is always created on the chosen thread's theme (not resumed from or
+    // joined to a pre-existing generic waiting match).
+    const rawThreadId = typeof req.body?.threadId === "string" ? req.body.threadId.trim() : null;
+
     // ── Phase 1: resume existing open entry (no lock, idempotent) ────────────
-    const existingRow = await db.execute(sql`
-      SELECT match_id FROM battle_entries
-      WHERE user_id = ${clerkId} AND status IN ('matched', 'in_progress')
-      LIMIT 1
-    `);
-    const existingMatchId = (existingRow.rows?.[0] as { match_id?: string } | undefined)?.match_id;
-    if (existingMatchId) {
-      const view = await buildMatchView(clerkId, existingMatchId);
-      res.json(view);
-      return;
+    // Skipped when threadId supplied — a thread-initiated battle must always
+    // open a new dedicated match, never resume a generic one.
+    if (!rawThreadId) {
+      const existingRow = await db.execute(sql`
+        SELECT match_id FROM battle_entries
+        WHERE user_id = ${clerkId} AND status IN ('matched', 'in_progress')
+        LIMIT 1
+      `);
+      const existingMatchId = (existingRow.rows?.[0] as { match_id?: string } | undefined)?.match_id;
+      if (existingMatchId) {
+        const view = await buildMatchView(clerkId, existingMatchId);
+        res.json(view);
+        return;
+      }
     }
 
     // ── Per-user battle rate limit (8/80/250 per month by plan, first-battle
@@ -627,35 +636,38 @@ router.post("/battles/matchmake", async (req, res) => {
     }
 
     // ── Phase 2: join a waiting match (locked transaction, no LLM) ───────────
-    let joinedMatchId: string | null = null;
-    await db.transaction(async (tx) => {
-      const waiting = await tx.execute(sql`
-        SELECT id FROM battle_matches m
-        WHERE m.status = 'waiting'
-          AND NOT EXISTS (
-            SELECT 1 FROM battle_entries e WHERE e.match_id = m.id AND e.user_id = ${clerkId}
-          )
-        ORDER BY m.created_at ASC
-        FOR UPDATE SKIP LOCKED
-        LIMIT 1
-      `);
-      const waitingId = (waiting.rows?.[0] as { id?: string } | undefined)?.id;
-      if (waitingId) {
-        await tx.insert(battleEntries).values({
-          matchId: waitingId, userId: clerkId, username, slot: 2, status: "matched",
-        });
-        await tx.update(battleMatches)
-          .set({ status: "active", expiresAt: new Date(Date.now() + ACTIVE_TTL_MS), updatedAt: new Date() })
-          .where(eq(battleMatches.id, waitingId));
-        joinedMatchId = waitingId;
-      }
-    });
+    // Skipped when threadId supplied — same reason as Phase 1.
+    if (!rawThreadId) {
+      let joinedMatchId: string | null = null;
+      await db.transaction(async (tx) => {
+        const waiting = await tx.execute(sql`
+          SELECT id FROM battle_matches m
+          WHERE m.status = 'waiting'
+            AND NOT EXISTS (
+              SELECT 1 FROM battle_entries e WHERE e.match_id = m.id AND e.user_id = ${clerkId}
+            )
+          ORDER BY m.created_at ASC
+          FOR UPDATE SKIP LOCKED
+          LIMIT 1
+        `);
+        const waitingId = (waiting.rows?.[0] as { id?: string } | undefined)?.id;
+        if (waitingId) {
+          await tx.insert(battleEntries).values({
+            matchId: waitingId, userId: clerkId, username, slot: 2, status: "matched",
+          });
+          await tx.update(battleMatches)
+            .set({ status: "active", expiresAt: new Date(Date.now() + ACTIVE_TTL_MS), updatedAt: new Date() })
+            .where(eq(battleMatches.id, waitingId));
+          joinedMatchId = waitingId;
+        }
+      });
 
-    if (joinedMatchId) {
-      await recordUserBattleUsage(user.id, battleUsage.isFirstBattle);
-      const view = await buildMatchView(clerkId, joinedMatchId);
-      res.json({ ...view, battleUsage: { used: battleUsage.used, limit: battleUsage.limit, warning: battleUsage.warning } });
-      return;
+      if (joinedMatchId) {
+        await recordUserBattleUsage(user.id, battleUsage.isFirstBattle);
+        const view = await buildMatchView(clerkId, joinedMatchId);
+        res.json({ ...view, battleUsage: { used: battleUsage.used, limit: battleUsage.limit, warning: battleUsage.warning } });
+        return;
+      }
     }
 
     // ── Phase 3: nobody waiting → determine theme, open new match ───────────────
@@ -663,7 +675,7 @@ router.post("/battles/matchmake", async (req, res) => {
     // no budget charge). Without threadId the existing LLM/static-pool logic runs
     // unchanged. themeSource is surfaced to the frontend so it can optionally show
     // a badge/tooltip (same transparency pattern as the BUDGET_EXHAUSTED flow).
-    const rawThreadId = typeof req.body?.threadId === "string" ? req.body.threadId.trim() : null;
+    // rawThreadId already parsed above.
     const lang = typeof req.body?.lang === "string" ? req.body.lang.slice(0, 10) : "it";
     let picked: { theme: string; category: string };
     let themeSource: "generated" | "static" | "thread" = "generated";

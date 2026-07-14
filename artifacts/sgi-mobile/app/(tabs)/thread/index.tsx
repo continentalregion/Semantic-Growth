@@ -140,7 +140,7 @@ export default function ThreadsListScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10, gap: 8 }}
+        contentContainerStyle={{ flexDirection: "row", paddingHorizontal: 16, paddingVertical: 10, gap: 8 }}
         style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
       >
         <Pressable
@@ -418,6 +418,7 @@ const st = StyleSheet.create({
   filterChip: {
     flexDirection: "row",
     alignItems: "center",
+    flexShrink: 0,
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 6,
