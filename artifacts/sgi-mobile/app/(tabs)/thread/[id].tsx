@@ -74,10 +74,16 @@ export default function ThreadDetailScreen() {
       });
       if (!r.ok) {
         const body = await r.json().catch(() => ({})) as {
-          code?: string; used?: number; limit?: number; plan?: string;
+          code?: string; used?: number; limit?: number; plan?: string; existingMatchId?: string;
         };
         if (body.code === "THREAD_NOT_FOUND") {
           Alert.alert(t("battles.errorTitle"), "Thread non trovato");
+        } else if (body.code === "BATTLE_ALREADY_ACTIVE") {
+          Alert.alert(
+            "Battaglia in corso",
+            "Hai già una battaglia attiva. Finiscila prima di aprirne una nuova.",
+            [{ text: "Vai alle battaglie", onPress: () => router.push("/(tabs)/battles") }, { text: "OK" }],
+          );
         } else if (body.code === "BATTLE_LIMIT_REACHED") {
           const buttons: { text: string; onPress?: () => void }[] = [{ text: "OK" }];
           if (body.plan === "free") {

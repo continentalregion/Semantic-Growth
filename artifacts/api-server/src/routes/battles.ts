@@ -707,6 +707,27 @@ router.post("/battles/matchmake", async (req, res) => {
       }
     }
 
+    // Guard: when threadId is present Phase 1 was skipped, so we must check
+    // here whether the user already has an open entry before inserting.
+    // Without this the DB partial-unique index battle_entries_open_user_idx
+    // would fire a 23505 and turn into an opaque 500.
+    if (rawThreadId) {
+      const openRow = await db.execute(sql`
+        SELECT match_id FROM battle_entries
+        WHERE user_id = ${clerkId} AND status IN ('matched', 'in_progress')
+        LIMIT 1
+      `);
+      const openMatchId = (openRow.rows?.[0] as { match_id?: string } | undefined)?.match_id;
+      if (openMatchId) {
+        res.status(409).json({
+          error: "Hai già una battaglia in corso",
+          code: "BATTLE_ALREADY_ACTIVE",
+          existingMatchId: openMatchId,
+        });
+        return;
+      }
+    }
+
     const [created] = await db.insert(battleMatches).values({
       theme: picked.theme, category: picked.category, status: "waiting",
       threadId: resolvedThreadId,
