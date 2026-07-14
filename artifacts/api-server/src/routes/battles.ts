@@ -398,7 +398,10 @@ export async function reconcileExpiredMatches(): Promise<number> {
       .from(battleMatches)
       .where(and(eq(battleMatches.status, "waiting"), lt(battleMatches.createdAt, escalationCutoff)))
       .limit(5);
-    processed += toEscalate.length;
+    // Do NOT count toEscalate in processed: escalation is fired non-blocking (void)
+    // and the status update happens asynchronously. Counting these rows would make
+    // the notification sweep loop continue even though no synchronous work was done,
+    // causing repeated re-selection of the same waiting rows before their status updates.
     for (const m of toEscalate) {
       void (async () => {
         try {

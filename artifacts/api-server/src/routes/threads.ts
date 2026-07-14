@@ -3,7 +3,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { users, threads, threadSessions, battleCards, aiBattles, gamification, badges, progressCards, sgiSnapshots, conversations } from "@workspace/db";
 import type { ThreadConnection, SessionMessage, BattleAnswerScore } from "@workspace/db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { evaluateBattle } from "../lib/battleScoring";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
@@ -111,7 +111,7 @@ router.get("/threads", async (req, res) => {
     if (creatorClerkIds.length > 0) {
       const creators = await db.select({ clerkId: users.clerkId, id: users.id })
         .from(users)
-        .where(sql`${users.clerkId} IN ${creatorClerkIds}`);
+        .where(inArray(users.clerkId, creatorClerkIds));
       for (const c of creators) creatorMap.set(c.clerkId, c.id);
     }
 
