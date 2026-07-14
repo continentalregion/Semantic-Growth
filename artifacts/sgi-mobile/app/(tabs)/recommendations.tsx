@@ -12,12 +12,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useGetMyRecommendations } from "@workspace/api-client-react";
+import { useGetMyRecommendations, useGetMyProfile } from "@workspace/api-client-react";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
-import { usePurchase } from "@/hooks/usePurchase";
+import { TierGate } from "./explore/components/TierGate";
 import { StaggeredItem } from "@/components/ui/StaggeredItem";
 import { SkeletonListCard } from "@/components/ui/SkeletonBox";
 
@@ -124,12 +124,9 @@ export default function RecommendationsScreen() {
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
 
-  const { data: recs, isLoading, error, refetch, isRefetching } = useGetMyRecommendations();
-  const { triggerPurchase } = usePurchase();
+  const { data: profile } = useGetMyProfile();
 
-  const isPremiumLocked =
-    (error as { status?: number } | null)?.status === 403 ||
-    (error as { response?: { status: number } } | null)?.response?.status === 403;
+  const { data: recs, isLoading, refetch, isRefetching } = useGetMyRecommendations();
 
   return (
     <AnimatedScreen style={{ backgroundColor: colors.background }}>
@@ -151,40 +148,14 @@ export default function RecommendationsScreen() {
         )}
       </View>
 
-      {isLoading ? (
-        <View style={{ flex: 1, paddingTop: 16, gap: 0 }}>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <SkeletonListCard key={i} style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }} />
-          ))}
-        </View>
-      ) : isPremiumLocked ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, gap: 16 }}>
-          <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primary + "18", alignItems: "center", justifyContent: "center" }}>
-            <Ionicons name="lock-closed" size={28} color={colors.primary} />
+      <TierGate requiredPlan="premium" currentPlan={profile?.plan} featureName="Recommendations" fallbackRoute="/(tabs)/explore">
+        {isLoading ? (
+          <View style={{ flex: 1, paddingTop: 16, gap: 0 }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <SkeletonListCard key={i} style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }} />
+            ))}
           </View>
-          <Text style={{ color: colors.foreground, fontFamily: "Inter_700Bold", fontSize: 20, textAlign: "center" }}>
-            {t("recommendations.premiumFeature")}
-          </Text>
-          <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center", lineHeight: 20 }}>
-            {t("recommendations.premiumDesc")}
-          </Text>
-          <Pressable
-            style={({ pressed }) => ({
-              backgroundColor: colors.primary,
-              borderRadius: 12,
-              paddingHorizontal: 24,
-              paddingVertical: 14,
-              marginTop: 8,
-              opacity: pressed ? 0.8 : 1,
-            })}
-            onPress={() => triggerPurchase("premium")}
-          >
-            <Text style={{ color: palette.primaryFg, fontFamily: "Inter_600SemiBold", fontSize: 15 }}>
-              {t("recommendations.upgradePremium")}
-            </Text>
-          </Pressable>
-        </View>
-      ) : !recs || recs.length === 0 ? (
+        ) : !recs || recs.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12 }}>
           <Ionicons name="bulb-outline" size={48} color={colors.border} />
           <Text style={{ color: colors.foreground, fontFamily: "Inter_600SemiBold", fontSize: 18 }}>
@@ -195,30 +166,31 @@ export default function RecommendationsScreen() {
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={recs}
-          keyExtractor={r => String(r.id)}
-          contentContainerStyle={{ paddingTop: 16, paddingBottom: tabBarHeight + 16 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={refetch}
-              tintColor={colors.primary}
-            />
-          }
-          ListHeaderComponent={
-            <Text style={[styles.listHeader, { color: colors.mutedForeground }]}>
-              {t("recommendations.pathHeader", { count: recs.length })}
-            </Text>
-          }
-          renderItem={({ item, index }) => (
-            <StaggeredItem index={index} stepDelay={40}>
-              <RecCard item={item} colors={colors} />
-            </StaggeredItem>
-          )}
-        />
-      )}
+          <FlatList
+            data={recs}
+            keyExtractor={r => String(r.id)}
+            contentContainerStyle={{ paddingTop: 16, paddingBottom: tabBarHeight + 16 }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefetching}
+                onRefresh={refetch}
+                tintColor={colors.primary}
+              />
+            }
+            ListHeaderComponent={
+              <Text style={[styles.listHeader, { color: colors.mutedForeground }]}>
+                {t("recommendations.pathHeader", { count: recs.length })}
+              </Text>
+            }
+            renderItem={({ item, index }) => (
+              <StaggeredItem index={index} stepDelay={40}>
+                <RecCard item={item} colors={colors} />
+              </StaggeredItem>
+            )}
+          />
+        )}
+      </TierGate>
     </AnimatedScreen>
   );
 }

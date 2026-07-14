@@ -33,9 +33,9 @@ import {
 } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
-import { usePurchase } from "@/hooks/usePurchase";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
+import { TierGate } from "./components/TierGate";
 
 const AnimatedRect = createAnimatedComponent(SvgRect);
 
@@ -314,51 +314,6 @@ function ScenarioCard({
   );
 }
 
-function PremiumGate({
-  colors,
-  t,
-  onUpgrade,
-}: {
-  colors: ReturnType<typeof useColors>;
-  t: (key: string) => string;
-  onUpgrade: () => void;
-}) {
-  return (
-    <View style={st.gateContainer}>
-      <View
-        style={[
-          st.gateLockCircle,
-          {
-            backgroundColor: palette.primary + "18",
-            borderColor: palette.primary + "33",
-          },
-        ]}
-      >
-        <Ionicons name="lock-closed" size={30} color={palette.primary} />
-      </View>
-      <Text style={[st.gateTitle, { color: colors.foreground }]}>
-        {t("predictions.lockedTitle")}
-      </Text>
-      <Text style={[st.gateDesc, { color: colors.mutedForeground }]}>
-        {t("predictions.lockedDesc")}
-      </Text>
-      <Pressable
-        style={({ pressed }) => [
-          st.gateBtn,
-          { backgroundColor: palette.primary, opacity: pressed ? 0.85 : 1 },
-        ]}
-        onPress={onUpgrade}
-      >
-        <Ionicons name="trending-up" size={18} color="#fff" />
-        <Text style={st.gateBtnText}>{t("predictions.upgradePremium")}</Text>
-      </Pressable>
-      <Text style={[st.gateUnlock, { color: colors.mutedForeground }]}>
-        {t("predictions.unlockDesc")}
-      </Text>
-    </View>
-  );
-}
-
 function SkeletonPredictions() {
   return (
     <View style={{ gap: 16 }}>
@@ -379,7 +334,6 @@ export default function PredictionsScreen() {
   const chartWidth = screenWidth - 64;
 
   const { data: profile, isLoading: profileLoading } = useGetMyProfile();
-  const { triggerPurchase } = usePurchase();
   const isPremiumOrPro =
     profile?.plan === "premium" || profile?.plan === "pro";
 
@@ -423,56 +377,58 @@ export default function PredictionsScreen() {
           >
             <SkeletonPredictions />
           </ScrollView>
-        ) : !isPremiumOrPro ? (
-          <PremiumGate colors={colors} t={t} onUpgrade={() => triggerPurchase("premium")} />
-        ) : !predictions ? null : (
-          <ScrollView
-            contentContainerStyle={[
-              st.scrollContent,
-              { paddingBottom: tabBarHeight + 24 },
-            ]}
-            showsVerticalScrollIndicator={false}
-          >
-            {(["conservative", "realistic", "optimistic"] as ScenarioKey[]).map(
-              (key, idx) => (
+        ) : (
+          <TierGate requiredPlan="premium" currentPlan={profile?.plan} featureName="Predictions" fallbackRoute="/(tabs)/explore">
+            {!predictions ? null : (
+              <ScrollView
+                contentContainerStyle={[
+                  st.scrollContent,
+                  { paddingBottom: tabBarHeight + 24 },
+                ]}
+                showsVerticalScrollIndicator={false}
+              >
+                {(["conservative", "realistic", "optimistic"] as ScenarioKey[]).map(
+                  (key, idx) => (
+                    <Animated.View
+                      key={key}
+                      entering={FadeInDown.delay(idx * 80).duration(400)}
+                    >
+                      <ScenarioCard
+                        scenarioKey={key}
+                        data={predictions[key]}
+                        isMain={key === "realistic"}
+                        colors={colors}
+                        t={t}
+                      />
+                    </Animated.View>
+                  )
+                )}
+
                 <Animated.View
-                  key={key}
-                  entering={FadeInDown.delay(idx * 80).duration(400)}
+                  entering={FadeInDown.delay(280).duration(400)}
+                  style={[
+                    st.chartCard,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                  ]}
                 >
-                  <ScenarioCard
-                    scenarioKey={key}
-                    data={predictions[key]}
-                    isMain={key === "realistic"}
+                  <Text style={[st.chartTitle, { color: colors.foreground }]}>
+                    {t("predictions.trajectoryChart")}
+                  </Text>
+                  <PredictionChart
+                    currentScore={profile?.sgiScore ?? 0}
+                    predictions={predictions}
                     colors={colors}
+                    chartWidth={chartWidth}
                     t={t}
                   />
                 </Animated.View>
-              )
+
+                <Text style={[st.disclaimer, { color: colors.mutedForeground }]}>
+                  {t("predictions.disclaimer")}
+                </Text>
+              </ScrollView>
             )}
-
-            <Animated.View
-              entering={FadeInDown.delay(280).duration(400)}
-              style={[
-                st.chartCard,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-            >
-              <Text style={[st.chartTitle, { color: colors.foreground }]}>
-                {t("predictions.trajectoryChart")}
-              </Text>
-              <PredictionChart
-                currentScore={profile?.sgiScore ?? 0}
-                predictions={predictions}
-                colors={colors}
-                chartWidth={chartWidth}
-                t={t}
-              />
-            </Animated.View>
-
-            <Text style={[st.disclaimer, { color: colors.mutedForeground }]}>
-              {t("predictions.disclaimer")}
-            </Text>
-          </ScrollView>
+          </TierGate>
         )}
       </View>
     </AnimatedScreen>
@@ -613,51 +569,4 @@ const st = StyleSheet.create({
     paddingHorizontal: 8,
   },
 
-  gateContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 36,
-    gap: 14,
-  },
-  gateLockCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 6,
-  },
-  gateTitle: {
-    fontSize: 20,
-    fontFamily: "Inter_700Bold",
-    textAlign: "center",
-    letterSpacing: -0.3,
-  },
-  gateDesc: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  gateBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderRadius: 12,
-    paddingHorizontal: 26,
-    paddingVertical: 13,
-    marginTop: 4,
-  },
-  gateBtnText: {
-    color: "#fff",
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
-  },
-  gateUnlock: {
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-  },
 });
