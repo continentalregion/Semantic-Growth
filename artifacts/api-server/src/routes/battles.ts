@@ -46,7 +46,7 @@ const router = Router();
 // ─── Tunables ────────────────────────────────────────────────────────────────
 const TURN_WINDOW_S = 390;                 // 6:30 server-enforced conversation window
 const WAITING_TTL_MS           = 30 * 60 * 1000; // a lone "waiting" match expires after 30min
-const WAITING_AI_ESCALATION_MS = 25 * 1000; // auto-escalate to vs-AI after 25s with no human
+const WAITING_AI_ESCALATION_MS = 10 * 60 * 1000; // auto-escalate to vs-AI after 10 min with no human
 const ACTIVE_TTL_MS = 24 * 60 * 60 * 1000;  // once paired, each player has 24h to finish
 const MIN_TEXT = 10;                        // below this, a player's contribution is degenerate
 const SPARRING_MODEL = "gpt-4o-mini";
