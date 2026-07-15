@@ -93,7 +93,7 @@ export async function maybeExtractInferredFacts(
             status: "active",
             updatedAt: now,
           })
-          .where(eq(aiInferredFacts.id, item.existingId));
+          .where(and(eq(aiInferredFacts.id, item.existingId), eq(aiInferredFacts.userId, userId)));
       }
     }
   } catch {
