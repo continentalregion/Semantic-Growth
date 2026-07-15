@@ -45,6 +45,7 @@ import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { LogoMark } from "@/components/ui/Logo";
 import { SkeletonCard, SkeletonBox } from "@/components/ui/SkeletonBox";
 import { ScoreRevealRing } from "@/components/ui/ScoreRevealRing";
+import { usePurchase } from "@/hooks/usePurchase";
 
 const AnimatedRect = createAnimatedComponent(SvgRect);
 
@@ -236,6 +237,7 @@ function PremiumGateCard({
   colors: ReturnType<typeof useColors>;
 }) {
   const { t } = useTranslation();
+  const { triggerPurchase } = usePurchase();
   return (
     <View style={[gSt.root, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={[gSt.iconWrap, { backgroundColor: colors.muted }]}>
@@ -249,6 +251,13 @@ function PremiumGateCard({
           {t("dashboard.premiumOrPro")}
         </Text>
       </View>
+      <Pressable
+        style={({ pressed }) => [gSt.upgradeBtn, { backgroundColor: palette.primary, opacity: pressed ? 0.85 : 1 }]}
+        onPress={() => triggerPurchase("premium")}
+      >
+        <Ionicons name="trending-up" size={14} color="#fff" />
+        <Text style={gSt.upgradeBtnText}>Passa a Premium</Text>
+      </Pressable>
     </View>
   );
 }
@@ -279,6 +288,20 @@ const gSt = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     marginTop: 4,
+  },
+  upgradeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    marginTop: 4,
+  },
+  upgradeBtnText: {
+    color: "#fff",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
   },
 });
 

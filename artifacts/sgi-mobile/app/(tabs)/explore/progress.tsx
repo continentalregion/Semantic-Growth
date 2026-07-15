@@ -32,6 +32,7 @@ import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
+import { usePurchase } from "@/hooks/usePurchase";
 
 const LEVEL_COLOR = palette.primary;
 const XP_COLOR = palette.teal;
@@ -158,6 +159,7 @@ export default function ProgressScreen() {
   const missions = gam?.missions ?? [];
   const missionsLocked = profile?.plan === "free";
   const rankChange = profile?.rankChange30d ?? 0;
+  const { triggerPurchase } = usePurchase();
 
   const shareCardRef = useRef<View>(null);
   const [shareVisible, setShareVisible] = useState(false);
@@ -360,12 +362,18 @@ export default function ProgressScreen() {
                     {t("gamification.weeklyMissions")}
                   </Text>
                   {missionsLocked ? (
-                    <View style={st.missionsLocked}>
+                    <Pressable
+                      style={({ pressed }) => [st.missionsLocked, { opacity: pressed ? 0.7 : 1 }]}
+                      onPress={() => triggerPurchase("premium")}
+                    >
                       <Ionicons name="lock-closed" size={14} color={palette.primary} />
                       <Text style={[st.missionsLockedText, { color: colors.mutedForeground }]}>
-                        Premium
+                        Sblocca le missioni
                       </Text>
-                    </View>
+                      <Text style={[st.missionsLockedText, { color: palette.primary, fontFamily: "Inter_600SemiBold" }]}>
+                        · Premium
+                      </Text>
+                    </Pressable>
                   ) : missions.length === 0 ? (
                     <Text style={[st.noMissions, { color: colors.mutedForeground }]}>
                       {t("gamification.noMissions")}
