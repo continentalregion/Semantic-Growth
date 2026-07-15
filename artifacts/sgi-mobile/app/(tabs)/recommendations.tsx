@@ -41,7 +41,7 @@ function RecCard({
   item,
   colors,
 }: {
-  item: { id: number; category: string; title: string; description: string; priority?: number; createdAt: string };
+  item: { id: number; category: string; content: string; estimatedSgiGain?: number | null; createdAt: string };
   colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
 }) {
   const { t } = useTranslation();
@@ -60,22 +60,17 @@ function RecCard({
             <View style={[cardStyles.catBadge, { backgroundColor: cat.color + "18", borderColor: cat.color + "33" }]}>
               <Text style={[cardStyles.catText, { color: cat.color }]}>{catLabel}</Text>
             </View>
-            {item.priority != null && item.priority >= 8 && (
+            {item.estimatedSgiGain != null && item.estimatedSgiGain >= 8 && (
               <View style={[cardStyles.catBadge, { backgroundColor: palette.pink + "18", borderColor: palette.pink + "33" }]}>
                 <Text style={[cardStyles.catText, { color: palette.pink }]}>{t("recommendations.highPriority")}</Text>
               </View>
             )}
           </View>
-          <Text style={[cardStyles.title, { color: colors.foreground }]} numberOfLines={2}>
-            {item.title}
+          <Text style={[cardStyles.title, { color: colors.foreground }]} numberOfLines={3}>
+            {item.content}
           </Text>
         </View>
       </View>
-      {item.description ? (
-        <Text style={[cardStyles.desc, { color: colors.mutedForeground }]} numberOfLines={3}>
-          {item.description}
-        </Text>
-      ) : null}
       <Text style={[cardStyles.date, { color: colors.mutedForeground + "88" }]}>
         {new Date(item.createdAt).toLocaleDateString("it-IT", { day: "numeric", month: "short" })}
       </Text>

@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Alert,
   View,
   Text,
   ScrollView,
@@ -64,7 +65,12 @@ export default function ProfileScreen() {
 
   async function handleSignOut() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await signOut();
+    try {
+      await signOut();
+      router.replace("/login");
+    } catch {
+      Alert.alert("Errore", "Disconnessione fallita. Riprova.");
+    }
   }
 
   const hasData = profile !== undefined || gamification !== undefined;
