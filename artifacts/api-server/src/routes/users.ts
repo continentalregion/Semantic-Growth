@@ -593,7 +593,7 @@ router.delete("/users/me", async (req, res) => {
         await tx.delete(messages).where(inArray(messages.conversationId, convoIds));
       }
       await tx.delete(conversations).where(eq(conversations.userId, userId));
-      await tx.delete(threads).where(eq(threads.userId, userId));
+      await tx.delete(threads).where(eq(threads.createdBy, authUserId));
       await tx.delete(blockedAttempts).where(eq(blockedAttempts.userId, userId));
       await tx.delete(recommendations).where(eq(recommendations.userId, userId));
       await tx.delete(missions).where(eq(missions.userId, userId));

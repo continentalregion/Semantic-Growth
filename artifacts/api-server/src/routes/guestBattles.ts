@@ -476,7 +476,7 @@ router.post("/battles/guest/:matchId/complete", async (req, res) => {
     await db.update(battleEntries).set({ rawScore: Math.round(comparison.slot2RawScore) })
       .where(and(eq(battleEntries.matchId, matchId), eq(battleEntries.userId, AI_PLAYER_ID)));
 
-    res.json({
+    return res.json({
       outcome:    tie ? "tie" : winnerId === guestId ? "win" : "loss",
       myRawScore: comparison.slot1RawScore,
       aiRawScore: comparison.slot2RawScore,
@@ -486,7 +486,7 @@ router.post("/battles/guest/:matchId/complete", async (req, res) => {
     });
   } catch (err) {
     console.error("[guest] complete error", err);
-    res.status(500).json({ error: "Failed to complete battle" });
+    return res.status(500).json({ error: "Failed to complete battle" });
   }
 });
 

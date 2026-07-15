@@ -14,7 +14,7 @@ export default function Predictions() {
   const { data: predictions, isLoading } = useGetPredictions();
   const { data: profile } = useGetMyProfile();
 
-  const isPremium = profile?.plan === "premium";
+  const isPremium = profile?.plan === "premium" || profile?.plan === "pro";
 
   const SCENARIO_STYLES: Record<ScenarioKey, { label: string; color: string; bg: string; border: string; desc: string }> = {
     conservative: {
