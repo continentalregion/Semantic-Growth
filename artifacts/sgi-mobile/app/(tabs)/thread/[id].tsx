@@ -82,7 +82,7 @@ export default function ThreadDetailScreen() {
           Alert.alert(
             "Battaglia in corso",
             "Hai già una battaglia attiva. Finiscila prima di aprirne una nuova.",
-            [{ text: "Vai alle battaglie", onPress: () => router.push("/(tabs)/battles") }, { text: "OK" }],
+            [{ text: "Vai alle battaglie", onPress: () => router.push({ pathname: "/(tabs)/battles", params: { openMatch: body.existingMatchId } }) }, { text: "OK" }],
           );
         } else if (body.code === "BATTLE_LIMIT_REACHED") {
           const buttons: { text: string; onPress?: () => void }[] = [{ text: "OK" }];

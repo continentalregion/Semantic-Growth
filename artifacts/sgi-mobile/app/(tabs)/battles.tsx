@@ -27,6 +27,7 @@ import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
 import { LinearGradient } from "expo-linear-gradient";
+import { router, useLocalSearchParams } from "expo-router";
 import { fetch } from "expo/fetch";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
@@ -927,11 +928,21 @@ export default function BattlesScreen() {
   // Reload silently every time the tab comes back into focus (e.g. after
   // router.push from thread/[id].tsx). Skip the very first focus event
   // because the useEffect above already handles the initial mount fetch.
+  const params = useLocalSearchParams<{ openMatch?: string }>();
+  const openMatchParamRef = useRef(params.openMatch);
+  useEffect(() => { openMatchParamRef.current = params.openMatch; }, [params.openMatch]);
+
   const hasMountedRef = useRef(false);
   useFocusEffect(
     useCallback(() => {
       if (!hasMountedRef.current) { hasMountedRef.current = true; return; }
       loadData(true);
+      const matchToOpen = openMatchParamRef.current;
+      if (matchToOpen) {
+        router.setParams({ openMatch: undefined });
+        setModalMatchId(matchToOpen);
+        setModalVisible(true);
+      }
     }, [loadData]),
   );
 
