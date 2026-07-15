@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView, Pressable, StyleSheet, Alert, ActivityIndicator } from "react-native";
+import React, { useState, useRef, useEffect } from "react";
+import { View, Text, ScrollView, Pressable, StyleSheet, Alert, ActivityIndicator, Animated } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@clerk/expo";
@@ -11,6 +11,7 @@ import { useColors } from "@/hooks/useColors";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
 import { usePurchase } from "@/hooks/usePurchase";
+import { palette } from "@/constants/theme";
 
 const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
 
@@ -49,6 +50,27 @@ export default function ThreadDetailScreen() {
 
   const [pvpLoading, setPvpLoading] = useState(false);
 
+  const [battleBanner, setBattleBanner] = useState<{ existingMatchId: string } | null>(null);
+  const bannerAnim = useRef(new Animated.Value(-200)).current;
+  const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showBattleBanner(existingMatchId: string) {
+    if (bannerTimer.current) clearTimeout(bannerTimer.current);
+    setBattleBanner({ existingMatchId });
+    bannerAnim.setValue(-200);
+    Animated.spring(bannerAnim, { toValue: 0, useNativeDriver: true, damping: 16, stiffness: 130 }).start();
+    bannerTimer.current = setTimeout(dismissBanner, 5000);
+  }
+
+  function dismissBanner() {
+    if (bannerTimer.current) { clearTimeout(bannerTimer.current); bannerTimer.current = null; }
+    Animated.timing(bannerAnim, { toValue: -200, duration: 220, useNativeDriver: true }).start(() => {
+      setBattleBanner(null);
+    });
+  }
+
+  useEffect(() => () => { if (bannerTimer.current) clearTimeout(bannerTimer.current); }, []);
+
   const { data: thread, isLoading, isError, refetch } = useQuery({
     queryKey: ["thread", id],
     queryFn: async () => {
@@ -79,11 +101,7 @@ export default function ThreadDetailScreen() {
         if (body.code === "THREAD_NOT_FOUND") {
           Alert.alert(t("battles.errorTitle"), "Thread non trovato");
         } else if (body.code === "BATTLE_ALREADY_ACTIVE") {
-          Alert.alert(
-            "Battaglia in corso",
-            "Hai già una battaglia attiva. Finiscila prima di aprirne una nuova.",
-            [{ text: "Vai alle battaglie", onPress: () => router.push({ pathname: "/(tabs)/battles", params: { openMatch: body.existingMatchId } }) }, { text: "OK" }],
-          );
+          showBattleBanner(body.existingMatchId);
         } else if (body.code === "BATTLE_LIMIT_REACHED") {
           const buttons: { text: string; onPress?: () => void }[] = [{ text: "OK" }];
           if (body.plan === "free") {
@@ -182,6 +200,37 @@ export default function ThreadDetailScreen() {
   return (
     <AnimatedScreen style={{ backgroundColor: colors.background }}>
       {header}
+      {battleBanner && (
+        <Animated.View
+          style={[st.battleBanner, {
+            top: insets.top + 8,
+            transform: [{ translateY: bannerAnim }],
+            backgroundColor: palette.warning,
+          }]}
+        >
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+            <Ionicons name="alert-circle" size={22} color="#fff" style={{ marginTop: 1 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={st.bannerTitle}>Battaglia in corso</Text>
+              <Text style={st.bannerBody}>Hai già una battaglia attiva. Finiscila prima di aprirne una nuova.</Text>
+              <Pressable
+                style={st.bannerCta}
+                onPress={() => {
+                  dismissBanner();
+                  router.push({ pathname: "/(tabs)/battles", params: { openMatch: battleBanner.existingMatchId } });
+                }}
+              >
+                <Text style={st.bannerCtaText}>Vai alle battaglie</Text>
+                <Ionicons name="arrow-forward" size={13} color={palette.warning} />
+              </Pressable>
+            </View>
+            <Pressable onPress={dismissBanner} hitSlop={8} style={{ padding: 2 }}>
+              <Ionicons name="close" size={18} color="#fff" />
+            </Pressable>
+          </View>
+        </Animated.View>
+      )}
+
       <ScrollView
         contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 32 }}
         showsVerticalScrollIndicator={false}
@@ -399,5 +448,46 @@ const st = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
+  },
+  battleBanner: {
+    position: "absolute",
+    left: 12,
+    right: 12,
+    borderRadius: 14,
+    padding: 14,
+    zIndex: 100,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  bannerTitle: {
+    color: "#fff",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+    marginBottom: 3,
+  },
+  bannerBody: {
+    color: "rgba(255,255,255,0.88)",
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  bannerCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    alignSelf: "flex-start",
+  },
+  bannerCtaText: {
+    color: palette.warning,
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
   },
 });
