@@ -218,6 +218,16 @@ export default function ProfileScreen() {
             <Text style={[styles.emailText, { color: colors.mutedForeground }]}>{profile?.email}</Text>
           </View>
 
+          {/* Come funziona */}
+          <PressableScale
+            style={[styles.infoBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => router.push("/how-it-works")}
+          >
+            <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
+            <Text style={[styles.infoBtnText, { color: colors.foreground }]}>Come leggiamo i tuoi dati</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
+          </PressableScale>
+
           {/* Sign out */}
           <PressableScale
             style={[styles.signOutBtn, { backgroundColor: colors.destructive + "15", borderColor: colors.destructive + "33" }]}
@@ -285,6 +295,15 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontSize: 12, fontFamily: "Inter_500Medium", maxWidth: 100 },
   emailText: { fontSize: 14, fontFamily: "Inter_400Regular", marginTop: 6 },
+  infoBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 16,
+  },
+  infoBtnText: { flex: 1, fontSize: 15, fontFamily: "Inter_600SemiBold" },
   signOutBtn: {
     flexDirection: "row",
     alignItems: "center",
