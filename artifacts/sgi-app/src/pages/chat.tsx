@@ -153,7 +153,7 @@ export default function Chat() {
           plan: err.plan ?? old?.plan ?? "free",
           totalCostCents: old?.totalCostCents ?? 0,
         }));
-        const nextPlan = (err.plan === "premium") ? "Pro (€19.99)" : "Premium (€9.99)";
+        const nextPlan = (err.plan === "premium") ? "Pro (€29.99)" : "Premium (€14.99)";
         toast.error(`${t("chat.limitReached")} (${err.used ?? "?"}/${err.limit ?? "?"} msg). → ${nextPlan}.`);
         setIsStreaming(false);
         setStreamingContent("");

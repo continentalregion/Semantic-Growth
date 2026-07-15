@@ -105,7 +105,7 @@ export default function Settings() {
     {
       id: "premium",
       name: t("common.premium"),
-      price: "€9.99",
+      price: "€14.99",
       period: `/${t("settings.perMonth")}`,
       icon: Star,
       color: "#a89fff",
@@ -117,7 +117,7 @@ export default function Settings() {
     {
       id: "pro",
       name: t("common.pro"),
-      price: "€19.99",
+      price: "€29.99",
       period: `/${t("settings.perMonth")}`,
       icon: Crown,
       color: "#f0c040",
@@ -445,7 +445,7 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-xl p-4 text-center" style={{ background: "rgba(124,107,255,0.06)", border: "1px solid rgba(124,107,255,0.2)" }}>
-                <p className="text-2xl font-bold">{showUpgradeModal === "pro" ? "€19.99" : "€9.99"}</p>
+                <p className="text-2xl font-bold">{showUpgradeModal === "pro" ? "€29.99" : "€14.99"}</p>
                 <p className="text-sm text-muted-foreground">{t("settings.perMonth")}</p>
               </div>
               <p className="text-sm text-muted-foreground">{t("settings.stripeNotice")}</p>

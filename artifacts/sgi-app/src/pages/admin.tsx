@@ -123,8 +123,8 @@ export default function AdminPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard icon={Users} label="Totale" value={stats?.users.total ?? "—"} color="#7c6bff" />
           <StatCard icon={Users} label="Free" value={byPlan["free"] ?? 0} sub="piano gratuito" />
-          <StatCard icon={Zap} label="Premium" value={byPlan["premium"] ?? 0} sub="€9.99/mese" color="#a855f7" />
-          <StatCard icon={Zap} label="Pro" value={byPlan["pro"] ?? 0} sub="€19.99/mese" color="#06d6a0" />
+          <StatCard icon={Zap} label="Premium" value={byPlan["premium"] ?? 0} sub="€14.99/mese" color="#a855f7" />
+          <StatCard icon={Zap} label="Pro" value={byPlan["pro"] ?? 0} sub="€29.99/mese" color="#06d6a0" />
         </div>
       </div>
 

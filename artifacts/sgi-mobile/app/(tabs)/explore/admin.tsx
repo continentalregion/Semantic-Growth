@@ -254,8 +254,8 @@ export default function AdminMonitorScreen() {
             <StatCard label="Free" value={byPlan["free"] ?? 0} icon="person-outline" sub="piano gratuito" />
           </View>
           <View style={styles.grid2}>
-            <StatCard label="Premium" value={byPlan["premium"] ?? 0} icon="flash-outline" sub="€9.99/mese" color={palette.primary} />
-            <StatCard label="Pro" value={byPlan["pro"] ?? 0} icon="rocket-outline" sub="€19.99/mese" color={palette.teal} />
+            <StatCard label="Premium" value={byPlan["premium"] ?? 0} icon="flash-outline" sub="€14.99/mese" color={palette.primary} />
+            <StatCard label="Pro" value={byPlan["pro"] ?? 0} icon="rocket-outline" sub="€29.99/mese" color={palette.teal} />
           </View>
 
           {/* ── Revenue Stripe ── */}
