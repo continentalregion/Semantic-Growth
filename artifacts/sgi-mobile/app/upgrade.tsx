@@ -20,8 +20,8 @@ import { useOfferings } from "@/hooks/useOfferings";
 import { useGetMyProfile } from "@workspace/api-client-react";
 
 // ─── Plan data (values from artifacts/api-server/src/config/pricing.ts) ──────
-// Premium: €9.99 / 600 msg / 80 battaglie / Haiku + Sonnet + GPT-4o-mini
-// Pro:     €19.99 / 2000 msg / 250 battaglie / tutti i modelli incluso Opus
+// Premium: €14.99 / 600 msg / 80 battaglie / Haiku + Sonnet + GPT-4o-mini
+// Pro:     €29.99 / 2000 msg / 250 battaglie / tutti i modelli incluso Opus
 const PLANS = [
   {
     id: "free" as const,
@@ -40,7 +40,7 @@ const PLANS = [
   {
     id: "premium" as const,
     name: "Premium",
-    price: "€9.99",
+    price: "€14.99",
     period: "/mese",
     color: palette.violet,
     features: [
@@ -52,12 +52,12 @@ const PLANS = [
       "Raccomandazioni personalizzate",
       "Mappa semantica",
     ],
-    cta: "Upgrade a Premium — €9.99",
+    cta: "Upgrade a Premium — €14.99",
   },
   {
     id: "pro" as const,
     name: "Pro",
-    price: "€19.99",
+    price: "€29.99",
     period: "/mese",
     color: palette.cyan,
     features: [
@@ -69,7 +69,7 @@ const PLANS = [
       "Tutte le funzioni Premium",
       "Priorità sui server",
     ],
-    cta: "Upgrade a Pro — €19.99",
+    cta: "Upgrade a Pro — €29.99",
   },
 ] as const;
 

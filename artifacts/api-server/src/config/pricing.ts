@@ -2,16 +2,16 @@
  * SGI — Configurazione prezzi e tetti di utilizzo
  *
  * Due tier a pagamento:
- *   Premium  €9.99  → 600 msg/mese  · Haiku + Sonnet + GPT-4o Mini
- *   Pro      €19.99 → 2000 msg/mese · tutti i modelli (eccetto o4-mini, rimosso)
+ *   Premium  €14.99 → 600 msg/mese  · Haiku + Sonnet + GPT-4o Mini
+ *   Pro      €29.99 → 2000 msg/mese · tutti i modelli (eccetto o4-mini, rimosso)
  *
  * Il margine minimo garantito è il 40% del ricavo netto per ogni utente
  * pagante, indipendentemente dal modello scelto (cost cap per-utente).
  */
 
 // ─── Prezzi abbonamento ───────────────────────────────────────────────────────
-export const PREMIUM_PRICE_CENTS = 999;    // €9.99 / mese
-export const PRO_PRICE_CENTS     = 1999;   // €19.99 / mese
+export const PREMIUM_PRICE_CENTS = 1499;   // €14.99 / mese
+export const PRO_PRICE_CENTS     = 2999;   // €29.99 / mese
 
 // ─── Fee Stripe reale (1.5% + €0.25 fisso per transazione) ───────────────────
 // NON usare una % flat: la quota fissa impatta molto sui prezzi bassi.

@@ -111,7 +111,7 @@ router.get("/admin/stats", async (req, res) => {
     db: {
       premiumCount: byPlan["premium"] ?? 0,
       proCount: byPlan["pro"] ?? 0,
-      estimatedMonthlyEur: (byPlan["premium"] ?? 0) * 9.99 + (byPlan["pro"] ?? 0) * 19.99,
+      estimatedMonthlyEur: (byPlan["premium"] ?? 0) * 14.99 + (byPlan["pro"] ?? 0) * 29.99,
     },
   };
 
