@@ -21,6 +21,14 @@ import { I18nextProvider } from "react-i18next";
 import { setBaseUrl, setAuthTokenGetter } from "@workspace/api-client-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import i18n, { initLanguage } from "@/i18n";
+import * as Sentry from "@sentry/react-native";
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? "",
+  enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN,
+  tracesSampleRate: 0.2,
+  debug: false,
+});
 
 setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
 

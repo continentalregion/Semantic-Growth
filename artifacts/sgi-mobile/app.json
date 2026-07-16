@@ -35,6 +35,9 @@
       ],
       "expo-font",
       "expo-web-browser",
+      "react-native-keyboard-controller",
+      "react-native-purchases",
+      "@sentry/react-native",
       [
         "expo-build-properties",
         {
