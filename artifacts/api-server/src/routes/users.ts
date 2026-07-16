@@ -2,11 +2,12 @@ import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { users, sgiSnapshots, leaderboardEntries, gamification, badges, missions, recommendations, semanticDomains, conversations, messages, threads, blockedAttempts, userDeclaredFacts, aiInferredFacts, contextFileNarratives, narrativeGenerationLog } from "@workspace/db";
+import { users, sgiSnapshots, leaderboardEntries, gamification, badges, missions, recommendations, semanticDomains, conversations, messages, threads, blockedAttempts, userDeclaredFacts, aiInferredFacts, contextFileNarratives, narrativeGenerationLog, verdicts } from "@workspace/db";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
-import { eq, desc, gte, and, asc, sql, inArray } from "drizzle-orm";
+import { eq, desc, gte, lt, and, asc, sql, inArray } from "drizzle-orm";
 import { SyncUserBody } from "@workspace/api-zod";
 import { computeLevel, xpToNextLevel as xpToNext, levelProgress as lvlProgress, BADGE_DEFINITIONS, computeMacroDimensions } from "../lib/sgiScoring";
+import { generateVerdict } from "../lib/generateVerdict";
 import { MONTHLY_BATTLE_LIMITS } from "../config/pricing.js";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { generateRecommendations } from "../lib/generateRecommendations";
@@ -880,7 +881,7 @@ function buildNarrativePrompt(
 ): string {
   const parts: string[] = [];
 
-  parts.push(`You write a short personal narrative (4-8 sentences, plain text, no markdown) for a user of SGI — an app that measures how a person's language and argumentation evolve. This is their Context File: a living portrait of who they are intellectually.`);
+  parts.push(`You write a short personal narrative (4-8 sentences) for a user of SGI — an app that measures how a person's language and argumentation evolve. This is their Context File: a living portrait of who they are intellectually.`);
 
   parts.push(`\nUSER DATA:`);
 
@@ -907,7 +908,7 @@ function buildNarrativePrompt(
     parts.push(`\n[D — AI-inferred facts]\n${capped.map(f => `- ${f.fact} (${f.persistenceLevel})`).join("\n")}`);
   }
 
-  parts.push(`\nWRITE the narrative in Italian. Speak directly to the user ("tu"). Synthesize all available components into a single flowing portrait — who they are, what they care about, how their thinking shows up. Be specific, not generic. Never mention neuroscience or the brain. No emojis, no headers, no lists — pure prose only. Output ONLY the narrative text.`);
+  parts.push(`\nWRITE the narrative in Italian. Speak directly to the user ("tu"). Synthesize all available components into a single flowing portrait — who they are, what they care about, how their thinking shows up. Be specific, not generic. Never mention neuroscience or the brain. Use **bold** to highlight one or two key traits or insights. No emojis, no headers, no bullet lists — flowing prose only. Output ONLY the narrative text.`);
 
   return parts.join("\n");
 }
@@ -1011,6 +1012,71 @@ router.get("/users/me/context-file/narrative", async (req, res) => {
   } catch (err) {
     console.error("[narrative] generation failed:", err instanceof Error ? err.message : String(err));
     res.status(502).json({ error: "Failed to generate narrative" });
+  }
+});
+
+// ─── GET /users/me/verdict ───────────────────────────────────────────────────
+
+router.get("/users/me/verdict", async (req, res) => {
+  try {
+    const clerkId = getAuth(req).userId;
+    if (!clerkId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const user = await getOrCreateUser(clerkId);
+    if (!user) { res.status(500).json({ error: "Failed to initialize user" }); return; }
+
+    if (user.plan === "free") {
+      res.status(403).json({ error: "Premium required", code: "PREMIUM_REQUIRED" });
+      return;
+    }
+
+    const lang = typeof req.query.lang === "string" ? req.query.lang : "it";
+    const d = new Date();
+    const monthKey = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+
+    const [cached] = await db.select()
+      .from(verdicts)
+      .where(and(
+        eq(verdicts.userId, user.id),
+        eq(verdicts.monthKey, monthKey),
+        sql`${verdicts.expiresAt} > NOW()`,
+      ))
+      .limit(1);
+
+    if (cached) {
+      res.json({
+        verdict: cached.verdict,
+        archetype: cached.archetype,
+        supportingMetrics: cached.supportingMetrics,
+        lifestyleSuggestion: cached.lifestyleSuggestion,
+        monthKey: cached.monthKey,
+        cached: true,
+      });
+      return;
+    }
+
+    await generateVerdict(user.id, lang);
+
+    const [fresh] = await db.select()
+      .from(verdicts)
+      .where(and(eq(verdicts.userId, user.id), eq(verdicts.monthKey, monthKey)))
+      .limit(1);
+
+    if (!fresh) {
+      res.status(502).json({ error: "Failed to generate verdict" });
+      return;
+    }
+
+    res.json({
+      verdict: fresh.verdict,
+      archetype: fresh.archetype,
+      supportingMetrics: fresh.supportingMetrics,
+      lifestyleSuggestion: fresh.lifestyleSuggestion,
+      monthKey: fresh.monthKey,
+      cached: false,
+    });
+  } catch (err) {
+    console.error("[verdict] endpoint failed:", err instanceof Error ? err.message : String(err));
+    res.status(500).json({ error: "Internal error" });
   }
 });
 

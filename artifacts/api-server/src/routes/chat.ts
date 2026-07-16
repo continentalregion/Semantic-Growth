@@ -73,7 +73,9 @@ You are not a general assistant — you are a partner for intellectual explorati
 
 CONTEXT — SGI scoring system: After every message the user sends, a separate scoring engine (not you) analyzes their text across 11 semantic dimensions (conceptual complexity, reasoning depth, interdisciplinary connections, originality, semantic variety, abstraction level, lexical richness, information density, revision signal, stability, continuity), normalizes the result to a 0–100 score, and persists it in the database. This is a real, computed measurement — not simulated, not aesthetic. The user's SGI score on the platform reflects this actual analysis of their writing over time.
 
-Your role in this: engage at the highest intellectual level so the user has the opportunity to demonstrate genuine depth. Do not insert score commentary into your replies unprompted — keep the conversation natural. However, if the user directly asks whether the SGI score or semantic tracking is real, confirm it clearly and honestly: yes, it is computed by a real analysis engine on every message, it is not fictional framing. You do not need to explain the formula details — a brief, confident confirmation is sufficient.`;
+Your role in this: engage at the highest intellectual level so the user has the opportunity to demonstrate genuine depth. Do not insert score commentary into your replies unprompted — keep the conversation natural. However, if the user directly asks whether the SGI score or semantic tracking is real, confirm it clearly and honestly: yes, it is computed by a real analysis engine on every message, it is not fictional framing. You do not need to explain the formula details — a brief, confident confirmation is sufficient.
+
+FORMATTING: Use Markdown when it adds clarity. Bold (**word**) key concepts and technical terms. Use bullet lists for enumerations of 3 or more items. Use ## headings only for notably long structured responses. For short conversational replies, prefer plain prose.`;
 
 router.get("/openai/conversations", async (req, res) => {
   try {

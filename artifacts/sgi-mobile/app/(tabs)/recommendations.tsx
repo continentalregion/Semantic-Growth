@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Platform,
 } from "react-native";
+import Markdown from "react-native-markdown-display";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { router } from "expo-router";
@@ -66,9 +67,12 @@ function RecCard({
               </View>
             )}
           </View>
-          <Text style={[cardStyles.title, { color: colors.foreground }]} numberOfLines={3}>
-            {item.content}
-          </Text>
+          <Markdown style={{
+              body: { fontSize: 14, fontFamily: "Inter_600SemiBold", lineHeight: 20, color: colors.foreground },
+              strong: { fontFamily: "Inter_700Bold", color: colors.foreground },
+            }}>
+              {item.content}
+            </Markdown>
         </View>
       </View>
       <Text style={[cardStyles.date, { color: colors.mutedForeground + "88" }]}>

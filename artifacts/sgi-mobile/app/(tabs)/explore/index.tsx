@@ -31,6 +31,14 @@ const TILES: {
     section: "arena",
   },
   {
+    route: "/(tabs)/explore/verdict",
+    icon: "analytics-outline",
+    titleKey: "nav.verdict",
+    descKey: "explore.verdictDesc",
+    color: "primary",
+    section: "insight",
+  },
+  {
     route: "/(tabs)/explore/predictions",
     icon: "telescope-outline",
     titleKey: "nav.predictions",

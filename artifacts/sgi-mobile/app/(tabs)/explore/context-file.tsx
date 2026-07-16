@@ -22,6 +22,7 @@ import { palette } from "@/constants/theme";
 import { usePurchase } from "@/hooks/usePurchase";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
+import Markdown from "react-native-markdown-display";
 
 const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
 
@@ -177,7 +178,12 @@ function NarrativeSection({
 
       {data && (
         <>
-          <Text style={[st.narrativeText, { color: colors.foreground }]}>{data.narrative}</Text>
+          <Markdown style={{
+                body: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22, color: colors.foreground },
+                strong: { fontFamily: "Inter_600SemiBold", color: colors.foreground },
+              }}>
+                {data.narrative}
+              </Markdown>
           <Text style={[st.narrativeMeta, { color: colors.mutedForeground }]}>
             {data.cached ? "Dal cache · " : ""}Aggiornata {formatRelativeTime(data.generatedAt)}
           </Text>

@@ -27,3 +27,4 @@
 - [Neon pool crash pattern](neon-pool-crash-pattern.md) — pool.on('error') alone insufficient; need 60s TTL + process.on('uncaughtException') 57P01 guard; Neon autosuspend ~120s (not 300s default)
 - [lib/db stale dist types](lib-db-stale-dist-types.md) — TS project references resolve @workspace/db via committed lib/db/dist/*.d.ts, NOT live src; schema edits need `tsc --build --force` in lib/db or downstream tsc sees old shape
 - [Thread title field must survive publish pipeline](sgi-thread-title-pipeline.md) — any field needed in list UI must be threaded through EVERY stage (candidate table → confirm insert → list SELECT → client render); auditing only the last stage misses upstream data loss
+- [SGI usePurchase hook](sgi-usepurchase-hook.md) — usePurchase() returns { triggerPurchase(plan: "premium"|"pro"), isPurchasing }; NOT openUpgradeSheet or presentPaywall

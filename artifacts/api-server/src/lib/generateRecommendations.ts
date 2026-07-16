@@ -111,7 +111,8 @@ Return ONLY a valid JSON array of exactly 5 objects, no markdown fences, no expl
 Rules:
 - category: short label in ${langName}, 1-3 words
 - content: ONE actionable sentence in ${langName}, specific and practical
-- estimatedSgiGain: integer between 5 and 15`,
+- estimatedSgiGain: integer between 5 and 15
+- In content, bold (**word**) the core action verb or key concept`,
         }],
       });
       const raw = (msg.content[0] as { type: string; text?: string })?.text ?? "";
