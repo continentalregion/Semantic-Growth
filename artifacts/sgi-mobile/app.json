@@ -35,7 +35,7 @@
       ],
       "expo-font",
       "expo-web-browser",
-      "@sentry/react-native",
+      ["@sentry/react-native", { "disableAutoUpload": true }],
       [
         "expo-build-properties",
         {
