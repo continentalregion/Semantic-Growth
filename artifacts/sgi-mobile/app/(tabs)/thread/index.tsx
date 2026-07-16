@@ -20,6 +20,8 @@ import { fetch } from "expo/fetch";
 import * as Clipboard from "expo-clipboard";
 import { useColors } from "@/hooks/useColors";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
+import ReanimatedAnimated, { FadeIn } from "react-native-reanimated";
+import { useStagedReveal } from "@/hooks/useStagedReveal";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
 
 const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
@@ -102,6 +104,9 @@ export default function ThreadsListScreen() {
     },
   });
 
+  const { phase } = useStagedReveal(!isLoading, { steps: 1, minWaitMs: 500, stepDelayMs: 0 });
+  const showSkeleton = isLoading || phase === 0;
+
   const filtered = filter ? threads.filter(th => th.category === filter) : threads;
   const openThreads = filtered.filter(th => !th.battleCardId);
   const completedThreads = filtered.filter(th => !!th.battleCardId);
@@ -181,13 +186,14 @@ export default function ThreadsListScreen() {
         })}
       </ScrollView>
 
-      {isLoading ? (
+      {showSkeleton ? (
         <View style={{ padding: 16, gap: 10 }}>
           {[0, 1, 2, 3].map(i => (
             <SkeletonBox key={i} height={88} borderRadius={14} />
           ))}
         </View>
       ) : (
+        <ReanimatedAnimated.View entering={FadeIn.duration(400)} style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={{
             padding: 16,
@@ -314,6 +320,7 @@ export default function ThreadsListScreen() {
             </>
           )}
         </ScrollView>
+        </ReanimatedAnimated.View>
       )}
 
       <Modal

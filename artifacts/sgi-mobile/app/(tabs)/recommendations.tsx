@@ -19,6 +19,8 @@ import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { TierGate } from "./explore/components/TierGate";
+import ReanimatedAnimated, { FadeIn } from "react-native-reanimated";
+import { useStagedReveal } from "@/hooks/useStagedReveal";
 import { StaggeredItem } from "@/components/ui/StaggeredItem";
 import { SkeletonListCard } from "@/components/ui/SkeletonBox";
 
@@ -130,6 +132,10 @@ export default function RecommendationsScreen() {
     query: { enabled: isPremiumOrPro },
   });
 
+  const revealReady = !isLoading && isPremiumOrPro && !!recs;
+  const { phase } = useStagedReveal(revealReady, { steps: 1, minWaitMs: 1000 });
+  const showSkeleton = isLoading || (isPremiumOrPro && phase === 0 && profile !== undefined);
+
   return (
     <AnimatedScreen style={{ backgroundColor: colors.background }}>
       <View style={[styles.header, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>
@@ -151,7 +157,7 @@ export default function RecommendationsScreen() {
       </View>
 
       <TierGate requiredPlan="premium" currentPlan={profile?.plan} featureName="Recommendations" fallbackRoute="/(tabs)/explore">
-        {isLoading ? (
+        {showSkeleton ? (
           <View style={{ flex: 1, paddingTop: 16, gap: 0 }}>
             {Array.from({ length: 5 }).map((_, i) => (
               <SkeletonListCard key={i} style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }} />
@@ -168,6 +174,7 @@ export default function RecommendationsScreen() {
           </Text>
         </View>
       ) : (
+          <ReanimatedAnimated.View entering={FadeIn.duration(400)} style={{ flex: 1 }}>
           <FlatList
             data={recs}
             keyExtractor={r => String(r.id)}
@@ -191,6 +198,7 @@ export default function RecommendationsScreen() {
               </StaggeredItem>
             )}
           />
+          </ReanimatedAnimated.View>
         )}
       </TierGate>
     </AnimatedScreen>

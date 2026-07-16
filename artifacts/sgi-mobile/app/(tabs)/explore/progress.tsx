@@ -19,6 +19,7 @@ import Animated, {
   Easing,
   FadeInDown,
 } from "react-native-reanimated";
+import { useStagedReveal } from "@/hooks/useStagedReveal";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -161,6 +162,9 @@ export default function ProgressScreen() {
   const rankChange = profile?.rankChange30d ?? 0;
   const { triggerPurchase } = usePurchase();
 
+  const { phase } = useStagedReveal(!isLoading, { steps: 3, minWaitMs: 1200, stepDelayMs: 600 });
+  const showSkeleton = isLoading || phase === 0;
+
   const shareCardRef = useRef<View>(null);
   const [shareVisible, setShareVisible] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -214,7 +218,7 @@ export default function ProgressScreen() {
           </Pressable>
         </View>
 
-        {isLoading ? (
+        {showSkeleton ? (
           <ScrollView
             contentContainerStyle={[
               st.scrollContent,
@@ -232,7 +236,7 @@ export default function ProgressScreen() {
             showsVerticalScrollIndicator={false}
           >
             {/* 4 stat cards */}
-            <Animated.View entering={FadeInDown.delay(0).duration(400)} style={st.statsRow}>
+            {phase >= 1 && <Animated.View entering={FadeInDown.duration(400)} style={st.statsRow}>
               <StatCard
                 label={t("gamification.level")}
                 value={level}
@@ -270,11 +274,11 @@ export default function ProgressScreen() {
                 }
                 colors={colors}
               />
-            </Animated.View>
+            </Animated.View>}
 
             {/* XP Progress bar */}
-            <Animated.View
-              entering={FadeInDown.delay(80).duration(400)}
+            {phase >= 2 && <Animated.View
+              entering={FadeInDown.duration(400)}
               style={[
                 st.card,
                 { backgroundColor: colors.card, borderColor: colors.border },
@@ -295,11 +299,11 @@ export default function ProgressScreen() {
               <Text style={[st.xpToNext, { color: colors.mutedForeground }]}>
                 {t("gamification.xpToNext", { n: xpToNext })}
               </Text>
-            </Animated.View>
+            </Animated.View>}
 
             {/* Badges + Missions/Streak side by side */}
-            <Animated.View
-              entering={FadeInDown.delay(160).duration(400)}
+            {phase >= 3 && <Animated.View
+              entering={FadeInDown.duration(400)}
               style={st.twoCol}
             >
               {/* Badges */}
@@ -484,7 +488,7 @@ export default function ProgressScreen() {
                   </Text>
                 </View>
               </View>
-            </Animated.View>
+            </Animated.View>}
           </ScrollView>
         )}
 

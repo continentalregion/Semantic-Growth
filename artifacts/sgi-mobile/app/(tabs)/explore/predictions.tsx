@@ -33,6 +33,7 @@ import {
 } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
+import { useStagedReveal } from "@/hooks/useStagedReveal";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
 import { TierGate } from "./components/TierGate";
@@ -343,6 +344,10 @@ export default function PredictionsScreen() {
 
   const isLoading = profileLoading || (isPremiumOrPro && predLoading);
 
+  const revealReady = !isLoading && isPremiumOrPro && !!predictions;
+  const { phase } = useStagedReveal(revealReady, { steps: 3, minWaitMs: 1200, stepDelayMs: 650 });
+  const showSkeleton = isLoading || (isPremiumOrPro && (!predictions || phase === 0));
+
   return (
     <AnimatedScreen>
       <View style={[st.container, { backgroundColor: colors.background }]}>
@@ -368,7 +373,7 @@ export default function PredictionsScreen() {
           </View>
         </View>
 
-        {isLoading ? (
+        {showSkeleton ? (
           <ScrollView
             contentContainerStyle={[
               st.scrollContent,
@@ -387,7 +392,7 @@ export default function PredictionsScreen() {
                 ]}
                 showsVerticalScrollIndicator={false}
               >
-                {(["conservative", "realistic", "optimistic"] as ScenarioKey[]).map(
+                {phase >= 1 && (["conservative", "realistic", "optimistic"] as ScenarioKey[]).map(
                   (key, idx) => (
                     <Animated.View
                       key={key}
@@ -404,8 +409,8 @@ export default function PredictionsScreen() {
                   )
                 )}
 
-                <Animated.View
-                  entering={FadeInDown.delay(280).duration(400)}
+                {phase >= 2 && <Animated.View
+                  entering={FadeInDown.duration(400)}
                   style={[
                     st.chartCard,
                     { backgroundColor: colors.card, borderColor: colors.border },
@@ -421,11 +426,11 @@ export default function PredictionsScreen() {
                     chartWidth={chartWidth}
                     t={t}
                   />
-                </Animated.View>
+                </Animated.View>}
 
-                <Text style={[st.disclaimer, { color: colors.mutedForeground }]}>
+                {phase >= 3 && <Text style={[st.disclaimer, { color: colors.mutedForeground }]}>
                   {t("predictions.disclaimer")}
-                </Text>
+                </Text>}
               </ScrollView>
             )}
           </TierGate>

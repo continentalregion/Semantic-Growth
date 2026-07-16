@@ -23,6 +23,8 @@ import { usePurchase } from "@/hooks/usePurchase";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
 import Markdown from "react-native-markdown-display";
+import ReanimatedAnimated, { FadeInDown } from "react-native-reanimated";
+import { useStagedReveal } from "@/hooks/useStagedReveal";
 
 const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
 
@@ -516,6 +518,7 @@ export default function ContextFileScreen() {
 
   const { data: profile, isLoading: profileLoading } = useGetMyProfile();
   const isPro = profile?.plan === "pro";
+  const { phase } = useStagedReveal(isPro, { steps: 3, minWaitMs: 800, stepDelayMs: 600 });
 
   async function authFetch<T>(path: string): Promise<T> {
     const token = await getToken();
@@ -655,37 +658,57 @@ export default function ContextFileScreen() {
         contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: tabBarHeight + 32 }}
         showsVerticalScrollIndicator={false}
       >
-        <NarrativeSection
-          data={narrative}
-          isLoading={narrativeLoading}
-          isError={narrativeError}
-          refetch={refetchNarrative}
-          colors={colors}
-        />
-        <PublicSummarySection
-          data={summary}
-          isLoading={summaryLoading}
-          colors={colors}
-        />
-        <DomainsSection
-          data={domains}
-          isLoading={domainsLoading}
-          colors={colors}
-        />
-        <DeclaredFactsSection
-          data={facts}
-          isLoading={factsLoading}
-          onAdd={(text) => addFact.mutate(text)}
-          onDelete={(id) => deleteFact.mutate(id)}
-          addPending={addFact.isPending}
-          deletingId={deleteFact.isPending ? (deleteFact.variables as number) : null}
-          colors={colors}
-        />
-        <InferredFactsSection
-          data={inferredFacts}
-          isLoading={inferredLoading}
-          colors={colors}
-        />
+        {phase === 0 ? (
+          <>
+            <SkeletonBox style={{ height: 130, borderRadius: 16 }} />
+            <SkeletonBox style={{ height: 110, borderRadius: 16 }} />
+            <SkeletonBox style={{ height: 130, borderRadius: 16 }} />
+          </>
+        ) : (
+          <>
+            <ReanimatedAnimated.View entering={FadeInDown.duration(400)}>
+              <NarrativeSection
+                data={narrative}
+                isLoading={narrativeLoading}
+                isError={narrativeError}
+                refetch={refetchNarrative}
+                colors={colors}
+              />
+            </ReanimatedAnimated.View>
+            {phase >= 2 && (
+              <ReanimatedAnimated.View entering={FadeInDown.duration(400)} style={{ gap: 14 }}>
+                <PublicSummarySection
+                  data={summary}
+                  isLoading={summaryLoading}
+                  colors={colors}
+                />
+                <DomainsSection
+                  data={domains}
+                  isLoading={domainsLoading}
+                  colors={colors}
+                />
+              </ReanimatedAnimated.View>
+            )}
+            {phase >= 3 && (
+              <ReanimatedAnimated.View entering={FadeInDown.duration(400)} style={{ gap: 14 }}>
+                <DeclaredFactsSection
+                  data={facts}
+                  isLoading={factsLoading}
+                  onAdd={(text) => addFact.mutate(text)}
+                  onDelete={(id) => deleteFact.mutate(id)}
+                  addPending={addFact.isPending}
+                  deletingId={deleteFact.isPending ? (deleteFact.variables as number) : null}
+                  colors={colors}
+                />
+                <InferredFactsSection
+                  data={inferredFacts}
+                  isLoading={inferredLoading}
+                  colors={colors}
+                />
+              </ReanimatedAnimated.View>
+            )}
+          </>
+        )}
       </ScrollView>
     </AnimatedScreen>
   );
