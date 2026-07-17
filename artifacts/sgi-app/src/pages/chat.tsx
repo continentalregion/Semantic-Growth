@@ -859,9 +859,9 @@ export default function Chat() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder={t("chat.placeholder")}
-                  className="resize-none min-h-[56px] max-h-[200px] bg-background border-border focus-visible:ring-primary/50"
+                  className="resize-none min-h-[80px] max-h-[200px] bg-background border-border focus-visible:ring-primary/50"
                   disabled={isStreaming || limitBlocked || !!queuedMessage}
-                  rows={2}
+                  rows={3}
                 />
                 <Button
                   data-testid="button-send-message"

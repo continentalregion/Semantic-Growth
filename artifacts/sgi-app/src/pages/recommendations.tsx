@@ -5,6 +5,8 @@ import { TrendingUp, Brain, Share2, BookOpen, Cpu, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const CATEGORY_ICONS: Record<string, typeof Brain> = {
   reasoning: Brain,
@@ -80,7 +82,14 @@ export default function Recommendations() {
                           {new Date(rec.createdAt).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-sm leading-relaxed text-foreground/90">{rec.content}</p>
+                      <div className="text-sm leading-relaxed text-foreground/90 [&_strong]:font-semibold [&_strong]:text-foreground">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{ p: ({ children }) => <>{children}</> }}
+                        >
+                          {rec.content}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                     {rec.estimatedSgiGain !== null && rec.estimatedSgiGain !== undefined && (
                       <div className="flex flex-col items-center flex-shrink-0">
