@@ -15,6 +15,7 @@ import authRouter from "./auth";
 import billingRouter from "./billing";
 import revenuecatRouter from "./revenuecat";
 import notificationsRouter from "./notifications";
+import bestPracticesRouter from "./bestPractices";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,6 @@ router.use(adminRouter);
 router.use(billingRouter);
 router.use(revenuecatRouter);
 router.use(notificationsRouter);
+router.use(bestPracticesRouter);
 
 export default router;

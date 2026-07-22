@@ -596,6 +596,221 @@ paths:
                 required:
                   - ok
 
+  /best-practices:
+    get:
+      operationId: getBestPractices
+      tags: [bestPractices]
+      summary: List published best practices, filterable by category
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Paginated list of published best practices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BestPractice"
+                required:
+                  - page
+                  - limit
+                  - items
+
+  /best-practices/saved:
+    get:
+      operationId: getSavedBestPractices
+      tags: [bestPractices]
+      summary: Current user's saved best practices
+      responses:
+        "200":
+          description: Saved best practices with savedAt timestamp
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BestPracticeSaved"
+
+  /best-practices/proposed:
+    get:
+      operationId: getProposedBestPractices
+      tags: [bestPractices]
+      summary: Admin — review queue of proposed best practices
+      responses:
+        "200":
+          description: List of proposed entries awaiting admin review
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BestPractice"
+
+  /best-practices/contextual:
+    get:
+      operationId: getContextualBestPractices
+      tags: [bestPractices]
+      summary: Up to 3 published entries relevant to a Battle category
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: theme
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Contextual best practices for the given category
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BestPracticeContextual"
+
+  /best-practices/signal:
+    post:
+      operationId: signalBestPractice
+      tags: [bestPractices]
+      summary: Explicit user signal — triggers async best-practice generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                source:
+                  type: string
+                  enum: [chat, battle]
+                triggerType:
+                  type: string
+                  enum: [explicit, inferred]
+                userTurns:
+                  type: string
+                category:
+                  type: string
+                sourceConvoId:
+                  type: integer
+                sourceMatchId:
+                  type: string
+              required:
+                - source
+                - triggerType
+                - userTurns
+      responses:
+        "202":
+          description: Signal accepted — generation queued in background
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  queued:
+                    type: boolean
+                required:
+                  - ok
+                  - queued
+
+  /best-practices/{id}/save:
+    post:
+      operationId: saveBestPractice
+      tags: [bestPractices]
+      summary: Save a published best practice for the current user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Saved; returns updated savedCount
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BestPracticeSaveResult"
+    delete:
+      operationId: unsaveBestPractice
+      tags: [bestPractices]
+      summary: Remove a saved best practice for the current user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Removed; returns updated savedCount
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BestPracticeSaveResult"
+
+  /best-practices/{id}/status:
+    patch:
+      operationId: updateBestPracticeStatus
+      tags: [bestPractices]
+      summary: Admin — approve (published) or reject (hard-delete) a proposed entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [published, rejected]
+              required:
+                - status
+      responses:
+        "200":
+          description: approved → entry updated to published; rejected → entry hard-deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  action:
+                    type: string
+                    enum: [published, deleted]
+                required:
+                  - ok
+                  - action
+
 components:
   schemas:
     HealthStatus:
@@ -713,6 +928,106 @@ components:
           type: integer
       required:
         - unreadCount
+
+    BestPractice:
+      type: object
+      properties:
+        id:
+          type: integer
+        source:
+          type: string
+          enum: [chat, battle]
+        category:
+          type: string
+        archetype:
+          type: ["string", "null"]
+        synthesizedText:
+          type: string
+        triggerType:
+          type: string
+          enum: [explicit, inferred]
+        savedCount:
+          type: integer
+        status:
+          type: string
+          enum: [proposed, published, rejected]
+        createdAt:
+          type: string
+      required:
+        - id
+        - source
+        - category
+        - archetype
+        - synthesizedText
+        - triggerType
+        - savedCount
+        - status
+        - createdAt
+
+    BestPracticeSaved:
+      type: object
+      properties:
+        id:
+          type: integer
+        source:
+          type: string
+          enum: [chat, battle]
+        category:
+          type: string
+        archetype:
+          type: ["string", "null"]
+        synthesizedText:
+          type: string
+        triggerType:
+          type: string
+          enum: [explicit, inferred]
+        savedCount:
+          type: integer
+        createdAt:
+          type: string
+        savedAt:
+          type: string
+      required:
+        - id
+        - source
+        - category
+        - archetype
+        - synthesizedText
+        - triggerType
+        - savedCount
+        - createdAt
+        - savedAt
+
+    BestPracticeContextual:
+      type: object
+      properties:
+        id:
+          type: integer
+        category:
+          type: string
+        archetype:
+          type: ["string", "null"]
+        synthesizedText:
+          type: string
+        savedCount:
+          type: integer
+      required:
+        - id
+        - category
+        - archetype
+        - synthesizedText
+        - savedCount
+
+    BestPracticeSaveResult:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        savedCount:
+          type: ["integer", "null"]
+      required:
+        - ok
+        - savedCount
 
     ThreadCandidate:
       type: object

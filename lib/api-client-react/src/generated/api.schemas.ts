@@ -86,6 +86,88 @@ export interface NotificationUnreadCount {
   unreadCount: number;
 }
 
+export type BestPracticeSource = typeof BestPracticeSource[keyof typeof BestPracticeSource];
+
+
+export const BestPracticeSource = {
+  chat: 'chat',
+  battle: 'battle',
+} as const;
+
+export type BestPracticeTriggerType = typeof BestPracticeTriggerType[keyof typeof BestPracticeTriggerType];
+
+
+export const BestPracticeTriggerType = {
+  explicit: 'explicit',
+  inferred: 'inferred',
+} as const;
+
+export type BestPracticeStatus = typeof BestPracticeStatus[keyof typeof BestPracticeStatus];
+
+
+export const BestPracticeStatus = {
+  proposed: 'proposed',
+  published: 'published',
+  rejected: 'rejected',
+} as const;
+
+export interface BestPractice {
+  id: number;
+  source: BestPracticeSource;
+  category: string;
+  /** @nullable */
+  archetype: string | null;
+  synthesizedText: string;
+  triggerType: BestPracticeTriggerType;
+  savedCount: number;
+  status: BestPracticeStatus;
+  createdAt: string;
+}
+
+export type BestPracticeSavedSource = typeof BestPracticeSavedSource[keyof typeof BestPracticeSavedSource];
+
+
+export const BestPracticeSavedSource = {
+  chat: 'chat',
+  battle: 'battle',
+} as const;
+
+export type BestPracticeSavedTriggerType = typeof BestPracticeSavedTriggerType[keyof typeof BestPracticeSavedTriggerType];
+
+
+export const BestPracticeSavedTriggerType = {
+  explicit: 'explicit',
+  inferred: 'inferred',
+} as const;
+
+export interface BestPracticeSaved {
+  id: number;
+  source: BestPracticeSavedSource;
+  category: string;
+  /** @nullable */
+  archetype: string | null;
+  synthesizedText: string;
+  triggerType: BestPracticeSavedTriggerType;
+  savedCount: number;
+  createdAt: string;
+  savedAt: string;
+}
+
+export interface BestPracticeContextual {
+  id: number;
+  category: string;
+  /** @nullable */
+  archetype: string | null;
+  synthesizedText: string;
+  savedCount: number;
+}
+
+export interface BestPracticeSaveResult {
+  ok: boolean;
+  /** @nullable */
+  savedCount: number | null;
+}
+
 /**
  * @nullable
  */
@@ -155,10 +237,6 @@ export interface UserProfile {
   percentile: number | null;
   /** @nullable */
   rankChange30d: number | null;
-  monthlyBattlesUsed: number;
-  monthlyBattlesLimit: number;
-  /** @nullable */
-  monthlyResetDate: string | null;
   createdAt: string;
 }
 
@@ -363,5 +441,77 @@ export type DiscardThreadCandidate200 = {
 
 export type MarkNotificationRead200 = {
   ok: boolean;
+};
+
+export type GetBestPracticesParams = {
+category?: string;
+page?: number;
+limit?: number;
+};
+
+export type GetBestPractices200 = {
+  page: number;
+  limit: number;
+  items: BestPractice[];
+};
+
+export type GetContextualBestPracticesParams = {
+category?: string;
+theme?: string;
+};
+
+export type SignalBestPracticeBodySource = typeof SignalBestPracticeBodySource[keyof typeof SignalBestPracticeBodySource];
+
+
+export const SignalBestPracticeBodySource = {
+  chat: 'chat',
+  battle: 'battle',
+} as const;
+
+export type SignalBestPracticeBodyTriggerType = typeof SignalBestPracticeBodyTriggerType[keyof typeof SignalBestPracticeBodyTriggerType];
+
+
+export const SignalBestPracticeBodyTriggerType = {
+  explicit: 'explicit',
+  inferred: 'inferred',
+} as const;
+
+export type SignalBestPracticeBody = {
+  source: SignalBestPracticeBodySource;
+  triggerType: SignalBestPracticeBodyTriggerType;
+  userTurns: string;
+  category?: string;
+  sourceConvoId?: number;
+  sourceMatchId?: string;
+};
+
+export type SignalBestPractice202 = {
+  ok: boolean;
+  queued: boolean;
+};
+
+export type UpdateBestPracticeStatusBodyStatus = typeof UpdateBestPracticeStatusBodyStatus[keyof typeof UpdateBestPracticeStatusBodyStatus];
+
+
+export const UpdateBestPracticeStatusBodyStatus = {
+  published: 'published',
+  rejected: 'rejected',
+} as const;
+
+export type UpdateBestPracticeStatusBody = {
+  status: UpdateBestPracticeStatusBodyStatus;
+};
+
+export type UpdateBestPracticeStatus200Action = typeof UpdateBestPracticeStatus200Action[keyof typeof UpdateBestPracticeStatus200Action];
+
+
+export const UpdateBestPracticeStatus200Action = {
+  published: 'published',
+  deleted: 'deleted',
+} as const;
+
+export type UpdateBestPracticeStatus200 = {
+  ok: boolean;
+  action: UpdateBestPracticeStatus200Action;
 };
 

@@ -21,6 +21,10 @@ import type {
 
 import type {
   ApiError,
+  BestPractice,
+  BestPracticeContextual,
+  BestPracticeSaveResult,
+  BestPracticeSaved,
   BillingCheckoutInput,
   BillingPlan,
   BillingPortalInput,
@@ -29,6 +33,9 @@ import type {
   DiscardThreadCandidate200,
   DomainStrengths,
   GamificationProfile,
+  GetBestPractices200,
+  GetBestPracticesParams,
+  GetContextualBestPracticesParams,
   GetLeaderboardParams,
   GetNotificationsParams,
   GetSgiHistoryParams,
@@ -47,7 +54,11 @@ import type {
   Recommendation,
   SemanticMap,
   SgiSnapshot,
+  SignalBestPractice202,
+  SignalBestPracticeBody,
   ThreadCandidate,
+  UpdateBestPracticeStatus200,
+  UpdateBestPracticeStatusBody,
   UpdateThreadCandidateBody,
   UserProfile,
   UserSync
@@ -2345,5 +2356,610 @@ export const useMarkNotificationRead = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getMarkNotificationReadMutationOptions(options));
+    }
+
+export const getGetBestPracticesUrl = (params?: GetBestPracticesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/best-practices?${stringifiedParams}` : `/api/best-practices`
+}
+
+/**
+ * @summary List published best practices, filterable by category
+ */
+export const getBestPractices = async (params?: GetBestPracticesParams, options?: RequestInit): Promise<GetBestPractices200> => {
+
+  return customFetch<GetBestPractices200>(getGetBestPracticesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBestPracticesQueryKey = (params?: GetBestPracticesParams,) => {
+    return [
+    `/api/best-practices`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetBestPracticesQueryOptions = <TData = Awaited<ReturnType<typeof getBestPractices>>, TError = ErrorType<unknown>>(params?: GetBestPracticesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBestPractices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBestPracticesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBestPractices>>> = ({ signal }) => getBestPractices(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBestPractices>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBestPracticesQueryResult = NonNullable<Awaited<ReturnType<typeof getBestPractices>>>
+export type GetBestPracticesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List published best practices, filterable by category
+ */
+
+export function useGetBestPractices<TData = Awaited<ReturnType<typeof getBestPractices>>, TError = ErrorType<unknown>>(
+ params?: GetBestPracticesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBestPractices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBestPracticesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetSavedBestPracticesUrl = () => {
+
+
+
+
+  return `/api/best-practices/saved`
+}
+
+/**
+ * @summary Current user's saved best practices
+ */
+export const getSavedBestPractices = async ( options?: RequestInit): Promise<BestPracticeSaved[]> => {
+
+  return customFetch<BestPracticeSaved[]>(getGetSavedBestPracticesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSavedBestPracticesQueryKey = () => {
+    return [
+    `/api/best-practices/saved`
+    ] as const;
+    }
+
+
+export const getGetSavedBestPracticesQueryOptions = <TData = Awaited<ReturnType<typeof getSavedBestPractices>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSavedBestPractices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSavedBestPracticesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSavedBestPractices>>> = ({ signal }) => getSavedBestPractices({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSavedBestPractices>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSavedBestPracticesQueryResult = NonNullable<Awaited<ReturnType<typeof getSavedBestPractices>>>
+export type GetSavedBestPracticesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Current user's saved best practices
+ */
+
+export function useGetSavedBestPractices<TData = Awaited<ReturnType<typeof getSavedBestPractices>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSavedBestPractices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSavedBestPracticesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetProposedBestPracticesUrl = () => {
+
+
+
+
+  return `/api/best-practices/proposed`
+}
+
+/**
+ * @summary Admin — review queue of proposed best practices
+ */
+export const getProposedBestPractices = async ( options?: RequestInit): Promise<BestPractice[]> => {
+
+  return customFetch<BestPractice[]>(getGetProposedBestPracticesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProposedBestPracticesQueryKey = () => {
+    return [
+    `/api/best-practices/proposed`
+    ] as const;
+    }
+
+
+export const getGetProposedBestPracticesQueryOptions = <TData = Awaited<ReturnType<typeof getProposedBestPractices>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProposedBestPractices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProposedBestPracticesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProposedBestPractices>>> = ({ signal }) => getProposedBestPractices({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProposedBestPractices>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProposedBestPracticesQueryResult = NonNullable<Awaited<ReturnType<typeof getProposedBestPractices>>>
+export type GetProposedBestPracticesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Admin — review queue of proposed best practices
+ */
+
+export function useGetProposedBestPractices<TData = Awaited<ReturnType<typeof getProposedBestPractices>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProposedBestPractices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetProposedBestPracticesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetContextualBestPracticesUrl = (params?: GetContextualBestPracticesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/best-practices/contextual?${stringifiedParams}` : `/api/best-practices/contextual`
+}
+
+/**
+ * @summary Up to 3 published entries relevant to a Battle category
+ */
+export const getContextualBestPractices = async (params?: GetContextualBestPracticesParams, options?: RequestInit): Promise<BestPracticeContextual[]> => {
+
+  return customFetch<BestPracticeContextual[]>(getGetContextualBestPracticesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetContextualBestPracticesQueryKey = (params?: GetContextualBestPracticesParams,) => {
+    return [
+    `/api/best-practices/contextual`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetContextualBestPracticesQueryOptions = <TData = Awaited<ReturnType<typeof getContextualBestPractices>>, TError = ErrorType<unknown>>(params?: GetContextualBestPracticesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContextualBestPractices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetContextualBestPracticesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getContextualBestPractices>>> = ({ signal }) => getContextualBestPractices(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getContextualBestPractices>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetContextualBestPracticesQueryResult = NonNullable<Awaited<ReturnType<typeof getContextualBestPractices>>>
+export type GetContextualBestPracticesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Up to 3 published entries relevant to a Battle category
+ */
+
+export function useGetContextualBestPractices<TData = Awaited<ReturnType<typeof getContextualBestPractices>>, TError = ErrorType<unknown>>(
+ params?: GetContextualBestPracticesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContextualBestPractices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetContextualBestPracticesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSignalBestPracticeUrl = () => {
+
+
+
+
+  return `/api/best-practices/signal`
+}
+
+/**
+ * @summary Explicit user signal — triggers async best-practice generation
+ */
+export const signalBestPractice = async (signalBestPracticeBody: SignalBestPracticeBody, options?: RequestInit): Promise<SignalBestPractice202> => {
+
+  return customFetch<SignalBestPractice202>(getSignalBestPracticeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      signalBestPracticeBody,)
+  }
+);}
+
+
+
+
+export const getSignalBestPracticeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof signalBestPractice>>, TError,{data: BodyType<SignalBestPracticeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof signalBestPractice>>, TError,{data: BodyType<SignalBestPracticeBody>}, TContext> => {
+
+const mutationKey = ['signalBestPractice'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof signalBestPractice>>, {data: BodyType<SignalBestPracticeBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  signalBestPractice(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SignalBestPracticeMutationResult = NonNullable<Awaited<ReturnType<typeof signalBestPractice>>>
+    export type SignalBestPracticeMutationBody = BodyType<SignalBestPracticeBody>
+    export type SignalBestPracticeMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Explicit user signal — triggers async best-practice generation
+ */
+export const useSignalBestPractice = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof signalBestPractice>>, TError,{data: BodyType<SignalBestPracticeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof signalBestPractice>>,
+        TError,
+        {data: BodyType<SignalBestPracticeBody>},
+        TContext
+      > => {
+      return useMutation(getSignalBestPracticeMutationOptions(options));
+    }
+
+export const getSaveBestPracticeUrl = (id: number,) => {
+
+
+
+
+  return `/api/best-practices/${id}/save`
+}
+
+/**
+ * @summary Save a published best practice for the current user
+ */
+export const saveBestPractice = async (id: number, options?: RequestInit): Promise<BestPracticeSaveResult> => {
+
+  return customFetch<BestPracticeSaveResult>(getSaveBestPracticeUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSaveBestPracticeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveBestPractice>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveBestPractice>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['saveBestPractice'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveBestPractice>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  saveBestPractice(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveBestPracticeMutationResult = NonNullable<Awaited<ReturnType<typeof saveBestPractice>>>
+
+    export type SaveBestPracticeMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Save a published best practice for the current user
+ */
+export const useSaveBestPractice = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveBestPractice>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveBestPractice>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getSaveBestPracticeMutationOptions(options));
+    }
+
+export const getUnsaveBestPracticeUrl = (id: number,) => {
+
+
+
+
+  return `/api/best-practices/${id}/save`
+}
+
+/**
+ * @summary Remove a saved best practice for the current user
+ */
+export const unsaveBestPractice = async (id: number, options?: RequestInit): Promise<BestPracticeSaveResult> => {
+
+  return customFetch<BestPracticeSaveResult>(getUnsaveBestPracticeUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getUnsaveBestPracticeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unsaveBestPractice>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unsaveBestPractice>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['unsaveBestPractice'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unsaveBestPractice>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  unsaveBestPractice(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnsaveBestPracticeMutationResult = NonNullable<Awaited<ReturnType<typeof unsaveBestPractice>>>
+
+    export type UnsaveBestPracticeMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Remove a saved best practice for the current user
+ */
+export const useUnsaveBestPractice = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unsaveBestPractice>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unsaveBestPractice>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getUnsaveBestPracticeMutationOptions(options));
+    }
+
+export const getUpdateBestPracticeStatusUrl = (id: number,) => {
+
+
+
+
+  return `/api/best-practices/${id}/status`
+}
+
+/**
+ * @summary Admin — approve (published) or reject (hard-delete) a proposed entry
+ */
+export const updateBestPracticeStatus = async (id: number,
+    updateBestPracticeStatusBody: UpdateBestPracticeStatusBody, options?: RequestInit): Promise<UpdateBestPracticeStatus200> => {
+
+  return customFetch<UpdateBestPracticeStatus200>(getUpdateBestPracticeStatusUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateBestPracticeStatusBody,)
+  }
+);}
+
+
+
+
+export const getUpdateBestPracticeStatusMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBestPracticeStatus>>, TError,{id: number;data: BodyType<UpdateBestPracticeStatusBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBestPracticeStatus>>, TError,{id: number;data: BodyType<UpdateBestPracticeStatusBody>}, TContext> => {
+
+const mutationKey = ['updateBestPracticeStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBestPracticeStatus>>, {id: number;data: BodyType<UpdateBestPracticeStatusBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateBestPracticeStatus(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBestPracticeStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateBestPracticeStatus>>>
+    export type UpdateBestPracticeStatusMutationBody = BodyType<UpdateBestPracticeStatusBody>
+    export type UpdateBestPracticeStatusMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Admin — approve (published) or reject (hard-delete) a proposed entry
+ */
+export const useUpdateBestPracticeStatus = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBestPracticeStatus>>, TError,{id: number;data: BodyType<UpdateBestPracticeStatusBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateBestPracticeStatus>>,
+        TError,
+        {id: number;data: BodyType<UpdateBestPracticeStatusBody>},
+        TContext
+      > => {
+      return useMutation(getUpdateBestPracticeStatusMutationOptions(options));
     }
 

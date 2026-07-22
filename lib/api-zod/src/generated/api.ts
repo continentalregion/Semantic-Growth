@@ -545,3 +545,137 @@ export const MarkNotificationReadResponse = zod.object({
 })
 
 
+/**
+ * @summary List published best practices, filterable by category
+ */
+export const GetBestPracticesQueryParams = zod.object({
+  "category": zod.coerce.string().optional(),
+  "page": zod.coerce.number().optional(),
+  "limit": zod.coerce.number().optional()
+})
+
+export const GetBestPracticesResponse = zod.object({
+  "page": zod.number(),
+  "limit": zod.number(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "source": zod.enum(['chat', 'battle']),
+  "category": zod.string(),
+  "archetype": zod.string().nullable(),
+  "synthesizedText": zod.string(),
+  "triggerType": zod.enum(['explicit', 'inferred']),
+  "savedCount": zod.number(),
+  "status": zod.enum(['proposed', 'published', 'rejected']),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Current user's saved best practices
+ */
+export const GetSavedBestPracticesResponseItem = zod.object({
+  "id": zod.number(),
+  "source": zod.enum(['chat', 'battle']),
+  "category": zod.string(),
+  "archetype": zod.string().nullable(),
+  "synthesizedText": zod.string(),
+  "triggerType": zod.enum(['explicit', 'inferred']),
+  "savedCount": zod.number(),
+  "createdAt": zod.string(),
+  "savedAt": zod.string()
+})
+export const GetSavedBestPracticesResponse = zod.array(GetSavedBestPracticesResponseItem)
+
+
+/**
+ * @summary Admin — review queue of proposed best practices
+ */
+export const GetProposedBestPracticesResponseItem = zod.object({
+  "id": zod.number(),
+  "source": zod.enum(['chat', 'battle']),
+  "category": zod.string(),
+  "archetype": zod.string().nullable(),
+  "synthesizedText": zod.string(),
+  "triggerType": zod.enum(['explicit', 'inferred']),
+  "savedCount": zod.number(),
+  "status": zod.enum(['proposed', 'published', 'rejected']),
+  "createdAt": zod.string()
+})
+export const GetProposedBestPracticesResponse = zod.array(GetProposedBestPracticesResponseItem)
+
+
+/**
+ * @summary Up to 3 published entries relevant to a Battle category
+ */
+export const GetContextualBestPracticesQueryParams = zod.object({
+  "category": zod.coerce.string().optional(),
+  "theme": zod.coerce.string().optional()
+})
+
+export const GetContextualBestPracticesResponseItem = zod.object({
+  "id": zod.number(),
+  "category": zod.string(),
+  "archetype": zod.string().nullable(),
+  "synthesizedText": zod.string(),
+  "savedCount": zod.number()
+})
+export const GetContextualBestPracticesResponse = zod.array(GetContextualBestPracticesResponseItem)
+
+
+/**
+ * @summary Explicit user signal — triggers async best-practice generation
+ */
+export const SignalBestPracticeBody = zod.object({
+  "source": zod.enum(['chat', 'battle']),
+  "triggerType": zod.enum(['explicit', 'inferred']),
+  "userTurns": zod.string(),
+  "category": zod.string().optional(),
+  "sourceConvoId": zod.number().optional(),
+  "sourceMatchId": zod.string().optional()
+})
+
+
+/**
+ * @summary Save a published best practice for the current user
+ */
+export const SaveBestPracticeParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SaveBestPracticeResponse = zod.object({
+  "ok": zod.boolean(),
+  "savedCount": zod.number().nullable()
+})
+
+
+/**
+ * @summary Remove a saved best practice for the current user
+ */
+export const UnsaveBestPracticeParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UnsaveBestPracticeResponse = zod.object({
+  "ok": zod.boolean(),
+  "savedCount": zod.number().nullable()
+})
+
+
+/**
+ * @summary Admin — approve (published) or reject (hard-delete) a proposed entry
+ */
+export const UpdateBestPracticeStatusParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateBestPracticeStatusBody = zod.object({
+  "status": zod.enum(['published', 'rejected'])
+})
+
+export const UpdateBestPracticeStatusResponse = zod.object({
+  "ok": zod.boolean(),
+  "action": zod.enum(['published', 'deleted'])
+})
+
+

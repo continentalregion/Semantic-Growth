@@ -28,9 +28,5 @@ export interface UserProfile {
   percentile: number | null;
   /** @nullable */
   rankChange30d: number | null;
-  monthlyBattlesUsed: number;
-  monthlyBattlesLimit: number;
-  /** @nullable */
-  monthlyResetDate: string | null;
   createdAt: Date;
 }
