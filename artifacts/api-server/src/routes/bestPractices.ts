@@ -1,7 +1,7 @@
 import { getAuth } from "@clerk/express";
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { users, bestPractices, bestPracticeSignals, bestPracticeSaves } from "@workspace/db";
+import { users, bestPractices, bestPracticeSignals, bestPracticeSaves, bestPracticeTopics } from "@workspace/db";
 import { eq, and, desc, gte, sql } from "drizzle-orm";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { generateBestPractice } from "../lib/generateBestPractice";
@@ -327,7 +327,11 @@ router.patch("/best-practices/:id/status", async (req, res) => {
       return;
     }
 
-    const [practice] = await db.select({ id: bestPractices.id, status: bestPractices.status })
+    const [practice] = await db.select({
+      id:      bestPractices.id,
+      status:  bestPractices.status,
+      topicId: bestPractices.topicId,
+    })
       .from(bestPractices)
       .where(eq(bestPractices.id, practiceId))
       .limit(1);
@@ -341,6 +345,7 @@ router.patch("/best-practices/:id/status", async (req, res) => {
       // ── HARD DELETE — see rule above. ────────────────────────────────────────
       // Cascade on best_practice_saves (ON DELETE CASCADE) and
       // best_practice_signals.proposed_id (ON DELETE SET NULL) handle FK cleanup.
+      // The rejected row never reached "published" so resolutionCount is NOT touched.
       await db.delete(bestPractices).where(eq(bestPractices.id, practiceId));
       res.json({ ok: true, action: "deleted" });
       return;
@@ -352,6 +357,16 @@ router.patch("/best-practices/:id/status", async (req, res) => {
       // Clear expiresAt — published entries never expire.
       .where(eq(bestPractices.id, practiceId))
       .returning();
+
+    // Increment resolutionCount on the topic (only on published transition).
+    // Rejected entries never reach this branch, so the counter is never decremented.
+    if (practice.topicId != null) {
+      await db.execute(
+        sql`UPDATE best_practice_topics
+            SET resolution_count = resolution_count + 1
+            WHERE id = ${practice.topicId}`,
+      );
+    }
 
     res.json({ ok: true, action: "published", entry: updated });
   } catch (err) {

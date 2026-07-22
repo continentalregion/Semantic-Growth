@@ -2,6 +2,7 @@ import { db } from "@workspace/db";
 import { bestPractices, bestPracticeSignals } from "@workspace/db";
 import { eq, and, gte, sql } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { matchOrCreateTopic } from "./matchOrCreateTopic";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,7 +58,7 @@ STRICT ANONYMISATION RULES — NON-NEGOTIABLE:
 OUTPUT — valid JSON only, no markdown fences:
 {
   "technique": "<Italian. 30–70 words. Infinitive verb to start (e.g. 'Identificare le premesse implicite...'). Describe the cognitive move, not the topic. No proper nouns. No personal references.>",
-  "category": "<one of: philosophy | science | ethics | technology | society | knowledge | consciousness>",
+  "category": "<one of: philosophy | behavioral_automatisms | ethics>",
   "archetype": "<one of: Il Cartografo | Il Notaio | L'Architetto | Il Revisore | Il Visionario | Il Tessitore | Lo Sperimentatore | Il Fondamentalista — or null if not clearly applicable>"
 }
 
@@ -238,6 +239,11 @@ export async function generateBestPractice(params: GenerateBestPracticeParams): 
     // ── 5c. Duplicate check ───────────────────────────────────────────────────
     if (await isDuplicate(technique, resolvedCategory)) return;
 
+    // ── 5d. Topic matching (non-blocking) ─────────────────────────────────────
+    // matchOrCreateTopic finds an existing thematic group or creates a new one.
+    // On any error / timeout it returns null — we always proceed with the INSERT.
+    const topicId = await matchOrCreateTopic(technique, resolvedCategory);
+
     // ── 6. INSERT best_practice ───────────────────────────────────────────────
     const expiresAt = new Date(Date.now() + EXPIRES_HOURS * 3600 * 1000);
 
@@ -246,6 +252,7 @@ export async function generateBestPractice(params: GenerateBestPracticeParams): 
       sourceConvoId: sourceConvoId ?? null,
       sourceMatchId: sourceMatchId ?? null,
       category: resolvedCategory,
+      topicId: topicId ?? null,
       archetype,
       synthesizedText: technique,
       triggerType,
