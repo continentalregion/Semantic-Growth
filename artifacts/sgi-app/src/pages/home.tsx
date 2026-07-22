@@ -13,6 +13,7 @@ import {
   Megaphone,
   Menu,
   X,
+  Fingerprint,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -111,6 +112,7 @@ export default function Home() {
     { icon: Activity, title: t("home.telemetryTitle"), desc: t("home.telemetryDesc") },
     { icon: Network, title: t("home.mapsTitle"), desc: t("home.mapsDesc") },
     { icon: Trophy, title: t("home.rankTitle"), desc: t("home.rankDesc") },
+    { icon: Fingerprint, title: t("home.verdictTitle"), desc: t("home.verdictDesc") },
   ];
 
   const useCases = [
@@ -216,20 +218,9 @@ export default function Home() {
             <h1 className="text-4xl sm:text-4xl md:text-6xl xl:text-7xl font-extrabold tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-br from-white to-gray-500">
               {t("home.headline")}
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-6 leading-relaxed">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
               {t("home.sub")}
             </p>
-            {/* Category pills — philosophy prominent */}
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mb-8">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
-                ◆ {t("home.catPhilosophy")}
-              </span>
-              {(["home.catScience","home.catTechnology","home.catArt","home.catHistory","home.catEconomics","home.catPolitics"] as const).map((k) => (
-                <span key={k} className="inline-flex items-center px-3 py-1 rounded-full border border-border/60 text-muted-foreground text-xs font-medium">
-                  {t(k)}
-                </span>
-              ))}
-            </div>
             <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4">
               <Button size="lg" className="h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg rounded-full" asChild>
                 <Link href="/sign-up">
@@ -245,9 +236,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Emblematic capabilities (the rest live in How It Works) */}
+      {/* Emblematic capabilities — 4 cards with eyebrow */}
       <section className="container mx-auto px-6 relative z-10 pb-20">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto text-left">
+        <p className="text-xs text-muted-foreground text-center uppercase tracking-widest mb-8">
+          {t("home.featuresEyebrow")}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto text-left">
           {features.map((f) => (
             <div key={f.title} className="p-6 rounded-2xl bg-card/50 border border-border backdrop-blur-sm">
               <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
@@ -296,6 +290,23 @@ export default function Home() {
           >
             {t("home.plansTeaserLink")}
           </Link>
+        </div>
+      </section>
+
+      {/* Topics pills — placed after features, before final CTA */}
+      <section className="container mx-auto px-6 relative z-10 pb-16">
+        <p className="text-xs text-muted-foreground text-center uppercase tracking-widest mb-4">
+          {t("home.topicsLabel")}
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
+            ◆ {t("home.catPhilosophy")}
+          </span>
+          {(["home.catScience","home.catTechnology","home.catArt","home.catHistory","home.catEconomics","home.catPolitics"] as const).map((k) => (
+            <span key={k} className="inline-flex items-center px-3 py-1 rounded-full border border-border/60 text-muted-foreground text-xs font-medium">
+              {t(k)}
+            </span>
+          ))}
         </div>
       </section>
 
