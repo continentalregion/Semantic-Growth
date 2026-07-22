@@ -366,8 +366,12 @@ export default function LoginScreen() {
             <View style={s.logoMark}>
               <LogoMark size={72} />
             </View>
+            <View style={s.badgePill}>
+              <Text style={s.badgeText}>Non un chatbot filosofico. Un sistema di misurazione del pensiero.</Text>
+            </View>
             <Text style={s.title}>Semantic Growth Index</Text>
-            <Text style={s.subtitle}>Analisi semantica della tua intelligenza</Text>
+            <Text style={s.subtitle}>Parlare di filosofia, lo sanno fare tutti. Misurarla, no.</Text>
+            <Text style={s.body}>Ogni conversazione diventa un punteggio, una sfida, un progresso che vedi crescere.</Text>
           </View>
 
           {pendingSignInOtp ? (
@@ -597,12 +601,41 @@ function makeStyles(colors: ReturnType<typeof import("@/hooks/useColors").useCol
       textAlign: "center",
       letterSpacing: -0.3,
     },
+    badgePill: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.primary + "18",
+      borderWidth: 1,
+      borderColor: colors.primary + "30",
+      borderRadius: 20,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      marginTop: 14,
+      marginBottom: 2,
+      maxWidth: 300,
+    },
+    badgeText: {
+      color: colors.primary,
+      fontSize: 11,
+      fontFamily: "Inter_500Medium",
+      textAlign: "center",
+    },
     subtitle: {
+      color: colors.foreground,
+      fontSize: 15,
+      fontFamily: "Inter_600SemiBold",
+      textAlign: "center",
+      marginTop: 8,
+      letterSpacing: -0.2,
+    },
+    body: {
       color: colors.mutedForeground,
-      fontSize: 14,
+      fontSize: 13,
       fontFamily: "Inter_400Regular",
       textAlign: "center",
       marginTop: 6,
+      lineHeight: 19,
+      maxWidth: 280,
     },
     card: {
       backgroundColor: colors.card,
