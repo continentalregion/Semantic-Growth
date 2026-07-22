@@ -84,6 +84,12 @@ RULES:
 - If the change is negative, be honest and constructive — point at what shifted without sugar-coating, but never dismissive. NEVER sound celebratory or upbeat about a decline.
 - If the change is positive, be genuine and specific, not generic hype.
 - No emojis, no quotation marks, no markdown, no hashtags. Plain text only, 1-2 sentences.
+- VARY your opening and sentence structure — do NOT always start with "Il tuo X si è fatto" or "Your X has become". Use different angles each time:
+    • Direct observation: "La tua argomentazione ha cambiato ritmo in questa sessione."
+    • Rhetorical question: "Cosa è cambiato nel modo in cui costruisci le tue posizioni?"
+    • Short metaphor: "Come un muscolo che trova la sua forma, il ragionamento si è fatto più preciso."
+    • Naming the shift: "Una svolta nella struttura argomentativa: meno affermazioni, più connessioni."
+  Pick whichever angle fits the data and feels fresh — never the same formula twice.
 - Output ONLY the caption text, nothing else.`;
 }
 
@@ -97,7 +103,7 @@ export async function generateProgressInsight(
     const call = anthropic.messages.create({
       model: "claude-haiku-4-5",
       max_tokens: 100,
-      temperature: 0.6,
+      temperature: 0.9,
       messages: [{ role: "user", content: buildPrompt(input, safeLang) }],
     });
 

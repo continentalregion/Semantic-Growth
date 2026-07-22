@@ -14,6 +14,7 @@ interface ProgressCardData {
   createdAt: string;
   username: string;
   conversationTitle: string;
+  sgiScore: number;
   earlyAvg: number;
   lateAvg: number;
   deltaPct: number;
@@ -48,8 +49,8 @@ export default function ProgressCardPage() {
     if (!card || !card.isPositive) return;
     const ogImageUrl = `${window.location.origin}/api/progress-cards/${id}/og-image`;
     const pageUrl = window.location.href;
-    const title = `SGI Progress: +${card.deltaPct}%`;
-    const desc = `${card.username} — ${card.highlightMetricLabel} +${card.highlightDeltaPct}% in "${card.conversationTitle}"`;
+    const title = `SGI ${card.sgiScore}/10`;
+    const desc = `${card.username} — ${card.highlightMetricLabel} ${card.highlightDeltaPct > 0 ? "+" : ""}${card.highlightDeltaPct}% in "${card.conversationTitle}"`;
     document.title = title;
 
     const setMeta = (property: string, content: string) => {
@@ -79,7 +80,7 @@ export default function ProgressCardPage() {
       });
       const result = await shareOrDownloadCanvas(canvas, `sgi-progress-${card.username}.png`, {
         title: "SGI Progress Card",
-        text: `+${card.deltaPct}% — ${card.highlightMetricLabel}`,
+        text: `${card.sgiScore}/10 — ${card.highlightMetricLabel}`,
       });
       if (result === "downloaded") toast.success(t("progressCard.downloaded"));
     } catch {
@@ -109,9 +110,14 @@ export default function ProgressCardPage() {
 
   if (!card) return null;
 
+  const signedDelta = `${card.deltaPct > 0 ? "+" : ""}${card.deltaPct}%`;
+  const signedHighlight = `${card.highlightDeltaPct > 0 ? "+" : ""}${card.highlightDeltaPct}%`;
+
   return (
     <div className="flex-1 overflow-y-auto" style={{ background: "#08090f" }}>
-      <div className="max-w-[680px] mx-auto px-6 py-8">
+      <div className="max-w-[640px] mx-auto px-6 py-8">
+
+        {/* ── Back nav ── */}
         <button
           onClick={() => setLocation("/chat")}
           className="flex items-center gap-2 text-sm mb-6 transition-colors"
@@ -121,43 +127,95 @@ export default function ProgressCardPage() {
           Chat
         </button>
 
-        <div className="flex items-center gap-2 mb-2">
+        {/* ── Page header ── */}
+        <div className="flex items-center gap-2 mb-1">
           <TrendingUp className="w-5 h-5" style={{ color: "#06d6a0" }} />
           <h1 className="text-xl font-bold font-display" style={{ color: "#eeeeff" }}>
             {t("progressCard.title")}
           </h1>
         </div>
-        <p className="text-sm mb-6" style={{ color: "#9090b8" }}>@{card.username} — "{card.conversationTitle}"</p>
+        <p className="text-sm mb-6" style={{ color: "#9090b8" }}>
+          @{card.username} — "{card.conversationTitle}"
+        </p>
 
+        {/* ── Single unified card ── */}
         <div
-          className="rounded-2xl p-8 mb-6 text-center"
+          className="rounded-3xl p-8 mb-6"
           style={{
-            background: "linear-gradient(135deg, rgba(6,214,160,0.1), rgba(6,214,160,0.02))",
-            border: "1px solid rgba(6,214,160,0.35)",
+            background: "linear-gradient(150deg, rgba(6,214,160,0.1) 0%, rgba(6,214,160,0.03) 60%, rgba(124,107,255,0.06) 100%)",
+            border: "1px solid rgba(6,214,160,0.3)",
+            boxShadow: "0 0 48px rgba(6,214,160,0.06), inset 0 1px 0 rgba(255,255,255,0.04)",
           }}
         >
-          <p className="text-xs uppercase tracking-widest mb-3" style={{ color: "rgba(168,255,220,0.7)" }}>
+          {/* Label row */}
+          <p className="text-xs uppercase tracking-widest mb-5 text-center" style={{ color: "rgba(168,255,220,0.55)" }}>
             {t("chat.trendWindow", "Early → Late trend")}
           </p>
-          <p className="text-6xl font-black font-display mb-3" style={{ color: "#06d6a0" }}>
-            {card.deltaPct > 0 ? "+" : ""}{card.deltaPct}%
-          </p>
-          <p className="text-sm" style={{ color: "#eeeeff" }}>
-            {card.highlightMetricLabel} {card.highlightDeltaPct > 0 ? "+" : ""}{card.highlightDeltaPct}%
-          </p>
+
+          {/* ── Primary: absolute SGI score ── */}
+          <div className="text-center mb-3">
+            <span
+              className="font-black font-display leading-none"
+              style={{ fontSize: "clamp(72px, 18vw, 104px)", color: "#06d6a0" }}
+            >
+              {card.sgiScore.toFixed(1)}
+            </span>
+            <span
+              className="font-semibold ml-1"
+              style={{ fontSize: "clamp(22px, 5vw, 30px)", color: "rgba(6,214,160,0.6)" }}
+            >
+              /10
+            </span>
+          </div>
+
+          {/* ── Secondary: delta% badge ── */}
+          <div className="flex justify-center mb-6">
+            <span
+              className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold"
+              style={{
+                background: card.isPositive ? "rgba(6,214,160,0.12)" : "rgba(255,100,100,0.1)",
+                border: `1px solid ${card.isPositive ? "rgba(6,214,160,0.3)" : "rgba(255,100,100,0.25)"}`,
+                color: card.isPositive ? "#4eeec0" : "#ff8888",
+              }}
+            >
+              {signedDelta} {t("chat.trendWindow", "questa sessione")}
+            </span>
+          </div>
+
+          {/* ── Highlight metric ── */}
+          <div
+            className="rounded-2xl px-5 py-3 text-center mb-4"
+            style={{ background: "rgba(255,255,255,0.04)" }}
+          >
+            <p className="text-xs uppercase tracking-wide mb-1" style={{ color: "#9090b8" }}>
+              {t("progressCard.highlight", "Dimensione in evidenza")}
+            </p>
+            <p className="text-sm font-semibold" style={{ color: "#eeeeff" }}>
+              {card.highlightMetricLabel}
+              <span className="ml-2 font-bold" style={{ color: card.highlightDeltaPct >= 0 ? "#06d6a0" : "#ff8888" }}>
+                {signedHighlight}
+              </span>
+            </p>
+          </div>
+
+          {/* ── AI insight phrase ── */}
           {card.insightText && (
-            <p className="text-xs italic mt-3 leading-relaxed" style={{ color: "rgba(200,200,224,0.8)" }}>
+            <p
+              className="text-sm italic text-center leading-relaxed"
+              style={{ color: "rgba(200,200,224,0.7)" }}
+            >
               {card.insightText}
             </p>
           )}
         </div>
 
+        {/* ── CTAs ── */}
         {card.isPositive ? (
           <div className="flex gap-2">
             <button
               onClick={handleShareOrDownload}
               disabled={exporting}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold transition-all"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-sm font-semibold transition-all"
               style={{
                 background: "linear-gradient(135deg, rgba(6,214,160,0.22), rgba(6,214,160,0.1))",
                 border: "1px solid rgba(6,214,160,0.5)",
@@ -172,7 +230,7 @@ export default function ProgressCardPage() {
             </button>
             <button
               onClick={handleCopyLink}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold transition-all"
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-sm font-semibold transition-all"
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#eeeeff" }}
             >
               <Share2 className="w-4 h-4" />
@@ -180,7 +238,7 @@ export default function ProgressCardPage() {
           </div>
         ) : (
           <div
-            className="flex items-center gap-3 rounded-xl px-4 py-3"
+            className="flex items-center gap-3 rounded-2xl px-4 py-3"
             style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
           >
             <Sparkles className="w-4 h-4 flex-shrink-0" style={{ color: "#9090b8" }} />

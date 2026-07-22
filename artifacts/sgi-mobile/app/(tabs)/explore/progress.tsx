@@ -501,7 +501,7 @@ export default function ProgressScreen() {
             }}>
               {/* Capture target */}
               <View ref={shareCardRef} style={{
-                backgroundColor: colors.background, borderRadius: 16, padding: 20,
+                backgroundColor: colors.background, borderRadius: 20, padding: 20,
                 borderWidth: 1, borderColor: colors.border, gap: 14,
               }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -510,6 +510,18 @@ export default function ProgressScreen() {
                     SGI Progress
                   </Text>
                 </View>
+
+                {/* SGI score — primary, dominant element */}
+                <View style={{ alignItems: "center", paddingVertical: 4 }}>
+                  <Text style={{ color: colors.teal, fontSize: 56, fontFamily: "Inter_700Bold", lineHeight: 60 }}>
+                    {(profile?.sgiScore ?? 0).toFixed(1)}
+                  </Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 13, fontFamily: "Inter_400Regular" }}>
+                    / 10
+                  </Text>
+                </View>
+
+                {/* Secondary stats row */}
                 <View style={{ flexDirection: "row", gap: 10 }}>
                   <View style={{ flex: 1, alignItems: "center", backgroundColor: colors.primary + "12", borderRadius: 10, padding: 10, borderWidth: 1, borderColor: colors.primary + "30" }}>
                     <Text style={{ color: colors.mutedForeground, fontSize: 9, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.6 }}>{t("gamification.level")}</Text>

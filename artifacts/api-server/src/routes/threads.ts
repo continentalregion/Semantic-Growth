@@ -717,6 +717,8 @@ router.get("/progress-cards/:id", async (req, res) => {
     if (!card) { res.status(404).json({ error: "Progress card not found" }); return; }
 
     const [convo] = await db.select({ title: conversations.title }).from(conversations).where(eq(conversations.id, card.conversationId)).limit(1);
+    // Fetch the user's current EMA-based SGI score (the same "7.4/10" shown on home).
+    const [owner] = await db.select({ sgiScore: users.sgiScore }).from(users).where(eq(users.id, card.userId)).limit(1);
     const username = anonHandle(card.userId);
 
     res.json({
@@ -724,6 +726,8 @@ router.get("/progress-cards/:id", async (req, res) => {
       createdAt: card.createdAt,
       username,
       conversationTitle: convo?.title ?? "Exploration",
+      // sgiScore: absolute EMA-based score — the primary visual element.
+      sgiScore: Math.round((owner?.sgiScore ?? 0) * 10) / 10,
       earlyAvg: card.earlyAvg,
       lateAvg: card.lateAvg,
       deltaPct: Math.round(card.deltaPct * 10) / 10,
