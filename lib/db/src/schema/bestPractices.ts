@@ -1,5 +1,6 @@
 import { pgTable, serial, integer, text, timestamp } from "drizzle-orm/pg-core";
 import { conversations } from "./conversations";
+import { bestPracticeTopics } from "./bestPracticeTopics";
 
 // Shared, anonymised library of reasoning techniques extracted from Chat and
 // Battle sessions. A best practice is NEVER publicly visible until status is
@@ -28,8 +29,13 @@ export const bestPractices = pgTable("best_practices", {
                     .references(() => conversations.id, { onDelete: "set null" }),
   sourceMatchId:  text("source_match_id"),            // battle_matches.id (uuid text)
   category:       text("category").notNull().default("philosophy"),
-  // Matches the 7-category taxonomy in threads.tsx:
-  //   philosophy | science | ethics | technology | society | knowledge | consciousness
+  // 3 macro-categories SPECIFIC to the Best Practice Library — INDEPENDENT from
+  // the 7-category taxonomy used by Thread Aperti (threads.tsx). Do not conflate.
+  //   "philosophy" | "behavioral_automatisms" | "ethics"
+  topicId:        integer("topic_id")
+                    .references(() => bestPracticeTopics.id, { onDelete: "set null" }),
+  // Nullable FK to best_practice_topics. NULL for rows inserted before Fase B'
+  // (topic matching); populated by the matchOrCreateTopic() step in the pipeline.
   archetype:      text("archetype"),                  // from verdicts.archetype if available
   synthesizedText: text("synthesized_text").notNull(),
   triggerType:    text("trigger_type").notNull(),     // "explicit" | "inferred"
