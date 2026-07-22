@@ -18,6 +18,7 @@ import { openai } from "@workspace/integrations-openai-ai-server";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { anonHandle } from "../lib/anonHandle";
+import { generateBestPractice } from "../lib/generateBestPractice";
 import { awardBadge } from "../lib/awardBadge";
 import {
   evaluatePvpBattle,
@@ -1032,6 +1033,32 @@ router.post("/battles/matches/:id/complete", async (req, res) => {
     }
     const view = await buildMatchView(clerkId, matchId);
     res.json(view);
+
+    // Fire-and-forget: propose best practice from completed battle (inferred).
+    // Runs after res.json so it never delays the client response.
+    // generateBestPractice handles: 48h cooldown + per-match dedup + duplicate text.
+    void (async () => {
+      try {
+        const dbUser = await getOrCreateUser(clerkId);
+        if (!dbUser) return;
+        // Re-fetch entry after completeEntryAndMaybeResolve has set userText.
+        const [updatedEntry] = await db.select({ userText: battleEntries.userText })
+          .from(battleEntries)
+          .where(and(eq(battleEntries.matchId, matchId), eq(battleEntries.userId, clerkId)))
+          .limit(1);
+        if (!updatedEntry?.userText) return;
+        await generateBestPractice({
+          userId: dbUser.id,
+          source: "battle",
+          triggerType: "inferred",
+          userTurns: updatedEntry.userText,
+          category: match.category ?? "philosophy",
+          sourceMatchId: matchId,
+        });
+      } catch (e) {
+        console.error("[best-practice] battle background error:", e);
+      }
+    })();
   } catch (err) {
     console.error("[battles] complete error", err);
     res.status(500).json({ error: "Internal error" });

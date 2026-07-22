@@ -12,6 +12,8 @@ import { generateProgressInsight } from "../lib/progressCardInsight";
 import { updateLeaderboardRank, checkAndAwardBadges } from "./users";
 import { updateMissionProgress } from "./gamification";
 import { createNotification } from "../lib/notifications";
+import { detectBreakout } from "../lib/detectBreakout";
+import { generateBestPractice } from "../lib/generateBestPractice";
 import {
   MONTHLY_LIMITS,
   MODEL_COST_CENTS_PER_1K,
@@ -745,6 +747,28 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       maybeCreateThreadCandidateFromConversation(history, user.id, convoId).catch(e =>
         console.error("[thread-candidate] background error:", e)
       );
+    }
+
+    // Fire-and-forget: detect cognitive breakout → propose best practice (inferred)
+    // Only runs when a conversationId exists (needed for intra-conversation snapshot join).
+    // generateBestPractice handles all dedup: 48h cooldown + per-convo guard + duplicate text.
+    if (convoId) {
+      detectBreakout(user.id, convoId)
+        .then(br => {
+          if (!br.detected) return;
+          const userTurns = history
+            .filter(m => m.role === "user")
+            .map(m => m.content)
+            .join("\n\n");
+          return generateBestPractice({
+            userId: user.id,
+            source: "chat",
+            triggerType: "inferred",
+            userTurns,
+            sourceConvoId: convoId,
+          });
+        })
+        .catch(e => console.error("[best-practice] chat breakout error:", e));
     }
 
     // Fire-and-forget: extract AI-inferred facts from conversation
