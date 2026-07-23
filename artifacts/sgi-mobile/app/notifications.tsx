@@ -22,6 +22,7 @@ import {
 } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
+import { ScreenErrorState } from "@/components/ui/ScreenErrorState";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
 
 const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -105,7 +106,7 @@ export default function NotificationsScreen() {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data, isLoading, refetch } = useGetNotifications({});
+  const { data, isLoading, isError, refetch } = useGetNotifications({});
   const markRead = useMarkNotificationRead({
     mutation: {
       onSuccess: () => {
@@ -173,6 +174,8 @@ export default function NotificationsScreen() {
             <SkeletonBox key={i} height={64} borderRadius={14} />
           ))}
         </View>
+      ) : isError ? (
+        <ScreenErrorState onRetry={() => void refetch()} />
       ) : items.length === 0 ? (
         <View style={st.emptyWrap}>
           <Ionicons name="notifications-off-outline" size={40} color={colors.mutedForeground} />

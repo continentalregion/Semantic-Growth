@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import ReanimatedAnimated, { FadeIn } from "react-native-reanimated";
 import { useStagedReveal } from "@/hooks/useStagedReveal";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
+import { ScreenErrorState } from "@/components/ui/ScreenErrorState";
 
 const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
 
@@ -71,7 +72,7 @@ export default function ThreadsListScreen() {
   const [newDesc, setNewDesc] = useState("");
   const [newCat, setNewCat] = useState("philosophy");
 
-  const { data: threads = [], isLoading, refetch } = useQuery({
+  const { data: threads = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["threads"],
     queryFn: async () => {
       const token = await getToken();
@@ -106,6 +107,14 @@ export default function ThreadsListScreen() {
 
   const { phase } = useStagedReveal(!isLoading, { steps: 1, minWaitMs: 500, stepDelayMs: 0 });
   const showSkeleton = isLoading || phase === 0;
+
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    if (!isLoading || isError) { setTimedOut(false); return; }
+    const timer = setTimeout(() => setTimedOut(true), 12000);
+    return () => clearTimeout(timer);
+  }, [isLoading, isError]);
+  const isCriticalError = isError || timedOut;
 
   const filtered = filter ? threads.filter(th => th.category === filter) : threads;
   const openThreads = filtered.filter(th => !th.battleCardId);
@@ -186,7 +195,9 @@ export default function ThreadsListScreen() {
         })}
       </ScrollView>
 
-      {showSkeleton ? (
+      {isCriticalError ? (
+        <ScreenErrorState onRetry={() => { setTimedOut(false); void refetch(); }} />
+      ) : showSkeleton ? (
         <View style={{ padding: 16, gap: 10 }}>
           {[0, 1, 2, 3].map(i => (
             <SkeletonBox key={i} height={88} borderRadius={14} />

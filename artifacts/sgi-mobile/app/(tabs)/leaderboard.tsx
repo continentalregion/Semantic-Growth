@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
+import { ScreenErrorState } from "@/components/ui/ScreenErrorState";
 
 function ThresholdBar({
   label, threshold, userSgi, accent, colors, t,
@@ -71,11 +72,26 @@ export default function LeaderboardScreen() {
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
 
-  const { data: profile, isLoading: profileLoading, refetch: refetchProfile, isRefetching: profileRefetching } = useGetMyProfile();
-  const { data: summary, isLoading: summaryLoading, refetch: refetchSummary, isRefetching: summaryRefetching } = useGetLeaderboardSummary();
+  const { data: profile, isLoading: profileLoading, isError: profileError, refetch: refetchProfile, isRefetching: profileRefetching } = useGetMyProfile();
+  const { data: summary, isLoading: summaryLoading, isError: summaryError, refetch: refetchSummary, isRefetching: summaryRefetching } = useGetLeaderboardSummary();
 
   const isLoading = profileLoading || summaryLoading;
   const isRefetching = profileRefetching || summaryRefetching;
+
+  const hasData = profile !== undefined || summary !== undefined;
+  const isError = profileError || summaryError;
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    if (hasData || isError) { setTimedOut(false); return; }
+    const timer = setTimeout(() => setTimedOut(true), 12000);
+    return () => clearTimeout(timer);
+  }, [hasData, isError]);
+  const isCriticalError = !hasData && (isError || timedOut);
+  function handleRetry() {
+    setTimedOut(false);
+    void refetchProfile();
+    void refetchSummary();
+  }
 
   const userSgi   = profile?.sgiScore ?? 0;
   const userRank  = profile?.globalRank ?? null;
@@ -118,7 +134,11 @@ export default function LeaderboardScreen() {
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>{t("leaderboard.title")}</Text>
       </View>
 
-      <ScrollView
+      {isCriticalError ? (
+        <ScreenErrorState onRetry={handleRetry} />
+      ) : null}
+
+      {!isCriticalError && <ScrollView
         contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: bottomPad + 20 }}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -281,7 +301,7 @@ export default function LeaderboardScreen() {
             {t("leaderboard.noRankYet")}
           </Text>
         )}
-      </ScrollView>
+      </ScrollView>}
     </AnimatedScreen>
   );
 }

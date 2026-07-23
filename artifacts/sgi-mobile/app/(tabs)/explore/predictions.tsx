@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -37,6 +37,7 @@ import { useStagedReveal } from "@/hooks/useStagedReveal";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
 import { TierGate } from "./components/TierGate";
+import { ScreenErrorState } from "@/components/ui/ScreenErrorState";
 
 const AnimatedRect = createAnimatedComponent(SvgRect);
 
@@ -338,15 +339,24 @@ export default function PredictionsScreen() {
   const isPremiumOrPro =
     profile?.plan === "premium" || profile?.plan === "pro";
 
-  const { data: predictions, isLoading: predLoading } = useGetPredictions({
+  const { data: predictions, isLoading: predLoading, isError: predError, refetch: refetchPredictions } = useGetPredictions({
     query: { enabled: isPremiumOrPro },
   });
 
   const isLoading = profileLoading || (isPremiumOrPro && predLoading);
 
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    if (!isPremiumOrPro || predictions || predError) { setTimedOut(false); return; }
+    const timer = setTimeout(() => setTimedOut(true), 12000);
+    return () => clearTimeout(timer);
+  }, [isPremiumOrPro, predictions, predError]);
+
+  const isCriticalError = isPremiumOrPro && (predError || timedOut);
+
   const revealReady = !isLoading && isPremiumOrPro && !!predictions;
   const { phase } = useStagedReveal(revealReady, { steps: 3, minWaitMs: 1200, stepDelayMs: 650 });
-  const showSkeleton = isLoading || (isPremiumOrPro && (!predictions || phase === 0));
+  const showSkeleton = !isCriticalError && (isLoading || (isPremiumOrPro && (!predictions || phase === 0)));
 
   return (
     <AnimatedScreen>
@@ -373,7 +383,9 @@ export default function PredictionsScreen() {
           </View>
         </View>
 
-        {showSkeleton ? (
+        {isCriticalError ? (
+          <ScreenErrorState onRetry={() => { setTimedOut(false); void refetchPredictions(); }} />
+        ) : showSkeleton ? (
           <ScrollView
             contentContainerStyle={[
               st.scrollContent,
@@ -384,55 +396,53 @@ export default function PredictionsScreen() {
           </ScrollView>
         ) : (
           <TierGate requiredPlan="premium" currentPlan={profile?.plan} featureName="Predictions" fallbackRoute="/(tabs)/explore">
-            {!predictions ? null : (
-              <ScrollView
-                contentContainerStyle={[
-                  st.scrollContent,
-                  { paddingBottom: tabBarHeight + 24 },
+            <ScrollView
+              contentContainerStyle={[
+                st.scrollContent,
+                { paddingBottom: tabBarHeight + 24 },
+              ]}
+              showsVerticalScrollIndicator={false}
+            >
+              {predictions && phase >= 1 && (["conservative", "realistic", "optimistic"] as ScenarioKey[]).map(
+                (key, idx) => (
+                  <Animated.View
+                    key={key}
+                    entering={FadeInDown.delay(idx * 80).duration(400)}
+                  >
+                    <ScenarioCard
+                      scenarioKey={key}
+                      data={predictions[key]}
+                      isMain={key === "realistic"}
+                      colors={colors}
+                      t={t}
+                    />
+                  </Animated.View>
+                )
+              )}
+
+              {predictions && phase >= 2 && <Animated.View
+                entering={FadeInDown.duration(400)}
+                style={[
+                  st.chartCard,
+                  { backgroundColor: colors.card, borderColor: colors.border },
                 ]}
-                showsVerticalScrollIndicator={false}
               >
-                {phase >= 1 && (["conservative", "realistic", "optimistic"] as ScenarioKey[]).map(
-                  (key, idx) => (
-                    <Animated.View
-                      key={key}
-                      entering={FadeInDown.delay(idx * 80).duration(400)}
-                    >
-                      <ScenarioCard
-                        scenarioKey={key}
-                        data={predictions[key]}
-                        isMain={key === "realistic"}
-                        colors={colors}
-                        t={t}
-                      />
-                    </Animated.View>
-                  )
-                )}
+                <Text style={[st.chartTitle, { color: colors.foreground }]}>
+                  {t("predictions.trajectoryChart")}
+                </Text>
+                <PredictionChart
+                  currentScore={profile?.sgiScore ?? 0}
+                  predictions={predictions}
+                  colors={colors}
+                  chartWidth={chartWidth}
+                  t={t}
+                />
+              </Animated.View>}
 
-                {phase >= 2 && <Animated.View
-                  entering={FadeInDown.duration(400)}
-                  style={[
-                    st.chartCard,
-                    { backgroundColor: colors.card, borderColor: colors.border },
-                  ]}
-                >
-                  <Text style={[st.chartTitle, { color: colors.foreground }]}>
-                    {t("predictions.trajectoryChart")}
-                  </Text>
-                  <PredictionChart
-                    currentScore={profile?.sgiScore ?? 0}
-                    predictions={predictions}
-                    colors={colors}
-                    chartWidth={chartWidth}
-                    t={t}
-                  />
-                </Animated.View>}
-
-                {phase >= 3 && <Text style={[st.disclaimer, { color: colors.mutedForeground }]}>
-                  {t("predictions.disclaimer")}
-                </Text>}
-              </ScrollView>
-            )}
+              {predictions && phase >= 3 && <Text style={[st.disclaimer, { color: colors.mutedForeground }]}>
+                {t("predictions.disclaimer")}
+              </Text>}
+            </ScrollView>
           </TierGate>
         )}
       </View>

@@ -904,21 +904,25 @@ export default function BattlesScreen() {
   const loadData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setListError(false);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     try {
       const token = await getTokenRef.current();
       const h = { Authorization: `Bearer ${token ?? ""}` };
       const [mineRes, pubRes] = await Promise.all([
-        fetch(`${BASE}/api/battles/matches/me`, { headers: h }),
-        fetch(`${BASE}/api/battles/public`, { headers: h }),
+        fetch(`${BASE}/api/battles/matches/me`, { headers: h, signal: controller.signal }),
+        fetch(`${BASE}/api/battles/public`, { headers: h, signal: controller.signal }),
       ]);
       if (mineRes.ok) setMyMatches(await mineRes.json() as MyMatch[]);
       if (pubRes.ok) setPublicMatches(await pubRes.json() as PublicMatch[]);
       if (!mineRes.ok && !pubRes.ok) setListError(true);
     } catch {
       setListError(true);
+    } finally {
+      clearTimeout(timeoutId);
+      setLoading(false);
+      setRefreshing(false);
     }
-    setLoading(false);
-    setRefreshing(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

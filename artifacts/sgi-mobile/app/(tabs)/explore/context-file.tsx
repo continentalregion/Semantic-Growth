@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { fetch } from "expo/fetch";
 import { useGetMyProfile } from "@workspace/api-client-react";
+import { ScreenErrorState } from "@/components/ui/ScreenErrorState";
 import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
 import { usePurchase } from "@/hooks/usePurchase";
@@ -516,9 +517,16 @@ export default function ContextFileScreen() {
   const { triggerPurchase } = usePurchase();
   const queryClient = useQueryClient();
 
-  const { data: profile, isLoading: profileLoading } = useGetMyProfile();
+  const { data: profile, isLoading: profileLoading, isError: profileError, refetch: refetchProfile } = useGetMyProfile();
   const isPro = profile?.plan === "pro";
   const { phase } = useStagedReveal(isPro, { steps: 3, minWaitMs: 800, stepDelayMs: 600 });
+
+  const [profileTimedOut, setProfileTimedOut] = useState(false);
+  useEffect(() => {
+    if (!profileLoading || profileError) { setProfileTimedOut(false); return; }
+    const timer = setTimeout(() => setProfileTimedOut(true), 12000);
+    return () => clearTimeout(timer);
+  }, [profileLoading, profileError]);
 
   async function authFetch<T>(path: string): Promise<T> {
     const token = await getToken();
@@ -628,6 +636,15 @@ export default function ContextFileScreen() {
       </View>
     </View>
   );
+
+  if (profileTimedOut || (!profileLoading && profileError)) {
+    return (
+      <AnimatedScreen style={{ backgroundColor: colors.background }}>
+        {header}
+        <ScreenErrorState onRetry={() => { setProfileTimedOut(false); void refetchProfile(); }} />
+      </AnimatedScreen>
+    );
+  }
 
   if (profileLoading) {
     return (

@@ -19,6 +19,7 @@ import { useColors } from "@/hooks/useColors";
 import { palette } from "@/constants/theme";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { TierGate } from "./explore/components/TierGate";
+import { ScreenErrorState } from "@/components/ui/ScreenErrorState";
 import ReanimatedAnimated, { FadeIn } from "react-native-reanimated";
 import { useStagedReveal } from "@/hooks/useStagedReveal";
 import { StaggeredItem } from "@/components/ui/StaggeredItem";
@@ -125,16 +126,17 @@ export default function RecommendationsScreen() {
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
 
-  const { data: profile } = useGetMyProfile();
+  const { data: profile, isLoading: profileLoading } = useGetMyProfile();
   const isPremiumOrPro = profile?.plan === "premium" || profile?.plan === "pro";
 
-  const { data: recs, isLoading, refetch, isRefetching } = useGetMyRecommendations({
+  const { data: recs, isLoading: recsLoading, isError: recsError, refetch, isRefetching } = useGetMyRecommendations({
     query: { enabled: isPremiumOrPro },
   });
 
+  const isLoading = profileLoading || (isPremiumOrPro && recsLoading);
   const revealReady = !isLoading && isPremiumOrPro && !!recs;
   const { phase } = useStagedReveal(revealReady, { steps: 1, minWaitMs: 1000 });
-  const showSkeleton = isLoading || (isPremiumOrPro && phase === 0 && profile !== undefined);
+  const showSkeleton = profileLoading || isLoading || (isPremiumOrPro && phase === 0 && profile !== undefined);
 
   return (
     <AnimatedScreen style={{ backgroundColor: colors.background }}>
@@ -163,6 +165,8 @@ export default function RecommendationsScreen() {
               <SkeletonListCard key={i} style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }} />
             ))}
           </View>
+        ) : recsError && !recs ? (
+          <ScreenErrorState onRetry={() => void refetch()} />
         ) : !recs || recs.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12 }}>
           <Ionicons name="bulb-outline" size={48} color={colors.border} />

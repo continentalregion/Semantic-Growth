@@ -34,6 +34,7 @@ import { palette } from "@/constants/theme";
 import { AnimatedScreen } from "@/components/ui/AnimatedScreen";
 import { SkeletonBox } from "@/components/ui/SkeletonBox";
 import { usePurchase } from "@/hooks/usePurchase";
+import { ScreenErrorState } from "@/components/ui/ScreenErrorState";
 
 const LEVEL_COLOR = palette.primary;
 const XP_COLOR = palette.teal;
@@ -149,7 +150,7 @@ export default function ProgressScreen() {
   const { width: screenWidth } = useWindowDimensions();
 
   const { data: profile } = useGetMyProfile();
-  const { data: gam, isLoading } = useGetMyGamification();
+  const { data: gam, isLoading, isError: gamError, refetch: refetchGam } = useGetMyGamification();
 
   const level = gam?.level ?? 1;
   const xp = gam?.xp ?? 0;
@@ -162,8 +163,17 @@ export default function ProgressScreen() {
   const rankChange = profile?.rankChange30d ?? 0;
   const { triggerPurchase } = usePurchase();
 
+  const hasGamData = gam !== undefined;
+  const [gamTimedOut, setGamTimedOut] = useState(false);
+  useEffect(() => {
+    if (hasGamData || gamError) { setGamTimedOut(false); return; }
+    const timer = setTimeout(() => setGamTimedOut(true), 12000);
+    return () => clearTimeout(timer);
+  }, [hasGamData, gamError]);
+  const isCriticalError = !hasGamData && (gamError || gamTimedOut);
+
   const { phase } = useStagedReveal(!isLoading, { steps: 3, minWaitMs: 1200, stepDelayMs: 600 });
-  const showSkeleton = isLoading || phase === 0;
+  const showSkeleton = !isCriticalError && (isLoading || phase === 0);
 
   const shareCardRef = useRef<View>(null);
   const [shareVisible, setShareVisible] = useState(false);
@@ -218,7 +228,9 @@ export default function ProgressScreen() {
           </Pressable>
         </View>
 
-        {showSkeleton ? (
+        {isCriticalError ? (
+          <ScreenErrorState onRetry={() => { setGamTimedOut(false); void refetchGam(); }} />
+        ) : showSkeleton ? (
           <ScrollView
             contentContainerStyle={[
               st.scrollContent,
