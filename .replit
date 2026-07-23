@@ -48,3 +48,4 @@ packages = ["eas-cli"]
 
 [userenv.shared]
 PUBLIC_WEBHOOK_DOMAIN = "sgindex.work"
+EXPO_TOKEN = "69WfBpiRXout-2WSYPlSQ29J38p-7zokNySOmcEO"
