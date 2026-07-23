@@ -4,7 +4,7 @@ import { db } from "@workspace/db";
 import { users, threads, threadSessions, battleCards, aiBattles, gamification, badges, progressCards, sgiSnapshots, conversations } from "@workspace/db";
 import type { ThreadConnection, SessionMessage, BattleAnswerScore } from "@workspace/db";
 import { eq, desc, and, sql, inArray } from "drizzle-orm";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { evaluateBattle } from "../lib/battleScoring";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { computeLevel } from "../lib/sgiScoring";
@@ -305,22 +305,18 @@ router.post("/threads/:id/sessions/:sessionId/chat", async (req, res) => {
     const knowledgeBase = (thread.knowledgeBase as ThreadConnection[]) ?? [];
     const systemPrompt = BATTLE_SYSTEM(thread.question, knowledgeBase);
 
-    const stream = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...allMessages.map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
-      ],
-      stream: true,
+    const stream = anthropic.messages.stream({
+      model: "claude-haiku-4-5",
       max_tokens: 600,
+      system: systemPrompt,
+      messages: allMessages.map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
     });
 
     let fullResponse = "";
-    for await (const chunk of stream) {
-      const text = chunk.choices[0]?.delta?.content ?? "";
-      if (text) {
-        fullResponse += text;
-        res.write(`data: ${JSON.stringify({ type: "content", text })}\n\n`);
+    for await (const event of stream) {
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        fullResponse += event.delta.text;
+        res.write(`data: ${JSON.stringify({ type: "content", text: event.delta.text })}\n\n`);
       }
     }
 
@@ -337,13 +333,12 @@ router.post("/threads/:id/sessions/:sessionId/chat", async (req, res) => {
     };
 
     try {
-      const scoreResp = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+      const scoreResp = await anthropic.messages.create({
+        model: "claude-haiku-4-5",
         messages: [{ role: "user", content: SCORE_PROMPT(thread.question, updatedMessages) }],
-        response_format: { type: "json_object" },
         max_tokens: 300,
       });
-      const parsed = JSON.parse(scoreResp.choices[0].message.content ?? "{}");
+      const parsed = JSON.parse(((scoreResp.content[0] as { type: string; text?: string })?.text) ?? "{}");
       scoreData = {
         density: Math.min(33, Math.max(0, parsed.density ?? 0)),
         connections: Math.min(33, Math.max(0, parsed.connections ?? 0)),
@@ -416,12 +411,12 @@ router.post("/threads/:id/sessions/:sessionId/complete", async (req, res) => {
     let sessionConnections: ThreadConnection[] = [];
     if (sessionMessages.length >= 2) {
       try {
-        const connResp = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
+        const connResp = await anthropic.messages.create({
+          model: "claude-haiku-4-5",
           messages: [{ role: "user", content: EXTRACT_CONNECTIONS_PROMPT(thread.question, sessionMessages) }],
           max_tokens: 500,
         });
-        const raw = connResp.choices[0].message.content ?? "[]";
+        const raw = (connResp.content[0] as { type: string; text?: string })?.text ?? "[]";
         const clean = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
         sessionConnections = JSON.parse(clean);
       } catch (e) {

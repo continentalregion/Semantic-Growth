@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 
@@ -179,14 +179,11 @@ router.post("/translate", async (req, res) => {
     for (const chunk of chunks) {
       const chunkStr = JSON.stringify(chunk);
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        response_format: { type: "json_object" },
+      const completion = await anthropic.messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 4096,
         temperature: 0.1,
-        messages: [
-          {
-            role: "system",
-            content: `You are a professional UI translator specializing in web application localization. 
+        system: `You are a professional UI translator specializing in web application localization. 
 Translate the JSON values from Italian to ${langName}.
 
 Rules:
@@ -197,7 +194,7 @@ Rules:
 - Keep product/brand names unchanged: SGI, Premium, Pro, Free, XP, Stripe, OpenAI, Anthropic, Claude, GPT, Haiku, Sonnet, Opus
 - Translate naturally and idiomatically, not literally
 - Response must be valid JSON object with the exact same keys`,
-          },
+        messages: [
           {
             role: "user",
             content: chunkStr,
@@ -205,7 +202,7 @@ Rules:
         ],
       });
 
-      const raw = completion.choices[0]?.message?.content ?? "{}";
+      const raw = (completion.content[0] as { type: string; text?: string })?.text ?? "{}";
       const parsed = JSON.parse(raw) as Record<string, string | string[]>;
       Object.assign(translatedFlat, parsed);
     }

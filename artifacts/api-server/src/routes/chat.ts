@@ -427,27 +427,28 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
       } catch (claudeErr) {
         console.error("[claude] stream error:", claudeErr);
         if (fullContent === "") {
-          // Zero content generated — silently fallback to gpt-4o-mini
+          // Zero content generated — silently fallback to claude-haiku-4-5
           try {
-            const fallbackStream = await openai.chat.completions.create({
-              model: "gpt-4o-mini",
-              messages: openaiMessages,
-              stream: true,
-              stream_options: { include_usage: true },
+            const claudeMessages = openaiMessages
+              .filter(m => m.role !== "system" && m.content.trim().length > 0)
+              .map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
+            const fallbackStream = anthropic.messages.stream({
+              model: "claude-haiku-4-5",
+              max_tokens: 2048,
+              system: SYSTEM_PROMPT,
+              messages: claudeMessages.length > 0 ? claudeMessages : [{ role: "user", content: openaiMessages.find(m => m.role === "user")?.content ?? "" }],
             });
-            for await (const chunk of fallbackStream) {
-              const delta = chunk.choices[0]?.delta?.content ?? "";
-              if (delta) {
-                fullContent += delta;
-                res.write(`data: ${JSON.stringify({ content: delta })}\n\n`);
-              }
-              if (chunk.usage) {
-                tokensUsed = (chunk.usage.prompt_tokens ?? 0) + (chunk.usage.completion_tokens ?? 0);
+            for await (const event of fallbackStream) {
+              if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+                fullContent += event.delta.text;
+                res.write(`data: ${JSON.stringify({ content: event.delta.text })}\n\n`);
               }
             }
+            const finalMsg = await fallbackStream.finalMessage();
+            tokensUsed = (finalMsg.usage?.input_tokens ?? 0) + (finalMsg.usage?.output_tokens ?? 0);
             usedFallback = true;
           } catch (fallbackErr) {
-            console.error("[fallback] gpt-4o-mini also failed:", fallbackErr);
+            console.error("[fallback] claude-haiku-4-5 also failed:", fallbackErr);
             streamError = true;
           }
         } else {
@@ -704,15 +705,15 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     const isFirstMessage = history.filter(m => m.role === "user").length === 1;
     if (isFirstMessage && (convo.title === "Exploration" || convo.title === "New Conversation")) {
       try {
-        const titleResp = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
+        const titleResp = await anthropic.messages.create({
+          model: "claude-haiku-4-5",
           max_tokens: 20,
           messages: [{
             role: "user",
             content: `Summarize this message in 3-5 words, title case, no punctuation: "${userContent.slice(0, 300)}"`
           }]
         });
-        const generated = titleResp.choices[0]?.message?.content?.trim().replace(/[".]/g, "");
+        const generated = ((titleResp.content[0] as { type: string; text?: string })?.text ?? "").trim().replace(/[".]/g, "");
         if (generated && generated.length > 0 && generated.length <= 60) {
           newTitle = generated;
           await db.update(conversations).set({ title: newTitle }).where(eq(conversations.id, convoId));
@@ -846,14 +847,13 @@ async function maybeCreateThreadCandidateFromConversation(
 ) {
   try {
     // ── Phase 1: worthy-check ────────────────────────────────────────────────
-    const resp = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    const resp = await anthropic.messages.create({
+      model: "claude-haiku-4-5",
       messages: [{ role: "user", content: THREAD_EXTRACT_PROMPT(history) }],
-      response_format: { type: "json_object" },
       max_tokens: 200,
     });
 
-    const raw = resp.choices[0]?.message?.content ?? "{}";
+    const raw = (resp.content[0] as { type: string; text?: string })?.text ?? "{}";
     const parsed = JSON.parse(raw);
 
     if (!parsed.worthy || !parsed.question) return;

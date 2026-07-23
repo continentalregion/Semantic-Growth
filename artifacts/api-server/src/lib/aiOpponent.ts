@@ -1,4 +1,4 @@
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 
 export const AI_PLAYER_ID = "ai_opponent";
 export const AI_USERNAME = "Avversario AI";
@@ -50,13 +50,13 @@ export async function generateAiArgument(
     `Non menzionare che sei un'AI.\n\nTEMA: ${theme.slice(0, 500)}`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5",
       max_tokens: cfg.maxTokens,
       temperature: cfg.temperature,
       messages: [{ role: "user", content: prompt }],
     });
-    const text = response.choices[0]?.message?.content?.trim() ?? "";
+    const text = ((response.content[0] as { type: string; text?: string })?.text ?? "").trim();
     if (text.length >= 40) return text;
   } catch (err) {
     console.error("[aiOpponent] generateAiArgument error", err);

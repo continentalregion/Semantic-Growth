@@ -14,7 +14,6 @@ import {
   type PvpComparison,
 } from "@workspace/db";
 import { eq, and, desc, lt, inArray, sql } from "drizzle-orm";
-import { openai } from "@workspace/integrations-openai-ai-server";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { getOrCreateUser } from "../lib/getOrCreateUser";
 import { anonHandle } from "../lib/anonHandle";
@@ -50,7 +49,6 @@ const WAITING_TTL_MS           = 30 * 60 * 1000; // a lone "waiting" match expir
 const WAITING_AI_ESCALATION_MS = 10 * 60 * 1000; // auto-escalate to vs-AI after 10 min with no human
 const ACTIVE_TTL_MS = 24 * 60 * 60 * 1000;  // once paired, each player has 24h to finish
 const MIN_TEXT = 10;                        // below this, a player's contribution is degenerate
-const SPARRING_MODEL = "gpt-4o-mini";
 const MAX_HISTORY = 12;                     // messages sent to the sparring model
 
 // ─── Fallback theme pool (used when LLM generation fails or times out) ───────
@@ -153,11 +151,10 @@ ${recentCatList}
 
 Return ONLY the JSON object, nothing else.`;
 
-      const llmCall = openai.chat.completions.create({
-        model: "gpt-4o-mini",
+      const llmCall = anthropic.messages.create({
+        model: "claude-haiku-4-5",
         max_tokens: 80,
         temperature: 0.9,
-        response_format: { type: "json_object" },
         messages: [{ role: "user", content: prompt }],
       });
       // Hard 2s timeout: a slow Haiku must never block battle creation
@@ -166,7 +163,7 @@ Return ONLY the JSON object, nothing else.`;
       );
 
       const response = await Promise.race([llmCall, timeoutGuard]);
-      const content = response.choices[0]?.message?.content ?? "";
+      const content = (response.content[0] as { type: string; text?: string })?.text ?? "";
       const parsed = JSON.parse(content.trim()) as Record<string, unknown>;
 
       const theme = typeof parsed.theme === "string" ? parsed.theme.trim() : "";
@@ -905,21 +902,19 @@ router.post("/battles/matches/:id/turn", async (req, res) => {
     const userMsg: SessionMessage = { role: "user", content, timestamp: nowIso };
 
     // Build the sparring context (cap history) and get a concise challenge.
-    const modelMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
-      { role: "system", content: SPARRING_SYSTEM(match.theme) },
-      ...history.slice(-MAX_HISTORY).map(m => ({ role: m.role, content: m.content })),
-      { role: "user", content },
-    ];
-
     let reply = "";
     try {
-      const completion = await openai.chat.completions.create({
-        model: SPARRING_MODEL,
+      const completion = await anthropic.messages.create({
+        model: "claude-haiku-4-5",
         max_tokens: 400,
         temperature: 0.7,
-        messages: modelMessages,
+        system: SPARRING_SYSTEM(match.theme),
+        messages: [
+          ...history.slice(-MAX_HISTORY).map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
+          { role: "user" as const, content },
+        ],
       });
-      reply = completion.choices[0]?.message?.content?.trim() ?? "";
+      reply = ((completion.content[0] as { type: string; text?: string })?.text ?? "").trim();
       if (reply) void chargeBattleBudget(COST_BATTLE_SPARRING_CENTS);
     } catch (err) {
       console.error("[battles] sparring model error", err);

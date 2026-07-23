@@ -1,4 +1,4 @@
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 import {
   normalizeDimensions,
   computeRawScore,
@@ -15,7 +15,6 @@ import type { SgiDimensions, MacroDimensions } from "./sgiScoring";
 // temperature 0 with the identical rubric — removing variance between the two.
 // Per the product brief, the DECISIVE qualities are DENSITY and PERSUASIVENESS:
 // "la conversazione più densa e convincente vince".
-const PVP_MODEL = "gpt-4o-mini";
 
 const round1 = (n: number): number => Math.round(n * 10) / 10;
 
@@ -121,15 +120,14 @@ export async function scoreUserBattleConversations(
 
   let lastErr: unknown;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await openai.chat.completions.create({
-      model: PVP_MODEL,
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5",
       max_tokens: 600,
       temperature: 0,
-      response_format: { type: "json_object" },
       messages: [{ role: "user", content: prompt }],
     });
 
-    const content = response.choices[0]?.message?.content ?? "";
+    const content = (response.content[0] as { type: string; text?: string })?.text ?? "";
     try {
       const parsed = JSON.parse(content.replace(/```json|```/g, "").trim());
       // ANSWER_A = slot1, ANSWER_B = slot2 (fixed mapping; both scored in one call).

@@ -1,4 +1,4 @@
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 
 export interface SgiDimensions {
   conceptualComplexity: number;
@@ -68,15 +68,14 @@ export async function scoreMessage(
       ? `${SCORING_PROMPT}\n\nContext:\n${context}\n\nMessage:\n"${msgTruncated}"`
       : `${SCORING_PROMPT}\n\nMessage:\n"${msgTruncated}"`;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5",
       max_tokens: 320,
       temperature: 0,
-      response_format: { type: "json_object" },
       messages: [{ role: "user", content: prompt }],
     });
 
-    const content = response.choices[0]?.message?.content ?? "{}";
+    const content = (response.content[0] as { type: string; text?: string })?.text ?? "{}";
     const parsed = JSON.parse(content.replace(/```json|```/g, "").trim());
 
     const dimensions = normalizeDimensions(parsed);

@@ -26,7 +26,7 @@ import {
   type PvpComparison,
 } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { evaluatePvpBattle } from "../lib/pvpBattleScoring";
 import { AI_PLAYER_ID, AI_USERNAME, generateAiArgument } from "../lib/aiOpponent";
 import { generateBattleTheme } from "./battles.js";
@@ -340,19 +340,19 @@ router.post("/battles/guest/:matchId/turn", async (req, res) => {
     const nowIso  = new Date().toISOString();
     const userMsg: SessionMessage = { role: "user", content, timestamp: nowIso };
 
-    const modelMessages = [
-      { role: "system" as const, content: SPARRING_SYSTEM(match.theme) },
-      ...history.slice(-8).map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
-      { role: "user" as const, content },
-    ];
-
     let reply = "";
     try {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini", max_tokens: 180, temperature: 0.7,
-        messages: modelMessages,
+      const completion = await anthropic.messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 180,
+        temperature: 0.7,
+        system: SPARRING_SYSTEM(match.theme),
+        messages: [
+          ...history.slice(-8).map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
+          { role: "user" as const, content },
+        ],
       });
-      reply = completion.choices[0]?.message?.content?.trim() ?? "";
+      reply = ((completion.content[0] as { type: string; text?: string })?.text ?? "").trim();
       await chargeGuestBudget(COST_SPARRING_TURN_CENTS);
     } catch (err) {
       console.error("[guest] sparring error", err);

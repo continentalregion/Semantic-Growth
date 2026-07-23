@@ -1,4 +1,4 @@
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 import {
   normalizeDimensions,
   computeRawScore,
@@ -13,7 +13,6 @@ import type { SgiDimensions, MacroDimensions } from "./sgiScoring";
 //  - the AI opponent is STRONG (winning should be rare and valuable);
 //  - the user answer AND the AI answer are scored in ONE LLM call, temperature 0,
 //    side by side with the identical rubric, to remove variance between the two.
-const BATTLE_MODEL = "gpt-4o-mini";
 
 export const METRIC_LABELS: Record<keyof SgiDimensions, string> = {
   conceptualComplexity: "Complessità concettuale",
@@ -87,16 +86,16 @@ Rules:
 - Respond in the SAME LANGUAGE as the question.`;
 
 export async function generateBattleAiAnswer(question: string, category = "philosophy"): Promise<string> {
-  const response = await openai.chat.completions.create({
-    model: BATTLE_MODEL,
+  const response = await anthropic.messages.create({
+    model: "claude-haiku-4-5",
     max_tokens: 700,
     temperature: 0.5,
+    system: AI_ANSWER_SYSTEM,
     messages: [
-      { role: "system", content: AI_ANSWER_SYSTEM },
       { role: "user", content: `Category: ${category}\nQuestion: "${question}"\n\nWrite your strongest possible answer.` },
     ],
   });
-  const answer = response.choices[0]?.message?.content?.trim() ?? "";
+  const answer = ((response.content[0] as { type: string; text?: string })?.text ?? "").trim();
   if (!answer) throw new Error("AI opponent produced an empty answer");
   return answer;
 }
@@ -164,15 +163,14 @@ export async function scoreBattleAnswers(
 
   let lastErr: unknown;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await openai.chat.completions.create({
-      model: BATTLE_MODEL,
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5",
       max_tokens: 600,
       temperature: 0,
-      response_format: { type: "json_object" },
       messages: [{ role: "user", content: prompt }],
     });
 
-    const content = response.choices[0]?.message?.content ?? "";
+    const content = (response.content[0] as { type: string; text?: string })?.text ?? "";
     try {
       const parsed = JSON.parse(content.replace(/```json|```/g, "").trim());
       // ANSWER_A = user, ANSWER_B = ai (fixed mapping; both scored in one call).

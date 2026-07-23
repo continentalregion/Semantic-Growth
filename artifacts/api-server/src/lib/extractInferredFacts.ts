@@ -1,7 +1,7 @@
 import { db } from "@workspace/db";
 import { aiInferredFacts } from "@workspace/db";
 import { and, eq, inArray } from "drizzle-orm";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 
 const EXTRACT_PROMPT = (
   msgs: Array<{ role: string; content: string }>,
@@ -54,14 +54,13 @@ export async function maybeExtractInferredFacts(
 
     const msgs = history.slice(-10);
 
-    const resp = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    const resp = await anthropic.messages.create({
+      model: "claude-haiku-4-5",
       messages: [{ role: "user", content: EXTRACT_PROMPT(msgs, existing) }],
-      response_format: { type: "json_object" },
       max_tokens: 400,
     });
 
-    const raw = resp.choices[0]?.message?.content ?? "{}";
+    const raw = (resp.content[0] as { type: string; text?: string })?.text ?? "{}";
     const parsed = JSON.parse(raw) as {
       facts?: Array<
         | { action: "new"; fact: string; persistenceLevel: "alta" | "media" | "bassa" }
