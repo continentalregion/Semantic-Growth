@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   View,
@@ -74,9 +74,18 @@ export default function ProfileScreen() {
   }
 
   const hasData = profile !== undefined || gamification !== undefined;
-  const isCriticalError = !hasData && (profileError || gamError);
+
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    if (hasData) { setTimedOut(false); return; }
+    const timer = setTimeout(() => setTimedOut(true), 12000);
+    return () => clearTimeout(timer);
+  }, [hasData]);
+
+  const isCriticalError = !hasData && (profileError || gamError || timedOut);
 
   function handleRetry() {
+    setTimedOut(false);
     if (profileError) refetchProfile();
     if (gamError) refetchGam();
   }

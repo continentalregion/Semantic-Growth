@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -342,10 +342,19 @@ export default function DashboardScreen() {
   });
 
   const hasData = profile !== undefined || history !== undefined;
-  const isCriticalError = !hasData && (profileError || historyError);
+
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    if (hasData) { setTimedOut(false); return; }
+    const timer = setTimeout(() => setTimedOut(true), 12000);
+    return () => clearTimeout(timer);
+  }, [hasData]);
+
+  const isCriticalError = !hasData && (profileError || historyError || timedOut);
   const isRefreshing = refetchingProfile;
 
   function handleRetry() {
+    setTimedOut(false);
     if (profileError) refetchProfile();
     if (historyError) refetchHistory();
   }

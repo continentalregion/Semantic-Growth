@@ -21,7 +21,7 @@
     "android": {
       "backgroundColor": "#08090f",
       "package": "work.trantads.sgi",
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "favicon": "./assets/images/icon.png"
