@@ -98,12 +98,12 @@
    SGI DESIGN TOKENS (matching HTML prototype palette)
    ============================================================ */
 :root {
-  --sgi-purple: #CC785C;
-  --sgi-teal: #0D9488;
-  --sgi-pink: #E11D48;
-  --sgi-purple-dim: rgba(204,120,92,0.15);
-  --sgi-teal-dim: rgba(13,148,136,0.15);
-  --sgi-pink-dim: rgba(225,29,72,0.12);
+  --sgi-purple: #8c4420;
+  --sgi-teal: #0a6b5a;
+  --sgi-pink: #9a1535;
+  --sgi-purple-dim: rgba(140,68,32,0.15);
+  --sgi-teal-dim: rgba(10,107,90,0.15);
+  --sgi-pink-dim: rgba(154,21,53,0.12);
 
   --button-outline: rgba(255,255,255,.10);
   --badge-outline: rgba(255,255,255,.05);
@@ -111,7 +111,7 @@
   --elevate-1: rgba(255,255,255,.04);
   --elevate-2: rgba(255,255,255,.09);
 
-  /* SGI light palette — terracotta #CC785C */
+  /* SGI light palette — terracotta #8c4420 */
   --background: 48 33% 97%;
   --foreground: 30 3% 12%;
   --border: 30 10% 89%;
@@ -121,31 +121,31 @@
   --sidebar: 48 25% 95%;
   --sidebar-foreground: 30 3% 12%;
   --sidebar-border: 30 10% 89%;
-  --sidebar-primary: 15 52% 58%;
+  --sidebar-primary: 15 52% 36%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 48 15% 91%;
   --sidebar-accent-foreground: 30 3% 12%;
-  --sidebar-ring: 15 52% 58%;
+  --sidebar-ring: 15 52% 36%;
   --popover: 0 0% 100%;
   --popover-foreground: 30 3% 12%;
   --popover-border: 30 10% 89%;
 
   /* Primary = SGI terracotta #CC785C */
-  --primary: 15 52% 58%;
+  --primary: 15 52% 36%;
   --primary-foreground: 0 0% 100%;
 
   --secondary: 48 15% 93%;
   --secondary-foreground: 30 3% 12%;
   --muted: 48 15% 93%;
-  --muted-foreground: 30 5% 45%;
-  --accent: 15 52% 58%;
+  --muted-foreground: 30 5% 34%;
+  --accent: 15 52% 36%;
   --accent-foreground: 0 0% 100%;
 
   /* Destructive = SGI pink #E11D48 */
   --destructive: 347 77% 50%;
   --destructive-foreground: 0 0% 100%;
   --input: 30 10% 89%;
-  --ring: 15 52% 58%;
+  --ring: 15 52% 36%;
 
   /* Chart colors */
   --chart-1: 15 52% 58%;   /* primary/terracotta */
@@ -194,9 +194,9 @@
 }
 
 .dark {
-  --sgi-purple: #CC785C;
-  --sgi-teal: #0D9488;
-  --sgi-pink: #E11D48;
+  --sgi-purple: #8c4420;
+  --sgi-teal: #0a6b5a;
+  --sgi-pink: #9a1535;
 
   --button-outline: rgba(255,255,255,.10);
   --badge-outline: rgba(255,255,255,.05);
@@ -213,26 +213,26 @@
   --sidebar: 48 25% 95%;
   --sidebar-foreground: 30 3% 12%;
   --sidebar-border: 30 10% 89%;
-  --sidebar-primary: 15 52% 58%;
+  --sidebar-primary: 15 52% 36%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 48 15% 91%;
   --sidebar-accent-foreground: 30 3% 12%;
-  --sidebar-ring: 15 52% 58%;
+  --sidebar-ring: 15 52% 36%;
   --popover: 0 0% 100%;
   --popover-foreground: 30 3% 12%;
   --popover-border: 30 10% 89%;
-  --primary: 15 52% 58%;
+  --primary: 15 52% 36%;
   --primary-foreground: 0 0% 100%;
   --secondary: 48 15% 93%;
   --secondary-foreground: 30 3% 12%;
   --muted: 48 15% 93%;
-  --muted-foreground: 30 5% 45%;
-  --accent: 15 52% 58%;
+  --muted-foreground: 30 5% 34%;
+  --accent: 15 52% 36%;
   --accent-foreground: 0 0% 100%;
   --destructive: 347 77% 50%;
   --destructive-foreground: 0 0% 100%;
   --input: 30 10% 89%;
-  --ring: 15 52% 58%;
+  --ring: 15 52% 36%;
   --chart-1: 15 52% 58%;
   --chart-2: 175 84% 32%;
   --chart-3: 43 89% 38%;

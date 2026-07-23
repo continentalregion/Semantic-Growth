@@ -1,6 +1,7 @@
-- [SGI CSS theme](sgi-css-theme.md) — index.css had all "red" placeholder HSL values; replaced with dark navy/cyan futuristic theme
+- [SGI CSS theme](sgi-css-theme.md) — light cream (#FAF9F5) bg; terracotta primary (15 52% 36%); WCAG-safe token values; dark-bg pages intentionally separate
 - [SGI leaderboard null bug](sgi-leaderboard-null.md) — seeded leaderboard entries have userId=null; always null-guard before equality check
-- [SGI design system](sgi-design-system.md) — palette viola/teal/pink, Space Grotesk, CSS tokens --sgi-* in index.css; primary=248 100% 71% (purple)
+- [SGI design system](sgi-design-system.md) — light cream bg; CSS tokens: primary=15 52% 36% (terracotta); --sgi-purple=#8c4420, --sgi-teal=#0a6b5a, --sgi-pink=#9a1535; WCAG text palette in sgi-wcag-colors.md
+- [SGI WCAG AA color palette](sgi-wcag-colors.md) — definitive light-bg text colors for all accent hues; never use bright neons as text on cream
 - [API server deploy build](api-server-dist-committed.md) — dist is gitignored & REBUILT on deploy via artifact.toml [services.production.build]; source changes apply on republish (don't commit dist); esbuild is the real build, tsc --noEmit RED pre-existing
 - [Clerk proxy JWT issuer alignment](clerk-proxy-jwt-issuer.md) — clerkMiddleware must include proxyUrl in prod or Bearer token verification fails despite cookies working
 - [req.auth is a function in @clerk/express v2](clerk-req-auth-function.md) — req.auth?.userId is ALWAYS undefined; use getAuth(req).userId from @clerk/express

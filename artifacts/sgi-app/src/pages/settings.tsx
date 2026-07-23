@@ -108,10 +108,10 @@ export default function Settings() {
       price: "€14.99",
       period: `/${t("settings.perMonth")}`,
       icon: Star,
-      color: "#a89fff",
-      borderColor: "rgba(168,159,255,0.3)",
-      bgColor: "rgba(124,107,255,0.06)",
-      gradient: "linear-gradient(135deg, #7c6bff, #5b4de0)",
+      color: "#3930a8",
+      borderColor: "rgba(57,48,168,0.3)",
+      bgColor: "rgba(57,48,168,0.06)",
+      gradient: "linear-gradient(135deg, #4c3cbf, #3a2ea0)",
       features: t("settings.planFeatures.premium", { returnObjects: true }) as string[],
     },
     {
@@ -120,10 +120,10 @@ export default function Settings() {
       price: "€29.99",
       period: `/${t("settings.perMonth")}`,
       icon: Crown,
-      color: "#f0c040",
-      borderColor: "rgba(240,192,64,0.4)",
-      bgColor: "rgba(240,192,64,0.06)",
-      gradient: "linear-gradient(135deg, #f0c040, #e08020)",
+      color: "#8c6300",
+      borderColor: "rgba(140,99,0,0.4)",
+      bgColor: "rgba(140,99,0,0.06)",
+      gradient: "linear-gradient(135deg, #9a6800, #7a5200)",
       badge: t("settings.planBadge"),
       features: t("settings.planFeatures.pro", { returnObjects: true }) as string[],
     },
@@ -141,8 +141,8 @@ export default function Settings() {
 
   const modalGradient =
     showUpgradeModal === "pro"
-      ? "linear-gradient(135deg, #f0c040, #e08020)"
-      : "linear-gradient(135deg, #7c6bff, #5b4de0)";
+      ? "linear-gradient(135deg, #9a6800, #7a5200)"
+      : "linear-gradient(135deg, #4c3cbf, #3a2ea0)";
 
   return (
     <div className="space-y-8 max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -178,9 +178,9 @@ export default function Settings() {
               data-testid="badge-plan"
               style={
                 isPro
-                  ? { borderColor: "rgba(240,192,64,0.5)", color: "#f0c040", background: "rgba(240,192,64,0.1)" }
+                  ? { borderColor: "rgba(140,99,0,0.5)", color: "#8c6300", background: "rgba(140,99,0,0.08)" }
                   : isPremium
-                  ? { borderColor: "rgba(168,159,255,0.5)", color: "#a89fff", background: "rgba(124,107,255,0.1)" }
+                  ? { borderColor: "rgba(57,48,168,0.5)", color: "#3930a8", background: "rgba(57,48,168,0.08)" }
                   : {}
               }
             >
@@ -283,7 +283,7 @@ export default function Settings() {
       {isPro && (
         <Card className="bg-card/40 backdrop-blur" style={{ border: "1px solid rgba(240,192,64,0.3)" }}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base" style={{ color: "#f0c040" }}>
+            <CardTitle className="flex items-center gap-2 text-base" style={{ color: "#8c6300" }}>
               <Crown className="w-5 h-5" /> {t("settings.proActive")}
             </CardTitle>
           </CardHeader>
@@ -313,7 +313,7 @@ export default function Settings() {
       {isPremium && (
         <Card className="bg-card/40 backdrop-blur" style={{ border: "1px solid rgba(168,159,255,0.3)" }}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base" style={{ color: "#a89fff" }}>
+            <CardTitle className="flex items-center gap-2 text-base" style={{ color: "#3930a8" }}>
               <Star className="w-5 h-5" /> {t("settings.premiumActive")}
             </CardTitle>
           </CardHeader>

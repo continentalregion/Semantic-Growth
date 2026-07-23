@@ -17,6 +17,12 @@ function RankOrb({ rank, total, t }: { rank: number | null | undefined; total: n
     pct >= 75 ? "#06d6a0" :
     "#7c6bff";
 
+  const textColor =
+    pct >= 99 ? "#8c6300" :
+    pct >= 90 ? "#3930a8" :
+    pct >= 75 ? "#0d7a5e" :
+    "#3930a8";
+
   const orbitLabel =
     pct >= 99 ? t("leaderboard.top1") :
     pct >= 90 ? t("leaderboard.top10") :
@@ -47,17 +53,17 @@ function RankOrb({ rank, total, t }: { rank: number | null | undefined; total: n
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
           {rank ? (
             <>
-              <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>{t("leaderboard.position")}</span>
-              <span className="text-5xl font-black font-mono leading-none" style={{ color: orbitColor, filter: `drop-shadow(0 0 12px ${orbitColor}66)` }}>
+              <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#4a4a6a" }}>{t("leaderboard.position")}</span>
+              <span className="text-5xl font-black font-mono leading-none" style={{ color: textColor, filter: `drop-shadow(0 0 12px ${orbitColor}66)` }}>
                 #{rank}
               </span>
               {percentile !== null && (
-                <span className="text-xs font-semibold mt-1" style={{ color: orbitColor }}>{orbitLabel}</span>
+                <span className="text-xs font-semibold mt-1" style={{ color: textColor }}>{orbitLabel}</span>
               )}
             </>
           ) : (
             <>
-              <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>{t("leaderboard.position")}</span>
+              <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#4a4a6a" }}>{t("leaderboard.position")}</span>
               <span className="text-4xl font-black font-mono leading-none text-muted-foreground">—</span>
               <span className="text-xs text-muted-foreground mt-1">{t("leaderboard.notRanked")}</span>
             </>
@@ -143,12 +149,12 @@ export default function Leaderboard() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-6 max-w-sm mx-auto text-center px-4">
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "rgba(247,37,133,0.1)", border: "1px solid rgba(247,37,133,0.2)" }}>
-          <Trophy className="w-8 h-8" style={{ color: "#f72585" }} />
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "rgba(168,0,63,0.08)", border: "1px solid rgba(168,0,63,0.18)" }}>
+          <Trophy className="w-8 h-8" style={{ color: "#a8003f" }} />
         </div>
         <div>
-          <p className="text-base font-bold mb-1" style={{ color: "#eeeeff" }}>{t("common.errorTitle")}</p>
-          <p className="text-sm" style={{ color: "#9090b8" }}>{t("common.errorDesc")}</p>
+          <p className="text-base font-bold mb-1" style={{ color: "#1a1b2e" }}>{t("common.errorTitle")}</p>
+          <p className="text-sm" style={{ color: "#4a4a6a" }}>{t("common.errorDesc")}</p>
         </div>
         <div className="flex gap-3">
           <button
@@ -156,7 +162,7 @@ export default function Leaderboard() {
             disabled={isRefreshing}
             data-testid="button-leaderboard-retry"
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-80 disabled:opacity-60"
-            style={{ background: "rgba(124,107,255,0.15)", color: "#a89fff", border: "1px solid rgba(124,107,255,0.25)" }}
+            style={{ background: "rgba(57,48,168,0.12)", color: "#3930a8", border: "1px solid rgba(57,48,168,0.25)" }}
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
             {isRefreshing ? t("common.loading") : t("common.retryBtn")}
@@ -164,7 +170,7 @@ export default function Leaderboard() {
           <button
             onClick={() => setLocation("/dashboard")}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
-            style={{ background: "rgba(255,255,255,0.06)", color: "#9090b8", border: "1px solid rgba(255,255,255,0.1)" }}
+            style={{ background: "rgba(255,255,255,0.06)", color: "#4a4a6a", border: "1px solid rgba(255,255,255,0.1)" }}
           >
             <Home className="w-4 h-4" />
             {t("common.homeBtn")}
@@ -197,11 +203,11 @@ export default function Leaderboard() {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-2xl p-5 flex flex-col gap-1" style={{ background: "rgba(124,107,255,0.08)", border: "1px solid rgba(124,107,255,0.2)" }}>
-            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider" style={{ color: "#a89fff" }}>
+          <div className="rounded-2xl p-5 flex flex-col gap-1" style={{ background: "rgba(57,48,168,0.08)", border: "1px solid rgba(57,48,168,0.2)" }}>
+            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider" style={{ color: "#3930a8" }}>
               <Zap className="w-3.5 h-3.5" /> {t("leaderboard.yourSgi")}
             </div>
-            <div className="text-4xl font-black font-mono mt-1" style={{ color: "#a89fff" }}>
+            <div className="text-4xl font-black font-mono mt-1" style={{ color: "#3930a8" }}>
               {userSgi > 0 ? userSgi.toFixed(1) : "—"}
             </div>
             <div className="text-xs text-muted-foreground">{t("leaderboard.sgiDesc")}</div>
@@ -215,7 +221,7 @@ export default function Leaderboard() {
               {summary?.averageSgi.toFixed(1) ?? "—"}
             </div>
             {userSgi > 0 && summary?.averageSgi && (
-              <div className="text-xs" style={{ color: userSgi >= summary.averageSgi ? "#06d6a0" : "#f72585" }}>
+              <div className="text-xs" style={{ color: userSgi >= summary.averageSgi ? "#0d7a5e" : "#a8003f" }}>
                 {userSgi >= summary.averageSgi
                   ? t("leaderboard.aboveAvg", { n: (userSgi - summary.averageSgi).toFixed(1) })
                   : t("leaderboard.belowAvg", { n: (userSgi - summary.averageSgi).toFixed(1) })}
@@ -233,11 +239,11 @@ export default function Leaderboard() {
             <div className="text-xs text-muted-foreground">{t("leaderboard.inNetwork")}</div>
           </div>
 
-          <div className="rounded-2xl p-5 flex flex-col gap-1" style={{ background: "rgba(240,192,64,0.06)", border: "1px solid rgba(240,192,64,0.2)" }}>
-            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider" style={{ color: "#f0c040" }}>
+          <div className="rounded-2xl p-5 flex flex-col gap-1" style={{ background: "rgba(140,99,0,0.06)", border: "1px solid rgba(140,99,0,0.2)" }}>
+            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider" style={{ color: "#8c6300" }}>
               <Trophy className="w-3.5 h-3.5" /> {t("leaderboard.peakSgi")}
             </div>
-            <div className="text-4xl font-black font-mono mt-1" style={{ color: "#f0c040" }}>
+            <div className="text-4xl font-black font-mono mt-1" style={{ color: "#8c6300" }}>
               {summary?.topSgi.toFixed(1) ?? "—"}
             </div>
             <div className="text-xs text-muted-foreground">{t("leaderboard.peakDesc")}</div>
@@ -251,16 +257,16 @@ export default function Leaderboard() {
             <TrendingUp className="w-4 h-4 text-primary" />
             <span className="text-sm font-semibold">{t("leaderboard.thresholds")}</span>
           </div>
-          <ThresholdBar label={t("leaderboard.top10")} threshold={summary.top10PercentThreshold} userSgi={userSgi} color="#a89fff" t={t as (k: string, opts?: object) => string} />
-          <ThresholdBar label={t("leaderboard.top1")} threshold={summary.top1PercentThreshold} userSgi={userSgi} color="#f0c040" t={t as (k: string, opts?: object) => string} />
-          <ThresholdBar label={t("leaderboard.peakSgi")} threshold={summary.topSgi} userSgi={userSgi} color="#06d6a0" t={t as (k: string, opts?: object) => string} />
+          <ThresholdBar label={t("leaderboard.top10")} threshold={summary.top10PercentThreshold} userSgi={userSgi} color="#3930a8" t={t as (k: string, opts?: object) => string} />
+          <ThresholdBar label={t("leaderboard.top1")} threshold={summary.top1PercentThreshold} userSgi={userSgi} color="#8c6300" t={t as (k: string, opts?: object) => string} />
+          <ThresholdBar label={t("leaderboard.peakSgi")} threshold={summary.topSgi} userSgi={userSgi} color="#0d7a5e" t={t as (k: string, opts?: object) => string} />
         </div>
       )}
 
-      <div className="rounded-2xl p-5 flex items-start gap-3" style={{ background: "rgba(124,107,255,0.05)", border: "1px solid rgba(124,107,255,0.15)" }}>
-        <Lock className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "#a89fff" }} />
+      <div className="rounded-2xl p-5 flex items-start gap-3" style={{ background: "rgba(57,48,168,0.05)", border: "1px solid rgba(57,48,168,0.15)" }}>
+        <Lock className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "#3930a8" }} />
         <div className="space-y-1">
-          <p className="text-sm font-medium" style={{ color: "#a89fff" }}>{t("leaderboard.privacyTitle")}</p>
+          <p className="text-sm font-medium" style={{ color: "#3930a8" }}>{t("leaderboard.privacyTitle")}</p>
           <p className="text-xs text-muted-foreground leading-relaxed">{t("leaderboard.privacyDesc")}</p>
         </div>
       </div>

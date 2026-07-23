@@ -10,24 +10,24 @@ import { toast } from "sonner";
 
 const API_BASE = "/api";
 
-const PURPLE = "#7c6bff";
-const TEAL = "#06d6a0";
-const PINK = "#f72585";
-const GOLD = "#ffd166";
-const MUTED = "#9090b8";
+const PURPLE = "#3930a8";
+const TEAL = "#0d7a5e";
+const PINK = "#a8003f";
+const GOLD = "#8c6300";
+const MUTED = "#4a4a6a";
 
 const CATEGORY_COLOR: Record<string, string> = {
-  philosophy: "#7c6bff",
-  science: "#06d6a0",
-  ethics: "#f72585",
-  technology: "#a89fff",
-  society: "#ffd166",
-  economics: "#ffd166",
-  art: "#f72585",
-  history: "#a89fff",
-  politics: "#06d6a0",
-  knowledge: "#06d6a0",
-  consciousness: "#7c6bff",
+  philosophy: "#3930a8",
+  science: "#0d7a5e",
+  ethics: "#a8003f",
+  technology: "#3930a8",
+  society: "#8c6300",
+  economics: "#8c6300",
+  art: "#a8003f",
+  history: "#3930a8",
+  politics: "#0d7a5e",
+  knowledge: "#0d7a5e",
+  consciousness: "#3930a8",
 };
 
 interface MyMatch {
@@ -174,7 +174,7 @@ export default function BattlesPage() {
               {battleLimitInfo.plan === "premium" ? (
                 <button
                   className="text-xs py-1.5 px-3 rounded-full font-semibold transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94] self-start"
-                  style={{ background: "linear-gradient(135deg, #f0c040, #e08020)", color: "#fff" }}
+                  style={{ background: "linear-gradient(135deg, #9a6800, #7a5200)", color: "#fff" }}
                   onClick={() => setLocation("/settings")}
                 >
                   {t("battles.upgradeProBtn")}
@@ -183,14 +183,14 @@ export default function BattlesPage() {
                 <div className="flex gap-1.5">
                   <button
                     className="text-xs py-1.5 px-3 rounded-full font-semibold transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94]"
-                    style={{ background: "linear-gradient(135deg, #7c6bff, #5b4de0)", color: "#fff" }}
+                    style={{ background: "linear-gradient(135deg, #4c3cbf, #3a2ea0)", color: "#fff" }}
                     onClick={() => setLocation("/settings")}
                   >
                     {t("battles.upgradePremiumBtn")}
                   </button>
                   <button
                     className="text-xs py-1.5 px-3 rounded-full font-semibold transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94]"
-                    style={{ background: "linear-gradient(135deg, #f0c040, #e08020)", color: "#fff" }}
+                    style={{ background: "linear-gradient(135deg, #9a6800, #7a5200)", color: "#fff" }}
                     onClick={() => setLocation("/settings")}
                   >
                     {t("battles.upgradeProBtn")}
@@ -348,7 +348,7 @@ function PlayerColumn({ p, side, t }: { p: PublicPlayer; side: "left" | "right";
         </div>
       )}
       <div className={`flex flex-col items-start ${!isLeft ? "sm:items-end" : ""} gap-0.5 mt-3`}>
-        <span className="text-sm font-bold truncate max-w-full" style={{ color: p.isWinner ? "#a89fff" : "#eeeeff" }}>@{p.username}</span>
+        <span className="text-sm font-bold truncate max-w-full" style={{ color: p.isWinner ? "#3930a8" : "#1a1b2e" }}>@{p.username}</span>
         <div className="flex items-center gap-1.5">
           <span className="text-2xl font-black" style={{ color: p.isWinner ? PURPLE : "#888" }}>{p.rawScore}</span>
           <span className="text-xs opacity-40 font-medium">{t("battles.pts")}</span>

@@ -68,7 +68,7 @@ export default function Gamification() {
         >
           {t("gamification.title")}
         </h2>
-        <p className="text-sm mt-1" style={{ color: "rgba(144,144,184,1)" }}>
+        <p className="text-sm mt-1" style={{ color: "rgba(74,74,106,1)" }}>
           {t("gamification.subtitle")}
         </p>
       </div>
@@ -76,10 +76,10 @@ export default function Gamification() {
       {/* Top stats */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: t("gamification.level"), value: level, color: "#7c6bff", sub: t("gamification.semanticLevel") },
-          { label: t("gamification.totalXp"), value: xp.toLocaleString(), color: "#06d6a0" },
-          { label: t("gamification.badges"), value: `${earnedBadgeIds.size}/${ALL_BADGES.length}`, color: "#ffbb55" },
-          { label: t("gamification.rankDelta"), value: rankChange > 0 ? `+${rankChange}` : rankChange === 0 ? "—" : `${rankChange}`, color: rankChange > 0 ? "#06d6a0" : rankChange < 0 ? "#f72585" : "#9090b8" },
+          { label: t("gamification.level"), value: level, color: "#3930a8", sub: t("gamification.semanticLevel") },
+          { label: t("gamification.totalXp"), value: xp.toLocaleString(), color: "#0d7a5e" },
+          { label: t("gamification.badges"), value: `${earnedBadgeIds.size}/${ALL_BADGES.length}`, color: "#8c6300" },
+          { label: t("gamification.rankDelta"), value: rankChange > 0 ? `+${rankChange}` : rankChange === 0 ? "—" : `${rankChange}`, color: rankChange > 0 ? "#0d7a5e" : rankChange < 0 ? "#a8003f" : "#4a4a6a" },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -93,7 +93,7 @@ export default function Gamification() {
               {stat.value}
             </div>
             {stat.sub && (
-              <div className="text-[11px] mt-1" style={{ color: "rgba(144,144,184,1)" }}>{stat.sub}</div>
+              <div className="text-[11px] mt-1" style={{ color: "rgba(74,74,106,1)" }}>{stat.sub}</div>
             )}
           </div>
         ))}
@@ -104,9 +104,9 @@ export default function Gamification() {
         <div className="text-[10px] uppercase tracking-[0.8px] mb-3" style={{ color: "rgba(74,74,106,1)" }}>
           {t("gamification.xpToward", { n: level + 1 })}
         </div>
-        <div className="flex justify-between text-[11px] mb-2" style={{ color: "rgba(144,144,184,1)" }}>
+        <div className="flex justify-between text-[11px] mb-2" style={{ color: "rgba(74,74,106,1)" }}>
           <span>{xp.toLocaleString()} XP</span>
-          <span style={{ color: "#7c6bff", fontWeight: 600 }}>{xpProgress}%</span>
+          <span style={{ color: "#3930a8", fontWeight: 600 }}>{xpProgress}%</span>
         </div>
         <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
           <div
@@ -141,7 +141,7 @@ export default function Gamification() {
                   title={earned ? `${badge.name} — ${t("gamification.earned")}` : `${badge.name} — ${t("gamification.locked")}`}
                 >
                   <div className="text-[22px] mb-1.5">{meta.emoji}</div>
-                  <div className="text-[10px] font-semibold leading-tight" style={{ color: "#eeeeff" }}>
+                  <div className="text-[10px] font-semibold leading-tight" style={{ color: "#1a1b2e" }}>
                     {badge.name}
                   </div>
                 </div>
@@ -158,7 +158,7 @@ export default function Gamification() {
             </div>
             <div className="space-y-0">
               {missions.length === 0 ? (
-                <p className="text-xs" style={{ color: "rgba(144,144,184,1)" }}>{t("gamification.noMissions")}</p>
+                <p className="text-xs" style={{ color: "rgba(74,74,106,1)" }}>{t("gamification.noMissions")}</p>
               ) : (
                 missions.slice(0, 5).map((m) => (
                   <div key={m.id} className="flex items-center gap-3 py-[9px]" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
@@ -172,12 +172,12 @@ export default function Gamification() {
                       {m.completed && <span className="text-[9px] font-bold text-black">✓</span>}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[12px] leading-snug truncate" style={{ color: "#eeeeff" }}>{m.title}</div>
+                      <div className="text-[12px] leading-snug truncate" style={{ color: "#1a1b2e" }}>{m.title}</div>
                       {!m.completed && (m.target ?? 0) > 1 && (
-                        <div className="text-[10px]" style={{ color: "rgba(144,144,184,0.7)" }}>{m.progress ?? 0}/{m.target ?? 1}</div>
+                        <div className="text-[10px]" style={{ color: "rgba(74,74,106,0.9)" }}>{m.progress ?? 0}/{m.target ?? 1}</div>
                       )}
                     </div>
-                    <div className="text-[11px] font-semibold flex-shrink-0" style={{ color: "#7c6bff" }}>XP ✦</div>
+                    <div className="text-[11px] font-semibold flex-shrink-0" style={{ color: "#3930a8" }}>XP ✦</div>
                   </div>
                 ))
               )}
@@ -191,9 +191,9 @@ export default function Gamification() {
                 {t("gamification.streak")}
               </div>
               <div className="flex items-center gap-1.5">
-                <Flame className="w-4 h-4" style={{ color: "#ff9900" }} />
-                <span className="font-display text-[18px] font-bold leading-none" style={{ color: "#ff9900" }}>{streak}</span>
-                <span className="text-[10px]" style={{ color: "rgba(144,144,184,1)" }}>{t("gamification.days")}</span>
+                <Flame className="w-4 h-4" style={{ color: "#b45309" }} />
+                <span className="font-display text-[18px] font-bold leading-none" style={{ color: "#b45309" }}>{streak}</span>
+                <span className="text-[10px]" style={{ color: "rgba(74,74,106,1)" }}>{t("gamification.days")}</span>
               </div>
             </div>
             <div className="grid gap-[3px]" style={{ gridTemplateColumns: "repeat(21, 1fr)" }}>

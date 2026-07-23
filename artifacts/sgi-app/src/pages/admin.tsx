@@ -28,16 +28,16 @@ function StatCard({
   color?: string; warn?: boolean;
 }) {
   return (
-    <Card className="bg-card/50 backdrop-blur" style={{ border: warn ? "1px solid rgba(247,37,133,0.4)" : undefined }}>
+    <Card className="bg-card/50 backdrop-blur" style={{ border: warn ? "1px solid rgba(168,0,63,0.4)" : undefined }}>
       <CardContent className="pt-5 pb-4">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-xs uppercase tracking-widest font-medium mb-1" style={{ color: "#7070a0" }}>{label}</p>
-            <p className="text-3xl font-bold font-mono" style={{ color: warn ? "#f72585" : (color ?? "#eeeeff") }}>{value}</p>
-            {sub && <p className="text-xs mt-1" style={{ color: "#9090b8" }}>{sub}</p>}
+            <p className="text-xs uppercase tracking-widest font-medium mb-1" style={{ color: "#4a4a6a" }}>{label}</p>
+            <p className="text-3xl font-bold font-mono" style={{ color: warn ? "#a8003f" : (color ?? "#1a1b2e") }}>{value}</p>
+            {sub && <p className="text-xs mt-1" style={{ color: "#4a4a6a" }}>{sub}</p>}
           </div>
-          <div className="p-2 rounded-lg" style={{ background: warn ? "rgba(247,37,133,0.1)" : "rgba(124,107,255,0.1)" }}>
-            <Icon className="w-5 h-5" style={{ color: warn ? "#f72585" : (color ?? "#7c6bff") }} />
+          <div className="p-2 rounded-lg" style={{ background: warn ? "rgba(168,0,63,0.1)" : "rgba(57,48,168,0.1)" }}>
+            <Icon className="w-5 h-5" style={{ color: warn ? "#a8003f" : (color ?? "#3930a8") }} />
           </div>
         </div>
       </CardContent>
@@ -89,13 +89,13 @@ export default function AdminPage() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight font-display" style={{ color: "#eeeeff" }}>
+          <h2 className="text-3xl font-bold tracking-tight font-display" style={{ color: "#1a1b2e" }}>
             Admin Monitor
           </h2>
-          <p className="text-sm mt-1" style={{ color: "#9090b8" }}>
+          <p className="text-sm mt-1" style={{ color: "#4a4a6a" }}>
             Live stats · auto-refresh 30s
             {lastRefresh && (
-              <span className="ml-2 font-mono text-xs" style={{ color: "#7070a0" }}>
+              <span className="ml-2 font-mono text-xs" style={{ color: "#4a4a6a" }}>
                 · aggiornato {lastRefresh.toLocaleTimeString()}
               </span>
             )}
@@ -108,7 +108,7 @@ export default function AdminPage() {
           style={{
             background: "rgba(124,107,255,0.15)",
             border: "1px solid rgba(124,107,255,0.3)",
-            color: "#a89fff",
+            color: "#3930a8",
             opacity: loading ? 0.5 : 1,
           }}
         >
@@ -119,18 +119,18 @@ export default function AdminPage() {
 
       {/* Users */}
       <div>
-        <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: "#7070a0" }}>Utenti</h3>
+        <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: "#4a4a6a" }}>Utenti</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon={Users} label="Totale" value={stats?.users.total ?? "—"} color="#7c6bff" />
+          <StatCard icon={Users} label="Totale" value={stats?.users.total ?? "—"} color="#3930a8" />
           <StatCard icon={Users} label="Free" value={byPlan["free"] ?? 0} sub="piano gratuito" />
-          <StatCard icon={Zap} label="Premium" value={byPlan["premium"] ?? 0} sub="€14.99/mese" color="#a855f7" />
-          <StatCard icon={Zap} label="Pro" value={byPlan["pro"] ?? 0} sub="€29.99/mese" color="#06d6a0" />
+          <StatCard icon={Zap} label="Premium" value={byPlan["premium"] ?? 0} sub="€14.99/mese" color="#7e22ce" />
+          <StatCard icon={Zap} label="Pro" value={byPlan["pro"] ?? 0} sub="€29.99/mese" color="#0d7a5e" />
         </div>
       </div>
 
       {/* Revenue — Stripe (source of truth) */}
       <div>
-        <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: "#7070a0" }}>
+        <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: "#4a4a6a" }}>
           Abbonati Stripe attivi
           <span className="ml-2 normal-case" style={{ color: "#4a4a6a" }}>· fonte di verità</span>
         </h3>
@@ -138,10 +138,10 @@ export default function AdminPage() {
           <Card className="bg-card/50 backdrop-blur" style={{ border: "1px solid rgba(247,37,133,0.4)" }}>
             <CardContent className="pt-5 pb-4">
               <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 shrink-0" style={{ color: "#f72585" }} />
+                <AlertTriangle className="w-5 h-5 shrink-0" style={{ color: "#a8003f" }} />
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: "#f72585" }}>Stripe non raggiungibile</p>
-                  <p className="text-xs mt-0.5 font-mono" style={{ color: "#9090b8" }}>{stats.revenue.stripe.error}</p>
+                  <p className="text-sm font-semibold" style={{ color: "#a8003f" }}>Stripe non raggiungibile</p>
+                  <p className="text-xs mt-0.5 font-mono" style={{ color: "#4a4a6a" }}>{stats.revenue.stripe.error}</p>
                 </div>
               </div>
             </CardContent>
@@ -153,14 +153,14 @@ export default function AdminPage() {
               label="Abbonati attivi"
               value={stats?.revenue.stripe.activeCount ?? "—"}
               sub="subscription active / trialing"
-              color="#06d6a0"
+              color="#0d7a5e"
             />
             <StatCard
               icon={TrendingUp}
               label="MRR reale"
               value={`€${stats?.revenue.stripe.totalMonthlyEur.toFixed(2) ?? "—"}`}
               sub="da Stripe — fonte di verità"
-              color="#f72585"
+              color="#a8003f"
             />
           </div>
         )}
@@ -168,29 +168,29 @@ export default function AdminPage() {
 
       {/* Revenue — DB plan counts (reference / debug) */}
       <div>
-        <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: "#7070a0" }}>
+        <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: "#4a4a6a" }}>
           Utenti DB per piano
           <span className="ml-2 normal-case" style={{ color: "#4a4a6a" }}>· riferimento debug</span>
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard icon={Zap} label="Premium (DB)" value={stats?.revenue.db.premiumCount ?? "—"} sub="conteggio nel DB" color="#a855f7" />
-          <StatCard icon={Zap} label="Pro (DB)" value={stats?.revenue.db.proCount ?? "—"} sub="conteggio nel DB" color="#06d6a0" />
+          <StatCard icon={Zap} label="Premium (DB)" value={stats?.revenue.db.premiumCount ?? "—"} sub="conteggio nel DB" color="#7e22ce" />
+          <StatCard icon={Zap} label="Pro (DB)" value={stats?.revenue.db.proCount ?? "—"} sub="conteggio nel DB" color="#0d7a5e" />
           <StatCard
             icon={DollarSign}
             label="Stimato (DB)"
             value={`€${stats?.revenue.db.estimatedMonthlyEur.toFixed(2) ?? "—"}`}
             sub="se tutti i piani DB fossero reali"
-            color="#7070a0"
+            color="#4a4a6a"
           />
         </div>
       </div>
 
       {/* Messages & Errors */}
       <div>
-        <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: "#7070a0" }}>Messaggi & Errori</h3>
+        <h3 className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: "#4a4a6a" }}>Messaggi & Errori</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon={MessageSquare} label="Msg 24h" value={stats?.messages.last24h ?? "—"} color="#7c6bff" />
-          <StatCard icon={MessageSquare} label="Msg 7 giorni" value={stats?.messages.last7d ?? "—"} color="#06b6d4" />
+          <StatCard icon={MessageSquare} label="Msg 24h" value={stats?.messages.last24h ?? "—"} color="#3930a8" />
+          <StatCard icon={MessageSquare} label="Msg 7 giorni" value={stats?.messages.last7d ?? "—"} color="#0e7490" />
           <StatCard
             icon={AlertTriangle}
             label="Errori 24h"
@@ -203,7 +203,7 @@ export default function AdminPage() {
             label="Costo AI 24h"
             value={`€${stats?.cost.last24hEur.toFixed(3) ?? "—"}`}
             sub={`${stats?.cost.last24hCents ?? "—"} centesimi`}
-            color="#f59e0b"
+            color="#b45309"
           />
         </div>
       </div>
@@ -226,12 +226,12 @@ export default function AdminPage() {
                 />
               </div>
               <span className="font-mono text-sm font-bold" style={{
-                color: stats.errors.rate24hPct > 10 ? "#f72585" : stats.errors.rate24hPct > 3 ? "#f59e0b" : "#10b981",
+                color: stats.errors.rate24hPct > 10 ? "#a8003f" : stats.errors.rate24hPct > 3 ? "#b45309" : "#15803d",
               }}>
                 {stats.errors.rate24hPct}%
               </span>
             </div>
-            <p className="text-xs mt-2" style={{ color: "#9090b8" }}>
+            <p className="text-xs mt-2" style={{ color: "#4a4a6a" }}>
               {stats.errors.rate24hPct < 1
                 ? "✅ Ottimo — nessun problema significativo"
                 : stats.errors.rate24hPct < 5
@@ -259,10 +259,10 @@ export default function AdminPage() {
                   return (
                     <div key={m.model}>
                       <div className="flex justify-between text-xs mb-1">
-                        <span style={{ color: "#eeeeff" }}>
+                        <span style={{ color: "#1a1b2e" }}>
                           {isAnthropic ? "⚡ " : "🤖 "}{m.model}
                         </span>
-                        <span className="font-mono" style={{ color: "#9090b8" }}>
+                        <span className="font-mono" style={{ color: "#4a4a6a" }}>
                           {m.conversations} conv · {pct}%
                         </span>
                       </div>
@@ -271,7 +271,7 @@ export default function AdminPage() {
                           className="h-full rounded-full"
                           style={{
                             width: `${pct}%`,
-                            background: isAnthropic ? "#f59e0b" : "#7c6bff",
+                            background: isAnthropic ? "#f59e0b" : "#3930a8",
                           }}
                         />
                       </div>
@@ -283,7 +283,7 @@ export default function AdminPage() {
         </Card>
       )}
 
-      <p className="text-xs text-center" style={{ color: "#7070a0" }}>
+      <p className="text-xs text-center" style={{ color: "#4a4a6a" }}>
         Generato: {stats?.generatedAt ? new Date(stats.generatedAt).toLocaleString() : "—"} · Accesso riservato all'admin
       </p>
     </div>

@@ -373,13 +373,13 @@ export default function Chat() {
           <div className="fixed inset-0 z-40" onClick={() => setModelDropdownOpen(false)} />
         )}
         <div className="relative z-50">
-          <p className="text-[10px] uppercase tracking-widest font-semibold mb-1 px-0.5" style={{ color: "#9090b8" }}>
+          <p className="text-[10px] uppercase tracking-widest font-semibold mb-1 px-0.5" style={{ color: "#4a4a6a" }}>
             {t("chat.modelForNewConvos")}
           </p>
           <button
             onClick={() => setModelDropdownOpen(o => !o)}
             className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-white/5"
-            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "#a89fff" }}
+            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "#3930a8" }}
           >
             <span>{MODELS.find(m => m.id === selectedModel)?.label ?? "Haiku"}</span>
             <ChevronDown className="w-3 h-3 opacity-60" />
@@ -444,7 +444,7 @@ export default function Chat() {
           <div
             data-testid="text-create-error"
             className="flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs"
-            style={{ background: "rgba(247,37,133,0.08)", border: "1px solid rgba(247,37,133,0.2)", color: "#f72585" }}
+            style={{ background: "rgba(168,0,63,0.06)", border: "1px solid rgba(168,0,63,0.18)", color: "#a8003f" }}
           >
             <span className="flex-1">{createError}</span>
             <button
@@ -459,9 +459,9 @@ export default function Chat() {
         {/* Usage counter */}
         {usageData && (
           <div className="px-1">
-            <div className="flex items-center justify-between text-xs mb-1" style={{ color: "#9090b8" }}>
+            <div className="flex items-center justify-between text-xs mb-1" style={{ color: "#4a4a6a" }}>
               <span>{t("chat.usageCounter", { used: usageData.used, limit: usageData.limit })}</span>
-              <span className="capitalize" style={{ color: usageData.plan === "premium" ? "#a89fff" : "#9090b8" }}>
+              <span className="capitalize" style={{ color: usageData.plan === "premium" ? "#3930a8" : "#4a4a6a" }}>
                 {usageData.plan}
               </span>
             </div>
@@ -477,7 +477,7 @@ export default function Chat() {
               />
             </div>
             {usageData.warning && usageData.remaining > 0 && (
-              <p className="text-xs mt-1" style={{ color: "#f72585" }}>
+              <p className="text-xs mt-1" style={{ color: "#a8003f" }}>
                 {t("chat.fewLeft", { n: usageData.remaining })}
               </p>
             )}
@@ -488,18 +488,18 @@ export default function Chat() {
         {limitBlocked && (
           <div
             className="rounded-xl p-3 flex flex-col gap-2"
-            style={{ background: "rgba(247,37,133,0.08)", border: "1px solid rgba(247,37,133,0.25)" }}
+            style={{ background: "rgba(168,0,63,0.06)", border: "1px solid rgba(168,0,63,0.22)" }}
           >
             <div className="flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#f72585" }} />
-              <p className="text-xs font-semibold" style={{ color: "#f72585" }}>{t("chat.limitReached")}</p>
+              <Lock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#a8003f" }} />
+              <p className="text-xs font-semibold" style={{ color: "#a8003f" }}>{t("chat.limitReached")}</p>
             </div>
             {usageData?.plan === "premium" ? (
               <>
-                <p className="text-xs" style={{ color: "#9090b8" }}>{t("chat.upgradePro")}</p>
+                <p className="text-xs" style={{ color: "#4a4a6a" }}>{t("chat.upgradePro")}</p>
                 <button
                   className="text-xs py-1.5 px-3 rounded-full font-semibold transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94]"
-                  style={{ background: "linear-gradient(135deg, #f0c040, #e08020)", color: "#fff" }}
+                  style={{ background: "linear-gradient(135deg, #9a6800, #7a5200)", color: "#fff" }}
                   onClick={() => setLocation("/settings")}
                 >
                   {t("chat.upgradeProBtn")}
@@ -507,18 +507,18 @@ export default function Chat() {
               </>
             ) : (
               <>
-                <p className="text-xs" style={{ color: "#9090b8" }}>{t("chat.upgradePro")}</p>
+                <p className="text-xs" style={{ color: "#4a4a6a" }}>{t("chat.upgradePro")}</p>
                 <div className="flex flex-col gap-1.5">
                   <button
                     className="text-xs py-1.5 px-3 rounded-full font-semibold transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94]"
-                    style={{ background: "linear-gradient(135deg, #7c6bff, #5b4de0)", color: "#fff" }}
+                    style={{ background: "linear-gradient(135deg, #4c3cbf, #3a2ea0)", color: "#fff" }}
                     onClick={() => setLocation("/settings")}
                   >
                     {t("chat.upgradePremiumBtn")}
                   </button>
                   <button
                     className="text-xs py-1.5 px-3 rounded-full font-semibold transition-[opacity,transform] duration-100 hover:opacity-80 active:scale-[0.94]"
-                    style={{ background: "linear-gradient(135deg, #f0c040, #e08020)", color: "#fff" }}
+                    style={{ background: "linear-gradient(135deg, #9a6800, #7a5200)", color: "#fff" }}
                     onClick={() => setLocation("/settings")}
                   >
                     {t("chat.upgradeProBtn")}
@@ -623,7 +623,7 @@ export default function Chat() {
                       style={{
                         background: outOfPlan ? "rgba(255,209,102,0.08)" : "rgba(124,107,255,0.12)",
                         border: `1px solid ${outOfPlan ? "rgba(255,209,102,0.3)" : "rgba(124,107,255,0.3)"}`,
-                        color: outOfPlan ? "#f0c040" : "#a89fff",
+                        color: outOfPlan ? "#8c6300" : "#3930a8",
                         cursor: "default",
                       }}
                       title={outOfPlan ? t("chat.modelOutOfPlan", { model: modelEntry.label, plan: userPlan, planModel: planDefault.label }) : modelEntry.label}
@@ -639,7 +639,7 @@ export default function Chat() {
                     style={{
                       background: lastSgiDelta > 0 ? "rgba(6,214,160,0.12)" : lastSgiDelta < 0 ? "rgba(247,37,133,0.12)" : "rgba(255,255,255,0.06)",
                       border: `1px solid ${lastSgiDelta > 0 ? "rgba(6,214,160,0.3)" : lastSgiDelta < 0 ? "rgba(247,37,133,0.3)" : "rgba(255,255,255,0.1)"}`,
-                      color: lastSgiDelta > 0 ? "#06d6a0" : lastSgiDelta < 0 ? "#f72585" : "#9090b8",
+                      color: lastSgiDelta > 0 ? "#0d7a5e" : lastSgiDelta < 0 ? "#a8003f" : "#4a4a6a",
                     }}
                   >
                     <Zap className="w-3.5 h-3.5" />
@@ -665,7 +665,7 @@ export default function Chat() {
                     style={{ background: "rgba(255,209,102,0.06)", border: "1px solid rgba(255,209,102,0.2)" }}
                   >
                     <span className="text-sm leading-none mt-0.5 flex-shrink-0">⚠️</span>
-                    <p style={{ color: "#f0c040", lineHeight: 1.6 }}>
+                    <p style={{ color: "#8c6300", lineHeight: 1.6 }}>
                       {t("chat.modelOutOfPlan", { model: convoModelLabel, plan: userPlan, planModel: planDefaultLabel })}
                     </p>
                   </div>

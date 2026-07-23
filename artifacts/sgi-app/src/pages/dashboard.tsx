@@ -32,10 +32,10 @@ interface MacroDim {
 }
 
 const MACRO_DIMS: MacroDim[] = [
-  { key: "profondita",   labelKey: "dashboard.dimProfondita",   descKey: "dashboard.dimProfonditaDesc",   color: "#7c6bff", icon: "🧠" },
-  { key: "connettivita", labelKey: "dashboard.dimConnettivita", descKey: "dashboard.dimConnettivitaDesc", color: "#06b6d4", icon: "🔗" },
-  { key: "precisione",   labelKey: "dashboard.dimPrecisione",   descKey: "dashboard.dimPrecizioneDesc",   color: "#a855f7", icon: "🎯" },
-  { key: "revisione",    labelKey: "dashboard.dimRevisione",    descKey: "dashboard.dimRevisioneDesc",    color: "#10b981", icon: "🔄" },
+  { key: "profondita",   labelKey: "dashboard.dimProfondita",   descKey: "dashboard.dimProfonditaDesc",   color: "#3930a8", icon: "🧠" },
+  { key: "connettivita", labelKey: "dashboard.dimConnettivita", descKey: "dashboard.dimConnettivitaDesc", color: "#0e7490", icon: "🔗" },
+  { key: "precisione",   labelKey: "dashboard.dimPrecisione",   descKey: "dashboard.dimPrecizioneDesc",   color: "#7e22ce", icon: "🎯" },
+  { key: "revisione",    labelKey: "dashboard.dimRevisione",    descKey: "dashboard.dimRevisioneDesc",    color: "#15803d", icon: "🔄" },
 ];
 
 export default function Dashboard() {
@@ -245,7 +245,7 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
                         <span className="text-lg leading-none">{dim.icon}</span>
-                        <span className="text-sm font-semibold" style={{ color: "#eeeeff" }}>{t(dim.labelKey)}</span>
+                        <span className="text-sm font-semibold" style={{ color: "#1a1b2e" }}>{t(dim.labelKey)}</span>
                       </div>
                       <span className="font-mono text-sm font-bold" style={{ color: dim.color }}>{val.toFixed(1)}<span className="text-[10px] text-muted-foreground">/10</span></span>
                     </div>
@@ -256,7 +256,7 @@ export default function Dashboard() {
                         style={{ width: `${pct}%`, background: dim.color, opacity: 0.85 }}
                       />
                     </div>
-                    <p className="text-[11px] mt-1.5 leading-snug" style={{ color: "#7070a0" }}>{t(dim.descKey)}</p>
+                    <p className="text-[11px] mt-1.5 leading-snug" style={{ color: "#4a4a6a" }}>{t(dim.descKey)}</p>
                   </div>
                 );
               })}
@@ -339,13 +339,13 @@ export default function Dashboard() {
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     {card.isPositive
-                      ? <TrendingUp className="w-4 h-4 flex-shrink-0" style={{ color: "#4eeec0" }} />
-                      : <TrendingDown className="w-4 h-4 flex-shrink-0" style={{ color: "#f72585" }} />}
+                      ? <TrendingUp className="w-4 h-4 flex-shrink-0" style={{ color: "#0d7a5e" }} />
+                      : <TrendingDown className="w-4 h-4 flex-shrink-0" style={{ color: "#a8003f" }} />}
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold truncate" style={{ color: "#eeeeff" }}>
+                      <p className="text-sm font-semibold truncate" style={{ color: "#1a1b2e" }}>
                         {card.deltaPct > 0 ? "+" : ""}{card.deltaPct}% — {card.conversationTitle}
                       </p>
-                      <p className="text-xs truncate" style={{ color: "#9090b8" }}>
+                      <p className="text-xs truncate" style={{ color: "#4a4a6a" }}>
                         {card.highlightMetricLabel} {card.highlightDeltaPct > 0 ? "+" : ""}{card.highlightDeltaPct}%
                       </p>
                     </div>
@@ -354,7 +354,7 @@ export default function Dashboard() {
                     <button
                       onClick={() => setLocation(`/progress-card/${card.id}`)}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0 transition-opacity hover:opacity-80"
-                      style={{ background: "rgba(6,214,160,0.15)", border: "1px solid rgba(6,214,160,0.35)", color: "#4eeec0" }}
+                      style={{ background: "rgba(13,122,94,0.12)", border: "1px solid rgba(13,122,94,0.3)", color: "#0d7a5e" }}
                     >
                       {t("progressCard.shareCta")}
                     </button>
